@@ -87,8 +87,8 @@ export const DATA = {
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
   goals: {
     kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 5 }, { id: 'badge', need: 1 }, { id: 'savings', need: 400 }, { id: 'reputation', need: 50 }],
-    reitschule: [],
-  } as Record<'kleinerHof' | 'reitschule', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation'; need: number }[]>,
+    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 15 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
+  } as Record<'kleinerHof' | 'reitschule', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses'; need: number }[]>,
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
   /** What Oma Hanne explains the first time the player opens it. */
@@ -97,7 +97,20 @@ export const DATA = {
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],
   /** Stalls ("Boxen") in the stable, per farm stage. */
-  stalls: { kleinerHof: 2, reitschule: 4 },
+  stalls: { kleinerHof: 2, reitschule: 2 },
+  /**
+   * The farm inspection ("Hof-Prüfung") after all goals of the Kleiner Hof: a quiz with the inspector. At the
+   * Reitschule: a horse market with fresh offers each morning, stall places to build on the free plot, the arena
+   * to upgrade for one more pupil a day.
+   */
+  inspection: { questions: 5, answers: 3, pass: 4 },
+  market: {
+    offers: 3,
+    price: { pony: [220, 380], horse: [420, 620] },
+    breeds: ['haflinger', 'islaender', 'reitpony', 'warmblut', 'quarter'],
+    names: ['Blitz', 'Sternchen', 'Fanny', 'Moritz', 'Pünktchen', 'Lotte', 'Max', 'Wolke', 'Karamell', 'Nugget', 'Bella', 'Sammy', 'Flocke', 'Sunny'],
+  },
+  build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 } },
   /** The farm stage that unlocks building on a free plot. */
   freePlotsFrom: 'reitschule',
 } as const;

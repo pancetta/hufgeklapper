@@ -112,7 +112,7 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
@@ -173,8 +173,36 @@ export const t = {
     badge: () => 'Mach dein erstes Reitabzeichen',
     savings: (n: number) => `Spare ${n} € (ohne Schulden)`,
     reputation: (n: number) => `Mach deine Reitschüler glücklich (Ruf ${n})`,
+    horses: (n: number) => `Hab ${n} Pferde oder Ponys`,
   },
-  allGoals: 'Alle Aufgaben geschafft! Bald kommt die Hof-Prüfung.',
+  allGoals: { kleinerHof: 'Alle Aufgaben geschafft!', reitschule: 'Alle Aufgaben geschafft! Die nächste Stufe kommt bald.' },
+  // the farm inspection
+  inspector: 'Frau Berger, die Prüferin',
+  startInspection: 'Hof-Prüfung starten',
+  inspectionTomorrow: 'Die Prüferin kommt morgen wieder.',
+  inspectionIntro: 'Guten Tag! Ich bin Frau Berger und prüfe deinen Hof. Ich habe fünf Fragen an dich.',
+  inspectionQuiz: [
+    { q: 'Wann braucht ein Pferd frisches Wasser?', a: [{ text: 'Immer, den ganzen Tag' }, { text: 'Einmal in der Woche' }, { text: 'Nur im Sommer' }] },
+    { q: 'Warum mistest du den Stall aus?', a: [{ text: 'Damit das Pferd sauber und gesund bleibt', icon: 'muck' }, { text: 'Damit es mehr Platz zum Rennen hat' }, { text: 'Das muss man nicht' }] },
+    { q: 'Was braucht ein Pferd jeden Tag?', a: [{ text: 'Futter, Bewegung und andere Pferde' }, { text: 'Nur einen warmen Stall' }, { text: 'Einen Fernseher' }] },
+    { q: 'Wie oft kommt der Hufschmied?', a: [{ text: 'Alle paar Wochen', icon: 'hooves' }, { text: 'Nie' }, { text: 'Nur an Weihnachten' }] },
+    { q: 'Wie lebt ein Pferd am liebsten?', a: [{ text: 'Mit anderen Pferden zusammen' }, { text: 'Ganz allein' }, { text: 'Im Haus' }] },
+  ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
+  inspectionPassed: 'Herzlichen Glückwunsch! Dein Hof ist jetzt eine Reitschule. Du kannst Pferde kaufen und bauen!',
+  inspectionFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht noch nicht. Morgen komme ich wieder.`,
+  // the Reitschule: market and building
+  market: 'Pferdemarkt',
+  marketEmpty: 'Heute gibt es keine Pferde mehr. Morgen kommen neue.',
+  offer: (name: string, breed: string, price: number) => `${name} · ${breed} · ${price} €`,
+  noStall: 'Kein Stallplatz frei. Bau erst neue Stallplätze!',
+  tooExpensive: 'zu teuer',
+  boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
+  shelter: 'Offenstall',
+  buildStalls: (cost: number) => `Stallplätze bauen (${cost} €)`,
+  upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost} €)`,
+  buildWaits: { stage: 'Bauen kannst du erst als Reitschule.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
+  builtStalls: 'Der Offenstall ist fertig. Jetzt passen zwei Pferde mehr hinein.',
+  builtArena: 'Der Reitplatz ist schöner geworden. Jetzt kommt jeden Tag ein Reitschüler mehr.',
   hints: {
     sick: (name: string) => `${name} ist krank. Ruf im Stall den Tierarzt!`,
     hungry: (name: string) => `${name} hat Hunger. Gib im Stall Heu!`,

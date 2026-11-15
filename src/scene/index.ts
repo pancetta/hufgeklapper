@@ -4,14 +4,14 @@ import { blit, image } from './draw';
 import { ground, plotDrawables } from './buildings';
 import { FOCUS, MAP, PLOTS, PROPS, SPRITES, WORLD } from './farm';
 import type { Look } from '../horses/look';
-import { bounds } from './buildings';
+import { bounds, type Plot } from './buildings';
 import type { Kid } from '../riders/look';
 import { createLife, type Drawable, lifeSheets, loadHorses, START_HERD } from './life';
 import { paintTerrain } from './terrain';
 
 const SWAYS = /^(lavender|cream|blue|red|roses|spike|cluster|meadow|tulips|grass|cattail|reeds|sunflowers)/;
 
-function staticDrawables(img: Record<string, HTMLImageElement>): Drawable[] {
+function staticDrawables(img: Record<string, HTMLImageElement>, plots: Plot[]): Drawable[] {
   const out: Drawable[] = [];
   for (const [name, x, y] of PROPS) {
     const s = SPRITES[name], sways = SWAYS.test(name), phase = x * 0.13 + y * 0.07;
@@ -19,13 +19,14 @@ function staticDrawables(img: Record<string, HTMLImageElement>): Drawable[] {
       blit(ctx, img[s.sheet], s.rect, x - s.ax + (sways && Math.sin(t * 1.6 + phase) > 0.7 ? 1 : 0), y - s.ay);
     } });
   }
-  for (const p of PLOTS) out.push(...plotDrawables(p, img));
+  for (const p of plots) out.push(...plotDrawables(p, img));
   return out;
 }
 
 export type FarmOptions = {
   herd?: Look[]; // the horses on the pasture (the start screen shows a sample herd)
   canter?: boolean; // a pony canters over the jumps
+  plots?: Plot[]; // the farm's plots as built (default: the starting farm)
   onTap?: (target: string) => void; // a plot's id, or 'board' for the notice board
   onLayout?: () => void; // the view changed size: labels placed with toScreen need moving
 };
@@ -38,7 +39,7 @@ function hit(x: number, y: number): string | undefined {
 }
 
 export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {}) {
-  const herd = opts.herd ?? START_HERD, canter = opts.canter ?? true;
+  const herd = opts.herd ?? START_HERD, canter = opts.canter ?? true, plots = opts.plots ?? PLOTS;
   const sheets = new Set(['nature/terrain.png', 'farm/barn.png', 'farm/fences.png', ...Object.values(SPRITES).map((s) => s.sheet), ...lifeSheets(herd)]);
   const img: Record<string, HTMLImageElement> = {};
   await Promise.all([...sheets].map(async (s) => { img[s] = await image(s); }));
@@ -48,11 +49,11 @@ export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {
   groundCanvas.width = WORLD.width; groundCanvas.height = WORLD.height;
   // buildings bring their own ground (an arena its sand) on top of the landscape
   const map = MAP.map((row) => [...row]);
-  for (const p of PLOTS) for (const { ch, c, r } of ground(p)) map[r][c] = ch;
+  for (const p of plots) for (const { ch, c, r } of ground(p)) map[r][c] = ch;
   paintTerrain(groundCanvas.getContext('2d')!, img['nature/terrain.png'], map.map((row) => row.join('')));
 
-  const scenery = staticDrawables(img);
-  const life = createLife(7, PLOTS, herd, canter);
+  const scenery = staticDrawables(img, plots);
+  const life = createLife(7, plots, herd, canter);
   const ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, ox = 0, oy = 0, last = performance.now(), vignette: CanvasGradient, running = true;
 
