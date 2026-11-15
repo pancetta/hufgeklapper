@@ -314,6 +314,7 @@ export function showFarm(intro = false) {
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
+    else if (s.built.stalls) showStable(); // the Offenstall is part of the stable
     else build('stalls', t.buildStalls(DATA.build.stalls.cost), t.builtStalls);
   };
   const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); guide(); });
@@ -405,9 +406,9 @@ export function showFarm(intro = false) {
       ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${s.stage === 'reitschule' ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
-        const why = s.horses.length >= stalls(s) ? t.noStall : s.money < o.price ? t.tooExpensive : '';
-        return `<button type="button" data-offer="${o.id}"${why ? ' disabled' : ''}>${t.offer(esc(o.name), BREEDS[o.breed].label, o.price)}${why && why !== t.noStall ? ` · ${why}` : ''}</button>`;
-      }).join('') + (s.horses.length >= stalls(s) ? `<p class="oma">${t.noStall}</p>` : '') : `<p>${t.marketEmpty}</p>`}` : ''}
+        const full = s.horses.length >= stalls(s), poor = s.money < o.price;
+        return `<button type="button" data-offer="${o.id}"${full || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)}${!full && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
+      }).join('') + (s.horses.length >= stalls(s) ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.marketEmpty}</p>`}` : ''}
       <button type="button" id="close-shop">${t.close}</button>`;
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
       const o = game.get().market.find((x) => x.id === b.dataset.offer);
@@ -426,7 +427,7 @@ export function showFarm(intro = false) {
   /** Builds on a plot after asking: the price and what it brings, or why not now; the map shows it at once. */
   function build(what: 'stalls' | 'arena', label: string, built: string) {
     const sheet = $('lesson'), why = buildWaits(game.get(), what);
-    sheet.firstElementChild!.innerHTML = `<button type="button" id="do-build"${why ? ' disabled aria-describedby="build-why"' : ''}>${label}</button>
+    sheet.firstElementChild!.innerHTML = `<p>${t.brings[what]}</p><button type="button" id="do-build"${why ? ' disabled aria-describedby="build-why"' : ''}>${label}</button>
       ${why ? `<p class="oma" id="build-why">${t.buildWaits[why]}</p>` : ''}<button type="button" id="close-lesson">${t.close}</button>`;
     $('do-build').addEventListener('click', () => { game.dispatch({ type: 'build', what }); showFarm(); omaSays(built); });
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });

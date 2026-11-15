@@ -56,7 +56,7 @@ function isOffer(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 10 && isAvatar(x.avatar) && isInt(x.inspectionFailedDay, 0)
+  return isObj(x) && x.version === 10 && isAvatar(x.avatar) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
     && Array.isArray(x.market) && x.market.length <= 10 && x.market.every(isOffer)
     && isObj(x.built) && isInt(x.built.stalls, 0, 1) && isInt(x.built.arena, 0, 1)
     && Array.isArray(x.goalsDone) && x.goalsDone.length <= 20 && x.goalsDone.every((g) => GOALS.has(g as string))
@@ -131,7 +131,7 @@ function fromVersion8(x: Obj): unknown {
 function fromVersion9(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
-  return { ...x, version: 10, state: { ...s, version: 10, inspectionFailedDay: 0, market: [], built: { stalls: 0, arena: 0 } } };
+  return { ...x, version: 10, state: { ...s, version: 10, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 } } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
