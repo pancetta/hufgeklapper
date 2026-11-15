@@ -1,0 +1,36 @@
+src/style.css
+  s_7657db1b41ed88::t_f5dd8165a0b0bd 46,86-104,162-181
+src/game.ts
+  s_7657db1b41ed88::t_0b61bc9bb7bdd7 1-2,4,7,9-14,18-23,26-27
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_e814cb19cd1c72 1-35
+src/sim/save.ts
+  s_7657db1b41ed88::t_12f19b25c8a856 1-51
+src/ui/screens.ts
+  s_7657db1b41ed88::t_f5dd8165a0b0bd 13,15,50-79,81,86,88-98,101,103-133,144,186
+  s_7657db1b41ed88::t_a354b27419ef8c 87
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_9c153ad3ab8457 1,4-10,22,24,49-78
+  s_7657db1b41ed88::t_4d74ce5a8970d0 79-80
+src/slots.ts
+  s_7657db1b41ed88::t_37e3d6216ce7be 1-20
+src/strings.ts
+  s_7657db1b41ed88::t_a354b27419ef8c 16
+  s_7657db1b41ed88::t_f5dd8165a0b0bd 15,17-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "397bf49cd5485b9ac4c3df1b568f61f4cfb5d163",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
