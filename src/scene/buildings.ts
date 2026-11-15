@@ -129,9 +129,9 @@ function shelter(p: Plot): Drawable {
 function pennants(p: Plot): Drawable {
   const b = bounds(p), x0 = b.x0 + 12, x1 = b.x1 - 92, y = b.y0 + 1, colours = ['#d94f3d', '#f2c14e', '#3d6fd9', '#43a047'];
   return { y, draw: (ctx) => {
-    for (let x = x0; x < x1; x++) { ctx.fillStyle = '#efe6d0'; ctx.fillRect(x, y - 14 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3), 1, 1); }
+    for (let x = x0; x < x1; x++) { ctx.fillStyle = '#efe6d0'; ctx.fillRect(x, y - 7 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3), 1, 1); }
     for (let x = x0 + 4, i = 0; x < x1 - 4; x += 9, i++) {
-      const top = y - 13 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3);
+      const top = y - 6 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3);
       ctx.fillStyle = colours[i % colours.length];
       for (let r = 0; r < 5; r++) ctx.fillRect(x - 2 + Math.ceil(r / 2), top + r, 5 - 2 * Math.ceil(r / 2), 1);
     }
