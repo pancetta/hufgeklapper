@@ -10,7 +10,9 @@ import { startFarm } from '../scene';
 import { bounds } from '../scene/buildings';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
+import { parseSave } from '../sim/save';
 import { canBuild, type Horse, isSick, NEEDS, stalls } from '../sim/state';
+import { readSlot, type Slot, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
 
@@ -45,16 +47,90 @@ const creditsSheet = () => `
     </div>
   </section>`;
 
+/** A yes/no question over the screen. */
+function ask(question: string, yes: string): Promise<boolean> {
+  const box = document.createElement('section');
+  box.className = 'overlay';
+  box.innerHTML = `<div class="sheet ask"><p>${esc(question)}</p><button type="button" data-a="yes">${yes}</button><button type="button" data-a="no">${t.no}</button></div>`;
+  app.append(box);
+  return new Promise((ok) => box.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest('button')?.dataset.a;
+    if (a) { box.remove(); ok(a === 'yes'); }
+  }));
+}
+
+/** Asks for the farm's name; null if cancelled. */
+function askName(): Promise<string | null> {
+  const box = document.createElement('section');
+  box.className = 'overlay';
+  box.innerHTML = `<form class="sheet ask"><label for="farm-name">${t.farmName}</label>
+    <input id="farm-name" maxlength="20" autocomplete="off" value="${t.farmNameDefault}">
+    <button type="submit">${t.start}</button><button type="button" data-a="no">${t.back}</button></form>`;
+  app.append(box);
+  const input = box.querySelector('input')!;
+  input.select();
+  return new Promise((ok) => {
+    box.querySelector('form')!.addEventListener('submit', (e) => { e.preventDefault(); box.remove(); ok(input.value.trim() || t.farmNameDefault); });
+    box.querySelector('[data-a=no]')!.addEventListener('click', () => { box.remove(); ok(null); });
+  });
+}
+
+const slotTitle = (slot: Slot) => slot.kind === 'save' ? esc(slot.save.name) : slot.kind === 'empty' ? t.slotEmpty : (slot.reason === 'newer' ? t.slotNewer : t.slotBroken);
+
 export function showStart() {
+  const slots = Array.from({ length: SLOTS }, (_, i) => readSlot(i));
   const $ = screen(`
     <canvas id="farm" aria-hidden="true"></canvas>
     <main class="start">
       <h1 class="plaque">${t.title}</h1>
-      <button id="start" type="button">${t.start}</button>
+      <div class="slots">${slots.map((slot, i) => `
+        <section class="slot ${slot.kind}" aria-label="${t.slot(i + 1)}">
+          <h2>${slotTitle(slot)}</h2>
+          <p>${slot.kind === 'save' ? t.slotInfo(slot.save.state.day, slot.save.state.money) : '&nbsp;'}</p>
+          ${slot.kind === 'save' ? `<button type="button" data-do="resume" data-slot="${i}">${t.resumeGame}</button>` : ''}
+          <button type="button" data-do="new" data-slot="${i}" class="${slot.kind === 'save' ? 'small' : ''}">${t.newGame}</button>
+          <span class="file-buttons">
+            ${slot.kind === 'save' ? `<button type="button" class="small" data-do="export" data-slot="${i}">${t.exportSave}</button>` : ''}
+            <button type="button" class="small" data-do="import" data-slot="${i}">${t.importSave}</button>
+          </span>
+        </section>`).join('')}
+      </div>
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
       <button id="show-credits" class="small corner" type="button">${t.credits}</button>
     </main>
+    <p id="toast" class="toast" role="status" hidden></p>
     ${creditsSheet()}`);
-  $('start').addEventListener('click', () => { game.start(Date.now() % 100000); showFarm(); });
+  const say = (text: string) => { const el = $('toast'); el.textContent = text; el.hidden = false; setTimeout(() => { el.hidden = true; }, 3000); };
+  // overwriting a slot always asks first, so a save is never wiped by accident
+  const mayOverwrite = (slot: Slot, yes: string) => slot.kind === 'empty' ? Promise.resolve(true)
+    : ask(slot.kind === 'save' ? t.overwrite(slot.save.name) : t.overwriteBroken, yes);
+  let importInto = 0;
+  $('import-file').addEventListener('change', async () => {
+    const input = $<HTMLInputElement>('import-file'), file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const parsed = parseSave(await file.text());
+    if (!parsed.ok) return say(parsed.reason === 'newer' ? t.importNewer : t.importInvalid);
+    if (!(await mayOverwrite(slots[importInto], t.yesLoad))) return;
+    if (!writeSlot(importInto, parsed.save)) return say(t.saveFailed);
+    showStart();
+  });
+  app.querySelectorAll<HTMLButtonElement>('[data-do]').forEach((b) => b.addEventListener('click', async () => {
+    const i = Number(b.dataset.slot), slot = slots[i];
+    if (b.dataset.do === 'resume' && slot.kind === 'save') { game.resume(slot.save.state, i, slot.save.name); showFarm(); }
+    if (b.dataset.do === 'new' && (await mayOverwrite(slot, t.yesNew))) {
+      const name = await askName();
+      if (name) { game.start(Date.now() % 100000, i, name); showFarm(); }
+    }
+    if (b.dataset.do === 'export' && slot.kind === 'save') {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(slot.save, null, 2)], { type: 'application/json' }));
+      a.download = `hufgeklapper-${slot.save.name.replace(/[^\p{L}\p{N}]+/gu, '-')}-tag-${slot.save.state.day}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    if (b.dataset.do === 'import') { importInto = i; $<HTMLInputElement>('import-file').click(); }
+  }));
   $('show-credits').addEventListener('click', () => { $('credits').hidden = false; });
   $('close-credits').addEventListener('click', () => { $('credits').hidden = true; });
   const farm = startFarm($<HTMLCanvasElement>('farm'));
@@ -65,6 +141,7 @@ export function showStart() {
 function topBar() {
   return `
     <header class="topbar">
+      <span class="stat farm-name">${esc(game.name())}</span>
       <span class="stat" id="money"><img class="icon" src="${icon('coin')}" alt="">${t.money(game.get().money)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
@@ -106,6 +183,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     el.textContent = text; el.hidden = false;
     clearTimeout(timer); timer = window.setTimeout(() => { el.hidden = true; }, 2600);
   };
+  game.onSaveFailed(() => toast(t.saveFailed));
   return { unsubscribe, toast };
 }
 
