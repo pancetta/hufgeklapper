@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, mood, passesBadge, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
+import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, passesBadge, type Pupil, roll, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -256,6 +256,12 @@ describe('Sim', () => {
     expect(clears(poor, J.window.base / 2)).toBe(true);
     expect(clears(poor, -J.window.base / 2 - 0.01)).toBe(false);
     expect(clears(best, 0.2)).toBe(true);
+    // a tap long before the jump does not count yet; one a bit early knocks the pole; no tap at all knocks it later
+    expect(takeOff(h, -J.early - 0.01)).toBe('early');
+    expect(takeOff(h, -J.early + 0.01)).toBe('fault');
+    expect(takeOff(h, 0)).toBe('clear');
+    expect(missed(h, jumpWindow(h) / 2 + J.late - 0.01)).toBe(false);
+    expect(missed(h, jumpWindow(h) / 2 + J.late + 0.01)).toBe(true);
   });
 
   it('trains jumping: skill grows (more for a clear round), energy goes; a sick or tired horse cannot', () => {

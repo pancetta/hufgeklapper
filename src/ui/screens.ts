@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, CARE, canBuild, badgeWaits, cantWork, clears, fit, jumpWindow, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { type Avatar, badgeWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -407,11 +407,11 @@ export function showFarm(intro = false) {
 function showJumping(id: string, badge?: { correct: number }) {
   const h = game.get().horses.find((x) => x.id === id)!;
   const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
-    <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow}</p>
-      <button type="button" id="jump-go">${t.go}</button></div></section>
+    <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
+      <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
-    look: h.look, kid: avatarKid(game.get().avatar), jumps: DATA.jumping.jumps, window: jumpWindow(h), judge: (offset) => clears(h, offset),
+    look: h.look, kid: avatarKid(game.get().avatar), jumps: DATA.jumping.jumps, window: jumpWindow(h), takeOff: (o) => takeOff(h, o), missed: (o) => missed(h, o),
   });
   // pointerdown, not click: the take-off timing should not wait for the finger to lift
   $('jumping').addEventListener('pointerdown', () => round.then((r) => r.tap()));
@@ -431,6 +431,7 @@ function showJumping(id: string, badge?: { correct: number }) {
     end.hidden = false;
   });
   $('jump-back').addEventListener('click', () => showFarm());
+  $('jump-leave').addEventListener('click', () => showFarm());
   leave = () => { round.then((r) => r.stop()); };
 }
 

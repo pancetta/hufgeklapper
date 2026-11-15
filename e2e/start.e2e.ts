@@ -1,6 +1,17 @@
 import { expect, type Page, test } from '@playwright/test';
+import { COURSE } from '../src/scene/jumping';
 import { DATA } from '../src/sim/data';
 import { t } from '../src/strings';
+
+/** Taps the jumping course at each perfect take-off, timed from now (the round has just started). */
+async function tapTakeOffs(page: Page) {
+  const start = Date.now(), { speed, takeoff, first, spacing } = COURSE;
+  for (let i = 0; i < DATA.jumping.jumps; i++) {
+    const at = start + ((first - takeoff + i * spacing) / speed) * 1000;
+    await page.waitForTimeout(Math.max(0, at - Date.now()));
+    await page.touchscreen.tap(300, 300); // not locator.tap: it would wait if the result covered the canvas
+  }
+}
 
 /** Starts a new game in the first slot under the given farm name, with the default figure, and listens to Oma Hanne. */
 async function newGame(page: Page, name: string) {
@@ -254,15 +265,13 @@ test('jumping practice: the avatar rides a round, taps take off, the pony trains
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.practiseJumping }).tap();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
-  await expect(page.getByText(t.jumpHow)).toBeVisible();
+  await expect(page.getByText(t.jumpHow(true))).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
-  // taps at fixed times through the round; each one takes off for the next jump, cleared or not
-  const canvas = page.locator('#jumping'), end = page.locator('#jump-end');
-  for (let i = 0; i < 60 && (await end.isHidden()); i++) {
-    await canvas.tap({ position: { x: 300, y: 300 } });
-    await page.waitForTimeout(300);
-  }
-  await expect(end).toBeVisible();
+  // taps at the right moments: at least one jump must be cleared (without taps, all five poles fall)
+  const end = page.locator('#jump-end');
+  await tapTakeOffs(page);
+  await expect(end).toBeVisible({ timeout: 15_000 });
+  await expect(end).not.toContainText(t.jumpFaults(DATA.jumping.jumps, 'Kiwi'));
   await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|gefallen\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
   expect(after.skills.jumping).toBeGreaterThan(before.skills.jumping);
@@ -300,13 +309,10 @@ test('riding badge 1: Oma asks five questions, a jumping round, then the rosette
   await expect(page.getByText(t.quizDone(5))).toBeVisible();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
-  const canvas = page.locator('#jumping'), end = page.locator('#jump-end');
-  for (let i = 0; i < 60 && (await end.isHidden()); i++) {
-    await canvas.tap({ position: { x: 300, y: 300 } });
-    await page.waitForTimeout(300);
-  }
-  // passed or not, the result and the save agree
-  await expect(end).toBeVisible();
+  const end = page.locator('#jump-end');
+  await tapTakeOffs(page);
+  // passed or not (the taps are timed, a pole may still fall), the result and the save agree
+  await expect(end).toBeVisible({ timeout: 15_000 });
   const passed = (await end.textContent())!.includes(t.badgePassed);
   if (!passed) await expect(end).toContainText(t.badgeFailed);
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
