@@ -30,11 +30,11 @@ export const t = {
   // Oma Hanne hands over the farm
   omaHanne: 'Oma Hanne',
   intro: (name: string, horses: string[]) => [
-    `Hallo ${name}! Ich bin Oma Hanne.`,
-    'Ich bin alt geworden. Ab heute gehört mein Hof dir!',
-    `Im Stall warten ${horses.join(' und ')}. Bitte pflege sie gut.`,
-    'Am Reitplatz warten Reitschüler. Sie bringen dir Geld.',
-    'Brauchst du Hilfe, dann bin ich da. Viel Spaß!',
+    `Hallo ${name}, ich bin Oma Hanne!`,
+    'Ab heute gehört mein Hof dir!',
+    `Im Stall warten ${horses.join(' und ')} auf dich.`,
+    'Am Reitplatz warten Reitschüler, die bringen dir Geld.',
+    'Wenn du Hilfe brauchst, bin ich da!',
   ],
   next: 'Weiter',
   farmNameDefault: 'Mein Ponyhof',

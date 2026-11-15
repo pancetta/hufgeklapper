@@ -15,8 +15,11 @@ test('a new game in slot 2: the player makes a figure, Oma Hanne hands over the 
   await page.getByRole('region', { name: t.slot(2) }).getByRole('button', { name: t.newGame }).tap();
   await expect(page.getByRole('heading', { name: t.whoAreYou })).toBeVisible();
   await page.getByLabel(t.yourName).fill('Mara');
+  const preview = () => page.locator('.preview').evaluate((c: HTMLCanvasElement) => c.toDataURL());
+  const before = await preview();
   await page.getByRole('button', { name: t.hairStyles.zoepfe }).tap();
   await page.getByRole('button', { name: t.colour(t.looks.jacket, 5) }).tap();
+  expect(await preview()).not.toBe(before); // the preview follows every choice
   await expect(page.getByRole('button', { name: t.hairStyles.zoepfe })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel(t.farmName).fill('Lindenhof');
   await page.getByRole('button', { name: t.start }).tap();
