@@ -90,8 +90,8 @@ export const PROPS: [SpriteName, number, number][] = [
   ['cream', 120, 230], ['blue', 98, 360], ['clusterPurple', 815, 160], ['meadow2', 830, 130], ['spikeYellow', 400, 280],
   ['grass1', 420, 300], ['grass2', 840, 300], ['grass3', 200, 560], ['red', 690, 540], ['meadow3', 620, 528], ['grass1', 512, 536],
   // pond in the middle, reeds on its banks
-  ['cattail', 366, 100], ['cattail2', 382, 94], ['reeds', 484, 120], ['cattail', 486, 186], ['cattail2', 360, 196],
-  ['grass2', 430, 214], ['clusterBlue', 470, 212],
+  ['cattail', 366, 100], ['cattail2', 382, 94], ['cattail2', 360, 196],
+  ['grass2', 430, 214],
   ['clusterPurple', 712, 530], ['bushSmall', 880, 450],
 ];
 
@@ -106,3 +106,5 @@ export const PLOTS: Plot[] = [
 
 /** Where the scene's camera looks; each device shows as much around it as fits. */
 export const FOCUS = { x: 448, y: 275 };
+/** The windmill stands between the pond and the pasture, its foot here. */
+export const WINDMILL = { x: 494, y: 214 };

@@ -7,13 +7,15 @@ import { horseSheet } from '../horses/compose';
 import { type Anim, COATS, type Look } from '../horses/look';
 import { canterLoop, inside, jumps, type Plot, track, waitingSpots } from './buildings';
 import { blit, type Rect, shadow } from './draw';
+import { WINDMILL } from './farm';
 import { drawKid, drawRider, type Kid } from './kids';
+import { drawWindmill } from './windmill';
 
 export type Drawable = { y: number; draw: (ctx: CanvasRenderingContext2D, t: number) => void };
 type Images = Record<string, CanvasImageSource>;
 
 /** mulberry32: small, fast, seeded. */
-function random(seed: number) {
+export function random(seed: number) {
   return () => {
     seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -68,11 +70,11 @@ function seat(build: Look['build'], dir: Dir) {
   return { dx: side ? (pony ? 4 : 7) * (dir === 'W' ? -1 : 1) : 0, dy };
 }
 
-type Walker = { x: number; y: number; tx: number; ty: number; wait: number; dir: Dir; mode: 'walk' | 'stand' | 'eat'; phase: number };
+export type Walker = { x: number; y: number; tx: number; ty: number; wait: number; dir: Dir; mode: 'walk' | 'stand' | 'eat'; phase: number };
 type Area = readonly [x0: number, y0: number, x1: number, y1: number];
 
 /** Walk to a target, then stand or graze a while; a new target keeps clear of the others in `crowd`. */
-function wander(w: Walker, area: Area, speed: number, dt: number, rnd: () => number, eats = true, crowd: Walker[] = []) {
+export function wander(w: Walker, area: Area, speed: number, dt: number, rnd: () => number, eats = true, crowd: Walker[] = []) {
   const dx = w.tx - w.x, dy = w.ty - w.y, dist = Math.hypot(dx, dy);
   if (w.mode === 'walk') {
     if (dist < 1) { w.mode = eats && rnd() < 0.6 ? 'eat' : 'stand'; w.wait = 2 + rnd() * 5; return; }
@@ -89,7 +91,7 @@ function wander(w: Walker, area: Area, speed: number, dt: number, rnd: () => num
   w.mode = 'walk';
 }
 
-const walker = (area: Area, rnd: () => number): Walker => {
+export const walker = (area: Area, rnd: () => number): Walker => {
   const x = area[0] + rnd() * (area[2] - area[0]), y = area[1] + rnd() * (area[3] - area[1]);
   return { x, y, tx: x, ty: y, wait: rnd() * 3, dir: (['W', 'E', 'S'] as Dir[])[Math.floor(rnd() * 3)], mode: 'stand', phase: rnd() * 10 };
 };
@@ -111,7 +113,7 @@ const grazes = (l: Look) => l.build === 'horse' && !l.mane && !l.face && !l.legs
 
 /** Every plain image the farm's life draws from (for preloading). */
 export function lifeSheets(herd: Look[]) {
-  return ['animals/chicken-walk.png', 'animals/chicken-eat.png', 'animals/sheep-walk.png', 'animals/sheep-eat.png', 'animals/cat.png', 'animals/dog.png',
+  return ['farm/windmill-blades.png', 'animals/chicken-walk.png', 'animals/chicken-eat.png', 'animals/sheep-walk.png', 'animals/sheep-eat.png', 'animals/cat.png', 'animals/dog.png',
     ...herd.filter(grazes).map((l) => horseKey(l, 'eat'))];
 }
 
@@ -151,6 +153,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   const TRACK = track(arena), LAP = loopLength(LOOP), TRACK_LAP = loopLength(TRACK), SPOTS = waitingSpots(arena);
   let ride = 0, waiting: Kid[] = [];
   let lesson: { horse: number; kid: Kid; d: number; done: () => void } | null = null, lessons = Promise.resolve();
+  let away = new Set<number>(); // herd horses not on the pasture (sick or resting, in the stable)
   const butterflies = ['#ffe066', '#ffffff', '#ff9f43', '#7ec8ff', '#ff8fc7'].map((color, i) => ({
     color, hx: [250, 430, 600, 300, 820][i], hy: [528, 520, 536, 120, 150][i], phase: rnd() * 10, speed: 0.6 + rnd() * 0.5,
   }));
@@ -183,11 +186,12 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   function drawables(t: number, img: Images): Drawable[] {
     const out: Drawable[] = [];
     horses.forEach(({ look, w }, i) => {
-      if (i === lesson?.horse) return;
+      if (i === lesson?.horse || away.has(i)) return;
       const anim: HorseAnim = w.mode === 'walk' ? 'walk' : w.mode === 'eat' ? 'eat' : 'idle';
       const f = Math.floor((t + w.phase) * (anim === 'eat' ? 3 : 7));
       out.push({ y: w.y, draw: (ctx) => drawHorse(ctx, img, look, anim, w.dir, f, w.x, w.y) });
     });
+    out.push({ y: WINDMILL.y, draw: (ctx) => drawWindmill(ctx, img['farm/windmill-blades.png'], WINDMILL.x, WINDMILL.y, t) });
     // pupils wait by the arena; one rides in it
     waiting.slice(0, SPOTS.length).forEach((kid, i) => {
       const [x, y] = SPOTS[i];
@@ -272,6 +276,8 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
 
   return {
     update, drawables, overlay,
+    /** Herd horses (by index) that are not on the pasture. */
+    setAway(horses: number[]) { away = new Set(horses); },
     /** The pupils waiting by the arena. */
     setWaiting(kids: Kid[]) { waiting = kids; },
     /** Herd horse `horse` walks one lap of the arena with `kid` on its back, after the lessons before it; resolves when it is back. */
