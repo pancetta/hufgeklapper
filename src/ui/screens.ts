@@ -13,7 +13,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { CARE, canBuild, cantTeach, fit, lessonOutcome, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { CARE, canBuild, cantTeach, fit, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -238,12 +238,14 @@ export function showFarm() {
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {
-      const i = game.get().horses.findIndex((h) => h.id === b.dataset.horse), h = game.get().horses[i];
+      const before = game.get(), i = before.horses.findIndex((h) => h.id === b.dataset.horse), h = before.horses[i];
       const { pay, happy } = lessonOutcome(p, h);
       sheet.hidden = true;
       game.dispatch({ type: 'lesson', pupil: p.id, horse: h.id });
-      bar.toast(t.lessonRuns(esc(p.name), esc(h.name)));
-      farm.then((f) => f.lesson(i, p)).then(() => bar.toast(t.lessonDone(esc(p.name), happy, pay)));
+      if (game.get().lessonsGiven === before.lessonsGiven) return; // the Sim said no (the pupil or horse changed meanwhile)
+      const repaid = before.debt - game.get().debt;
+      bar.toast(t.lessonRuns(p.name, h.name));
+      farm.then((f) => f.lesson(i, p)).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
     }));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;

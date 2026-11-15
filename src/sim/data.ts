@@ -49,6 +49,8 @@ export const DATA = {
     fit: { right: 1, smallOnHorse: 0.7, bigOnPony: 0.6 },
     /** Reputation (0–100) gains from a happy pupil and loses from an unhappy one, around this satisfaction. */
     happyAt: 60,
+    /** From this satisfaction on, a pupil is delighted ("begeistert"). */
+    delightedAt: 80,
     /** Pupils waiting each morning: one, plus one more at each of these reputations. */
     morePupilsAt: [40, 70],
     startReputation: 30,

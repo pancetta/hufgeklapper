@@ -4,7 +4,7 @@
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
-import { CARE, type Care, type Entry, type Horse, NEEDS, type News, type State } from './state';
+import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, type State } from './state';
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1 };
@@ -79,7 +79,9 @@ function fromVersion3(x: Obj): unknown {
 function fromVersion4(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
-  return { ...x, version: 5, state: { ...s, version: 5, pupils: [], reputation: DATA.lessons.startReputation, lessonsGiven: 0 } };
+  // the first pupils come at once, not only after the next night
+  const [pupils, seed] = isInt(s.day, 1) && isInt(s.seed) ? pupilsFor(s.day as number, DATA.lessons.startReputation, s.seed as number) : [[], s.seed];
+  return { ...x, version: 5, state: { ...s, version: 5, seed, pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0 } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */

@@ -150,7 +150,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   const dog = { x: 420, dir: 1, wait: 0 };
   const TRACK = track(arena), LAP = loopLength(LOOP), TRACK_LAP = loopLength(TRACK), SPOTS = waitingSpots(arena);
   let ride = 0, waiting: Kid[] = [];
-  let lesson: { horse: number; kid: Kid; d: number; done: () => void } | null = null;
+  let lesson: { horse: number; kid: Kid; d: number; done: () => void } | null = null, lessons = Promise.resolve();
   const butterflies = ['#ffe066', '#ffffff', '#ff9f43', '#7ec8ff', '#ff8fc7'].map((color, i) => ({
     color, hx: [250, 430, 600, 300, 820][i], hy: [528, 520, 536, 120, 150][i], phase: rnd() * 10, speed: 0.6 + rnd() * 0.5,
   }));
@@ -274,10 +274,9 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
     update, drawables, overlay,
     /** The pupils waiting by the arena. */
     setWaiting(kids: Kid[]) { waiting = kids; },
-    /** Herd horse `horse` walks one lap of the arena with `kid` on its back; resolves when it is back. */
+    /** Herd horse `horse` walks one lap of the arena with `kid` on its back, after the lessons before it; resolves when it is back. */
     lesson(horse: number, kid: Kid) {
-      lesson?.done();
-      return new Promise<void>((done) => { lesson = { horse, kid, d: 0, done }; });
+      return (lessons = lessons.then(() => new Promise<void>((done) => { lesson = { horse, kid, d: 0, done }; })));
     },
   };
 }

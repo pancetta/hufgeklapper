@@ -104,8 +104,8 @@ export const t = {
   fits: { right: 'passt gut', smallOnHorse: 'etwas groß', bigOnPony: 'zu klein' },
   cantTeach: { sick: 'ist krank', resting: 'ruht sich aus', tired: 'ist zu müde' },
   lessonRuns: (pupil: string, horse: string) => `${pupil} reitet auf ${horse}.`,
-  lessonDone: (pupil: string, happy: number, pay: number) =>
-    `${pupil} war ${happy >= 80 ? 'begeistert' : happy >= 55 ? 'zufrieden' : 'nicht so glücklich'}! +${pay} €`,
+  lessonDone: (pupil: string, mood: 'delighted' | 'happy' | 'unhappy', pay: number, repaid: number) =>
+    `${pupil} war ${{ delighted: 'begeistert', happy: 'zufrieden', unhappy: 'nicht so glücklich' }[mood]}! +${pay} €${repaid ? ` (davon ${repaid} € für die Schulden)` : ''}`,
   noPupils: 'Heute möchte niemand mehr reiten. Morgen kommen neue Reitschüler.',
   euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;

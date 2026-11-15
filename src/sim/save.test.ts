@@ -41,7 +41,10 @@ describe('save files', () => {
     expect(p.ok && p.save.state.horses.every((h) => h.rest === 0) && p.save.state.night).toEqual([]);
     expect(p.ok && p.save.state.careDone).toEqual({ groom: 0, hooves: 0, feed: 0, muck: 0 });
     expect(p.ok && [p.save.state.debt, p.save.state.today, p.save.state.bill]).toEqual([0, [], []]);
-    expect(p.ok && [p.save.state.pupils, p.save.state.lessonsGiven]).toEqual([[], 0]);
+    // pupils wait at once, for that day
+    expect(p.ok && p.save.state.pupils.length).toBeGreaterThan(0);
+    expect(p.ok && p.save.state.pupils.every((x) => x.id.startsWith(`d${now.state.day}-`))).toBe(true);
+    expect(p.ok && p.save.state.lessonsGiven).toBe(0);
     expect(p.ok && p.save.version).toBe(SAVE_VERSION);
   });
 });

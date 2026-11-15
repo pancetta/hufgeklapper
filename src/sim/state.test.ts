@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canLoan, canQuickCare, cantTeach, canWork, earn, fit, isSick, lessonOutcome, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
+import { apply, canBuild, canLoan, canQuickCare, cantTeach, earn, fit, isSick, lessonOutcome, mood, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -60,7 +60,7 @@ describe('Sim', () => {
     expect(sickOn).toBeGreaterThan(2);
     expect(sickOn).toBeLessThan(10);
     expect(s.night).toContainEqual({ kind: 'sick', horse: 'kiwi' });
-    expect(canWork(s.horses[0])).toBe(false);
+    expect(cantTeach(s.horses[0])).toBe('sick');
     // the news comes once, not every morning while it stays sick
     expect(apply(s, { type: 'sleep' }).night).not.toContainEqual({ kind: 'sick', horse: 'kiwi' });
   });
@@ -77,9 +77,9 @@ describe('Sim', () => {
     const treated = apply(sick, { type: 'vet', horse: 'kiwi' });
     expect(treated.money).toBe(sick.money - DATA.vet.cost);
     expect(isSick(treated.horses[0])).toBe(false);
-    expect(canWork(treated.horses[0])).toBe(false);
+    expect(cantTeach(treated.horses[0])).toBe('resting');
     const rested = nights({ ...treated, horses: [{ ...treated.horses[0], needs: { ...treated.horses[0].needs, fed: 100, clean: 100 } }] }, DATA.vet.restDays);
-    expect(canWork(rested.horses[0])).toBe(true);
+    expect(['sick', 'resting']).not.toContain(cantTeach(rested.horses[0]));
     expect(rested.night).toContainEqual({ kind: 'rested', horse: 'kiwi' });
   });
 
@@ -207,6 +207,23 @@ describe('Sim', () => {
     expect(after.reputation).toBe(Math.max(0, Math.min(100, Math.round(s.reputation + (out.happy - DATA.lessons.happyAt) / 5))));
     const owing = apply({ ...s, debt: 100 }, { type: 'lesson', pupil: 'p1', horse: h.id });
     expect(owing.debt).toBe(100 - Math.round(out.pay * DATA.repayShare));
+  });
+
+  it('keeps the reputation within 0–100, ignores unknown pupils, and brings new pupils each morning', () => {
+    const s = withPupils(small), h = s.horses[0];
+    const kept = { ...h, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } };
+    expect(apply({ ...s, reputation: 99, horses: [kept] }, { type: 'lesson', pupil: 'p1', horse: h.id }).reputation).toBe(100);
+    expect(apply({ ...withPupils(big), reputation: 1, horses: [{ ...h, needs: { ...h.needs, fed: 0, clean: 0, happy: 0 } }] }, { type: 'lesson', pupil: 'p2', horse: h.id }).reputation).toBe(0);
+    expect(apply(s, { type: 'lesson', pupil: 'nobody', horse: h.id })).toBe(s);
+    const morning = apply(s, { type: 'sleep' });
+    expect(morning.pupils.length).toBeGreaterThan(0);
+    expect(morning.pupils.map((p) => p.id)).not.toContain('p1');
+  });
+
+  it('says how a pupil felt, in line with the reputation rule', () => {
+    expect(mood(DATA.lessons.delightedAt)).toBe('delighted');
+    expect(mood(DATA.lessons.happyAt)).toBe('happy');
+    expect(mood(DATA.lessons.happyAt - 1)).toBe('unhappy');
   });
 
   it('refuses a sick, resting or tired horse, with the reason', () => {

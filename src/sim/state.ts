@@ -67,7 +67,7 @@ export function roll(seed: number): [value: number, next: number] {
 }
 
 /** This morning's pupils: one, plus more the better the farm's reputation. */
-function pupilsFor(day: number, reputation: number, seed: number): [Pupil[], number] {
+export function pupilsFor(day: number, reputation: number, seed: number): [Pupil[], number] {
   const n = 1 + DATA.lessons.morePupilsAt.filter((r) => reputation >= r).length, pupils: Pupil[] = [];
   for (let i = 0; i < n; i++) {
     let a: number, b: number, c: number, d: number;
@@ -97,8 +97,6 @@ export function newGame(seed: number): State {
 }
 
 export const isSick = (h: Horse) => h.needs.health < DATA.needs.sickBelow;
-/** A sick or resting horse can't be ridden or used for lessons. */
-export const canWork = (h: Horse) => !isSick(h) && h.rest === 0;
 export const canPayVet = (s: State) => s.money >= DATA.vet.cost;
 export const canQuickCare = (s: State, what: Care) => s.careDone[what] >= DATA.quickCareAfter;
 export const canFeed = (s: State) => s.feed >= 1;
@@ -106,7 +104,7 @@ export const canFeed = (s: State) => s.feed >= 1;
 export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
 
-/** Why a horse can't give a lesson now, or null if it can. */
+/** Why a horse can't give a lesson now (sick, resting after the vet, too tired), or null if it can. */
 export function cantTeach(h: Horse): 'sick' | 'resting' | 'tired' | null {
   return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < DATA.lessons.energy ? 'tired' : null;
 }
@@ -123,6 +121,9 @@ export function lessonOutcome(p: Pupil, h: Horse) {
   const happy = Math.round(100 * L.fit[fit(p, h)] * (0.5 + 0.5 * kept));
   return { happy, pay: Math.round(L.pay[p.level] * (0.6 + 0.4 * (happy / 100))) };
 }
+
+/** How a pupil felt about a lesson: below `happyAt` the farm's reputation drops. */
+export const mood = (happy: number) => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';
 
 /** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
 export function earn(s: State, amount: number): State {
