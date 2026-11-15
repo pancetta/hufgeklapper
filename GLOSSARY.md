@@ -62,7 +62,7 @@ Data only: a **Build** plus the **Coats** it allows (and its own mane colour, e.
 Saddle ("Sattel") and saddle pad ("Satteldecke"); the pad can take any colour.
 
 **Needs** ("Bedürfnisse"):
-Hunger, Sauberkeit, Laune, Energie, Gesundheit, each 0–100. They fall over **Days** and through work; **Care actions** refill them.
+Futter (fed), Sauberkeit (clean), Laune (happy), Energie (energy), Gesundheit (health), each 0–100, and a full bar is good. They fall over **Days** and through work; **Care actions** refill them. Say *Futter*, not *Hunger*, so a full bar never means "very hungry".
 
 **Sick** ("krank"):
 A horse whose needs stayed too low. It cannot be ridden until the **Vet** has treated it and it has rested.
