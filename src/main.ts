@@ -1,5 +1,6 @@
 import './style.css';
 import credits from './credits.json';
+import { showHorseDebug } from './horses/debug';
 import { fitPixels } from './pixel';
 import { startFarm } from './scene';
 import { t } from './strings';
@@ -8,7 +9,11 @@ const base = import.meta.env.BASE_URL;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&${({ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' })[c]};`);
 
 const app = document.querySelector<HTMLElement>('#app')!;
-app.innerHTML = `
+if (new URLSearchParams(location.search).get('debug') === 'pferde') showHorseDebug(app);
+else startScreen();
+
+function startScreen() {
+  app.innerHTML = `
   <canvas id="farm" aria-hidden="true"></canvas>
   <main class="start">
     <h1 class="plaque">${t.title}</h1>
@@ -23,27 +28,28 @@ app.innerHTML = `
       <h2 id="credits-title">${t.creditsTitle}</h2>
       <p>${t.creditsIntro}</p>
       <ul>${credits.map((c) => `
-        <li>
-          <b>${esc(c.title)}</b><br>
-          ${t.creditsBy}: ${esc(c.authors)}<br>
-          ${t.creditsLicence}: <a href="${c.licenseUrl}" target="_blank" rel="noopener">${c.license}</a> ·
-          <a href="${c.page}" target="_blank" rel="noopener">${t.creditsSource}</a>${c.creditsFile ? ` ·
+          <li>
+            <b>${esc(c.title)}</b><br>
+            ${t.creditsBy}: ${esc(c.authors)}<br>
+            ${t.creditsLicence}: <a href="${c.licenseUrl}" target="_blank" rel="noopener">${c.license}</a> ·
+            <a href="${c.page}" target="_blank" rel="noopener">${t.creditsSource}</a>${c.creditsFile ? ` ·
           <a href="${base}${c.creditsFile}" target="_blank" rel="noopener">${t.creditsAll}</a>` : ''}
-        </li>`).join('')}
+          </li>`).join('')}
       </ul>
       <button id="close-credits" type="button">${t.back}</button>
     </div>
   </section>
   <p class="rotate">${t.rotate}</p>`;
 
-const $ = <T extends HTMLElement>(id: string) => app.querySelector<T>(`#${id}`)!;
-$('start').addEventListener('click', () => { $('start').hidden = true; $('soon').hidden = false; });
-$('show-credits').addEventListener('click', () => { $('credits').hidden = false; });
-$('close-credits').addEventListener('click', () => { $('credits').hidden = true; });
+  const $ = <T extends HTMLElement>(id: string) => app.querySelector<T>(`#${id}`)!;
+  $('start').addEventListener('click', () => { $('start').hidden = true; $('soon').hidden = false; });
+  $('show-credits').addEventListener('click', () => { $('credits').hidden = false; });
+  $('close-credits').addEventListener('click', () => { $('credits').hidden = true; });
 
-function fit() {
-  document.documentElement.style.setProperty('--px', `${fitPixels(innerWidth, innerHeight).scale}px`);
+  function fit() {
+    document.documentElement.style.setProperty('--px', `${fitPixels(innerWidth, innerHeight).scale}px`);
+  }
+  addEventListener('resize', fit);
+  fit();
+  startFarm($<HTMLCanvasElement>('farm'));
 }
-addEventListener('resize', fit);
-fit();
-startFarm($<HTMLCanvasElement>('farm'));

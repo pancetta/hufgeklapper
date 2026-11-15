@@ -3,7 +3,7 @@ import { fitPixels } from '../pixel';
 import { blit, image } from './draw';
 import { ground, plotDrawables } from './buildings';
 import { FOCUS, MAP, PLOTS, PROPS, SPRITES, WORLD } from './farm';
-import { createLife, type Drawable, lifeSheets } from './life';
+import { createLife, type Drawable, lifeSheets, loadHorses } from './life';
 import { paintTerrain } from './terrain';
 
 const SWAYS = /^(lavender|cream|blue|red|roses|spike|cluster|meadow|tulips|grass|cattail|reeds|sunflowers)/;
@@ -24,6 +24,7 @@ export async function startFarm(canvas: HTMLCanvasElement) {
   const sheets = new Set(['nature/terrain.png', 'farm/barn.png', 'farm/fences.png', ...Object.values(SPRITES).map((s) => s.sheet), ...lifeSheets()]);
   const img: Record<string, HTMLImageElement> = {};
   await Promise.all([...sheets].map(async (s) => { img[s] = await image(s); }));
+  await loadHorses(img);
 
   const groundCanvas = document.createElement('canvas');
   groundCanvas.width = WORLD.width; groundCanvas.height = WORLD.height;

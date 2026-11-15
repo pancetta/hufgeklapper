@@ -37,11 +37,20 @@ const PACKS: Record<string, Pack> = {
     title: 'LPC Horse Extended', authors: 'bluecarrot16; Benjamin K. Smith (BenCreating)', ...lic('CC-BY 3.0'),
     page: 'https://opengameart.org/content/lpc-horse-extended', download: [`${OGA}/LPC%20Horse%20Extended.zip`],
     credits: `${ext}/Read Me.txt`,
-    copy: Object.fromEntries(Object.entries(COATS).flatMap(([c, C]) => ['Idle', 'Walk', 'Gallop'].flatMap((a) => [
-      [`horses/horse-${a.toLowerCase()}-${c}.png`, `${ext}/Horse/Horse ${a} ${C}.png`],
-      [`horses/mane-${a.toLowerCase()}-${c}.png`, `${ext}/Markings/Mane:Tail/Mane:Tail ${a} ${C}.png`],
-      [`horses/socks-${a.toLowerCase()}-${c}.png`, `${ext}/Markings/Legs/All Legs/Socks ${a} ${C}.png`],
-    ]))),
+    copy: Object.fromEntries(['Idle', 'Walk', 'Gallop'].flatMap((A) => {
+      const a = A.toLowerCase();
+      return [
+        ...Object.entries(COATS).flatMap(([c, C]) => [
+          [`horses/horse-${a}-${c}.png`, `${ext}/Horse/Horse ${A} ${C}.png`],
+          [`horses/mane-${a}-${c}.png`, `${ext}/Markings/Mane:Tail/Mane:Tail ${A} ${C}.png`],
+        ]),
+        // white leg markings: the white coat's version, which reads as white on every coat
+        ...['Socks', 'Stockings'].map((l) => [`horses/${l.toLowerCase()}-${a}.png`, `${ext}/Markings/Legs/All Legs/${l} ${A} White.png`]),
+        // white face markings and tack fit every coat, so they exist once per animation
+        ...['Star', 'Blaze', 'Stripe', 'Diamond'].map((m) => [`horses/face-${m.toLowerCase()}-${a}.png`, `${ext}/Markings/Face/${m} ${A}.png`]),
+        ...['Saddle', 'Blanket'].map((t) => [`horses/tack-${t.toLowerCase()}-${a}.png`, `${ext}/Accessories/${t} ${A}.png`]),
+      ];
+    })),
   },
   'lpc-horses': {
     title: '[LPC] Horses', authors: 'bluecarrot16', ...lic('CC-BY 3.0'), page: 'https://opengameart.org/content/lpc-horses',
@@ -133,7 +142,9 @@ async function derivePonies(files: string[]) {
   const made: string[] = [];
   for (const file of files) {
     const name = basename(file);
-    const base = name.replace(/^(mane|socks)-/, 'horse-');
+    // frames are measured on the horse of the same animation (and coat; layers that fit every coat use the brown one)
+    const anim = name.match(/-(idle|walk|gallop)[-.]/)?.[1];
+    const base = /^(face|tack|socks|stockings)-/.test(name) ? `horse-${anim}-brown.png` : name.replace(/^mane-/, 'horse-');
     const layout = layoutOf(name);
     const out = `${dirname(file)}/pony-${name}`;
     await write(out, applyPlans(await read(file), planSheet(await read(`${dirname(file)}/${base}`), layout), name.startsWith('mane-')));
@@ -141,7 +152,7 @@ async function derivePonies(files: string[]) {
   }
   return made;
 }
-const layoutOf = (name: string): Layout => (/-idle-/.test(name) ? byColumn : name.startsWith('classic-') ? classicLayout : byRow);
+const layoutOf = (name: string): Layout => (/-idle[-.]/.test(name) ? byColumn : name.startsWith('classic-') ? classicLayout : byRow);
 
 /** Glints in the eyes of the horse sheets (the mane and socks layers have no eyes). */
 async function shineHorses(files: string[]) {
