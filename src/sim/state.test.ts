@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canLoan, canQuickCare, canWork, earn, isSick, NEEDS, newGame, type State, stalls } from './state';
+import { apply, canBuild, canLoan, canQuickCare, cantTeach, earn, fit, isSick, lessonOutcome, mood, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -60,7 +60,7 @@ describe('Sim', () => {
     expect(sickOn).toBeGreaterThan(2);
     expect(sickOn).toBeLessThan(10);
     expect(s.night).toContainEqual({ kind: 'sick', horse: 'kiwi' });
-    expect(canWork(s.horses[0])).toBe(false);
+    expect(cantTeach(s.horses[0])).toBe('sick');
     // the news comes once, not every morning while it stays sick
     expect(apply(s, { type: 'sleep' }).night).not.toContainEqual({ kind: 'sick', horse: 'kiwi' });
   });
@@ -77,9 +77,9 @@ describe('Sim', () => {
     const treated = apply(sick, { type: 'vet', horse: 'kiwi' });
     expect(treated.money).toBe(sick.money - DATA.vet.cost);
     expect(isSick(treated.horses[0])).toBe(false);
-    expect(canWork(treated.horses[0])).toBe(false);
+    expect(cantTeach(treated.horses[0])).toBe('resting');
     const rested = nights({ ...treated, horses: [{ ...treated.horses[0], needs: { ...treated.horses[0].needs, fed: 100, clean: 100 } }] }, DATA.vet.restDays);
-    expect(canWork(rested.horses[0])).toBe(true);
+    expect(['sick', 'resting']).not.toContain(cantTeach(rested.horses[0]));
     expect(rested.night).toContainEqual({ kind: 'rested', horse: 'kiwi' });
   });
 
@@ -168,5 +168,88 @@ describe('Sim', () => {
     expect(s.bill).toEqual([{ what: 'hay', amount: -25 }]);
     expect(s.night).toContainEqual({ kind: 'bill' });
     expect(apply(s, { type: 'sleep' }).bill).toEqual([]);
+  });
+
+  const small: Pupil = { id: 'p1', name: 'Lea', size: 'small', level: 'beginner', look: 1 };
+  const big: Pupil = { id: 'p2', name: 'Ben', size: 'big', level: 'advanced', look: 2 };
+  const withPupils = (...pupils: Pupil[]): State => ({ ...newGame(1), pupils });
+
+  it('has a pupil waiting on the first morning, and more the better the reputation', () => {
+    expect(newGame(1).pupils.length).toBeGreaterThanOrEqual(1);
+    const famous = apply({ ...newGame(1), reputation: 90 }, { type: 'sleep' });
+    expect(famous.pupils).toHaveLength(3);
+    const unknown = apply({ ...newGame(1), reputation: 0 }, { type: 'sleep' });
+    expect(unknown.pupils).toHaveLength(1);
+  });
+
+  it('puts small children on ponies and big ones on horses', () => {
+    const pony = newGame(1).horses[0], horse = { ...pony, look: { ...pony.look, build: 'horse' as const } };
+    expect([fit(small, pony), fit(small, horse), fit(big, pony), fit(big, horse)]).toEqual(['right', 'smallOnHorse', 'bigOnPony', 'right']);
+    expect(lessonOutcome(small, pony).happy).toBeGreaterThan(lessonOutcome(small, horse).happy);
+  });
+
+  it('pays more for a well kept horse, and more for advanced riders', () => {
+    const h = newGame(1).horses[0];
+    const kept = { ...h, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } }, neglected = { ...h, needs: { ...h.needs, fed: 10, clean: 10, happy: 10 } };
+    expect(lessonOutcome(small, kept).pay).toBeGreaterThan(lessonOutcome(small, neglected).pay);
+    expect(lessonOutcome(small, kept).pay).toBe(DATA.lessons.pay.beginner);
+    expect(lessonOutcome({ ...small, level: 'advanced' }, kept).pay).toBe(DATA.lessons.pay.advanced);
+  });
+
+  it('gives a lesson: pay (debt first), the pupil leaves, the horse gets tired, reputation follows happiness', () => {
+    const s = withPupils(small, big), h = s.horses[0], out = lessonOutcome(small, h);
+    const after = apply(s, { type: 'lesson', pupil: 'p1', horse: h.id });
+    expect(after.money).toBe(s.money + out.pay);
+    expect(after.pupils).toEqual([big]);
+    expect(after.horses[0].needs.energy).toBe(h.needs.energy - DATA.lessons.energy);
+    expect(after.lessonsGiven).toBe(1);
+    expect(after.today).toContainEqual({ what: 'lesson', amount: out.pay });
+    expect(after.reputation).toBe(Math.max(0, Math.min(100, Math.round(s.reputation + (out.happy - DATA.lessons.happyAt) / 5))));
+    const owing = apply({ ...s, debt: 100 }, { type: 'lesson', pupil: 'p1', horse: h.id });
+    expect(owing.debt).toBe(100 - Math.round(out.pay * DATA.repayShare));
+  });
+
+  it('keeps the reputation within 0–100, ignores unknown pupils, and brings new pupils each morning', () => {
+    const s = withPupils(small), h = s.horses[0];
+    const kept = { ...h, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } };
+    expect(apply({ ...s, reputation: 99, horses: [kept] }, { type: 'lesson', pupil: 'p1', horse: h.id }).reputation).toBe(100);
+    expect(apply({ ...withPupils(big), reputation: 1, horses: [{ ...h, needs: { ...h.needs, fed: 0, clean: 0, happy: 0 } }] }, { type: 'lesson', pupil: 'p2', horse: h.id }).reputation).toBe(0);
+    expect(apply(s, { type: 'lesson', pupil: 'nobody', horse: h.id })).toBe(s);
+    const morning = apply(s, { type: 'sleep' });
+    expect(morning.pupils.length).toBeGreaterThan(0);
+    expect(morning.pupils.map((p) => p.id)).not.toContain('p1');
+  });
+
+  it('says how a pupil felt, in line with the reputation rule', () => {
+    expect(mood(DATA.lessons.delightedAt)).toBe('delighted');
+    expect(mood(DATA.lessons.happyAt)).toBe('happy');
+    expect(mood(DATA.lessons.happyAt - 1)).toBe('unhappy');
+  });
+
+  it('refuses a sick, resting or tired horse, with the reason', () => {
+    const s = withPupils(small), h = s.horses[0];
+    for (const [bad, why] of [[{ ...h, needs: { ...h.needs, health: 5 } }, 'sick'], [{ ...h, rest: 1 }, 'resting'], [{ ...h, needs: { ...h.needs, energy: 10 } }, 'tired']] as const) {
+      expect(cantTeach(bad)).toBe(why);
+      const st = { ...s, horses: [bad, ...s.horses.slice(1)] };
+      expect(apply(st, { type: 'lesson', pupil: 'p1', horse: h.id })).toBe(st);
+    }
+  });
+
+  it('brings more pupils after happy lessons: a well kept pony earns a better reputation', () => {
+    let s = newGame(3);
+    for (let day = 0; day < 6; day++) {
+      const pony = s.horses[0];
+      s = { ...s, horses: [{ ...pony, needs: { ...pony.needs, fed: 100, clean: 100, happy: 100, energy: 100 } }, ...s.horses.slice(1)] };
+      for (const p of s.pupils) s = apply({ ...s, horses: [{ ...s.horses[0], needs: { ...s.horses[0].needs, energy: 100 } }, ...s.horses.slice(1)] }, { type: 'lesson', pupil: p.id, horse: pony.id });
+      s = apply(s, { type: 'sleep' });
+    }
+    expect(s.reputation).toBeGreaterThan(DATA.lessons.startReputation);
+  });
+
+  it('rolls the same numbers from the same seed', () => {
+    const a = roll(42);
+    expect(roll(42)).toEqual(a);
+    expect(a[0]).toBeGreaterThanOrEqual(0);
+    expect(a[0]).toBeLessThan(1);
   });
 });

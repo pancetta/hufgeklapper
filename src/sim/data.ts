@@ -39,6 +39,23 @@ export const DATA = {
   repayShare: 0.5,
   /** The vet ("Tierarzt"): what a visit costs, the health it gives back, and the days the horse must rest. */
   vet: { cost: 40, health: 70, restDays: 2 },
+  /** Riding lessons ("Reitstunden"). */
+  lessons: {
+    /** What a lesson pays at best, by the pupil's level. */
+    pay: { beginner: 20, advanced: 30 },
+    /** The energy a lesson costs the horse; a horse with less is too tired. */
+    energy: 30,
+    /** How well pupil and horse fit: a small child belongs on a pony, a big one on a horse. */
+    fit: { right: 1, smallOnHorse: 0.7, bigOnPony: 0.6 },
+    /** Reputation (0–100) gains from a happy pupil and loses from an unhappy one, around this satisfaction. */
+    happyAt: 60,
+    /** From this satisfaction on, a pupil is delighted ("begeistert"). */
+    delightedAt: 80,
+    /** Pupils waiting each morning: one, plus one more at each of these reputations. */
+    morePupilsAt: [40, 70],
+    startReputation: 30,
+  },
+  pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],
   /** Stalls ("Boxen") in the stable, per farm stage. */
   stalls: { kleinerHof: 2, reitschule: 4 },
   /** The farm stage that unlocks building on a free plot. */
