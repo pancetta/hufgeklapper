@@ -1,0 +1,39 @@
+docs/agents/cross-model.json
+  s_7657db1b41ed88::t_a91d081805c0ea 1-7
+docs/agents/domain.md
+  s_7657db1b41ed88::t_327f83d5547e0d 1-53
+docs/agents/issue-tracker.md
+  s_7657db1b41ed88::t_8f817d8d96d5aa 1-47
+docs/agents/triage-labels.md
+  s_7657db1b41ed88::t_b4f634347ae513 1-17
+CLAUDE.md
+  s_7657db1b41ed88::t_6aef35927bc626 1-39
+GLOSSARY.md
+  s_7657db1b41ed88::t_12bb87f738c578 1-110
+README.md
+  s_7657db1b41ed88::t_0944aca40b62d8 1-5
+docs/adr/0001-no-engine.md
+  s_7657db1b41ed88::t_83a59110d84267 1-14
+docs/adr/0002-layered-horses.md
+  s_7657db1b41ed88::t_d3bd4a82063bd7 1-22
+docs/adr/0003-lpc-art.md
+  s_7657db1b41ed88::t_08f198d17c879e 1-15
+docs/design.md
+  s_7657db1b41ed88::t_a75a254643971f 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b28a3c0596ebb7b85c5a982053595b657c5c060c",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "unknown"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
