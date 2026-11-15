@@ -55,6 +55,14 @@ export const DATA = {
     morePupilsAt: [40, 70],
     startReputation: 30,
   },
+  /** The jumping minigame ("Springen"): course, take-off window (seconds) and what training does. */
+  jumping: {
+    jumps: 5,
+    window: { base: 0.12, skill: 0.2, kept: 0.1 },
+    gain: { clear: 3, faults: 1 },
+    energy: 25,
+    happy: 5,
+  },
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],

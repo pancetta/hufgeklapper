@@ -64,7 +64,7 @@ function along(loop: [number, number][], d: number) {
 const loopLength = (loop: [number, number][]) => loop.reduce((n, a, i) => { const b = loop[(i + 1) % loop.length]; return n + Math.hypot(b[0] - a[0], b[1] - a[1]); }, 0);
 
 /** Where a rider sits, from the horse's hooves (measured on the LPC frames): seen from the side, just behind the withers. */
-function seat(build: Look['build'], dir: Dir) {
+export function seat(build: Look['build'], dir: Dir) {
   const pony = build === 'pony', side = dir === 'W' || dir === 'E';
   // coming towards us the child shows above the horse's head, so it sits higher in the picture
   const dy = side ? (pony ? -33 : -40) : dir === 'S' ? (pony ? -44 : -48) : pony ? -30 : -34;

@@ -60,7 +60,8 @@ export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; horse?: string };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
-  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string };
+  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
+  | { type: 'train'; horse: string; faults: number };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -110,10 +111,20 @@ export const canFeed = (s: State) => s.feed >= 1;
 export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
 
-/** Why a horse can't give a lesson now (sick, resting after the vet, too tired), or null if it can. */
-export function cantTeach(h: Horse): 'sick' | 'resting' | 'tired' | null {
-  return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < DATA.lessons.energy ? 'tired' : null;
+/** Why a horse can't do work that takes `energy` now (sick, resting after the vet, too tired), or null if it can. */
+export function cantWork(h: Horse, energy: number): 'sick' | 'resting' | 'tired' | null {
+  return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < energy ? 'tired' : null;
 }
+
+/**
+ * The jumping minigame's take-off window in seconds: wider for a skilled, well kept, happy horse.
+ * A tap within half the window of the perfect moment clears the jump.
+ */
+export function jumpWindow(h: Horse) {
+  const J = DATA.jumping, kept = (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
+  return J.window.base + J.window.skill * (h.skills.jumping / 100) + J.window.kept * kept;
+}
+export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
 
 /** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
 export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
@@ -203,9 +214,19 @@ export function apply(state: State, action: Action): State {
         today: [...state.today, { what: credit ? 'hayOnCredit' : 'hay', amount: -p.price }],
       };
     }
+    case 'train': {
+      // a jumping round as training: skill grows (more for a clear round), the horse gets tired and enjoys it
+      const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
+      if (!h || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      const trained: Horse = {
+        ...h, skills: { ...h.skills, jumping: clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)) },
+        needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
+      };
+      return { ...state, horses: state.horses.map((x) => (x === h ? trained : x)) };
+    }
     case 'lesson': {
       const p = state.pupils.find((x) => x.id === action.pupil), h = state.horses.find((x) => x.id === action.horse);
-      if (!p || !h || cantTeach(h)) return state;
+      if (!p || !h || cantWork(h, DATA.lessons.energy)) return state;
       const { happy, pay } = lessonOutcome(p, h);
       const worked = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.lessons.energy) } };
       const after = earn({ ...state, today: [...state.today, { what: 'lesson', amount: pay }] }, pay);
