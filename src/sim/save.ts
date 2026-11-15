@@ -4,9 +4,10 @@
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
-import { type Horse, NEEDS, type State } from './state';
+import { type Horse, NEEDS, type News, type State } from './state';
 
-const NEWS = { sick: 1, noHay: 1, hayLow: 1, rested: 1 };
+// every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
+const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1 };
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
 export const SAVE_VERSION = 2;

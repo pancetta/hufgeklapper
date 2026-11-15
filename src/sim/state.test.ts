@@ -61,6 +61,8 @@ describe('Sim', () => {
     expect(sickOn).toBeLessThan(10);
     expect(s.night).toContainEqual({ kind: 'sick', horse: 'kiwi' });
     expect(canWork(s.horses[0])).toBe(false);
+    // the news comes once, not every morning while it stays sick
+    expect(apply(s, { type: 'sleep' }).night).not.toContainEqual({ kind: 'sick', horse: 'kiwi' });
   });
 
   it('heals a well kept horse a little every night', () => {
@@ -79,6 +81,14 @@ describe('Sim', () => {
     const rested = nights({ ...treated, horses: [{ ...treated.horses[0], needs: { ...treated.horses[0].needs, fed: 100, clean: 100 } }] }, DATA.vet.restDays);
     expect(canWork(rested.horses[0])).toBe(true);
     expect(rested.night).toContainEqual({ kind: 'rested', horse: 'kiwi' });
+  });
+
+  it('does not call a horse fit again while it is still sick', () => {
+    const h = newGame(1).horses[0];
+    const sick: State = { ...newGame(1), feed: 0, horses: [{ ...h, needs: { ...h.needs, fed: 0, clean: 0, health: 10 } }] };
+    const after = nights(apply(sick, { type: 'vet', horse: 'kiwi' }), DATA.vet.restDays);
+    expect(isSick(after.horses[0])).toBe(true);
+    expect(after.night).not.toContainEqual({ kind: 'rested', horse: 'kiwi' });
   });
 
   it('does not call the vet for a healthy horse or without the money', () => {

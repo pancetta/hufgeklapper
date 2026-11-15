@@ -80,10 +80,10 @@ export function apply(state: State, action: Action): State {
         const after = night(h, hay);
         if (!hay) news.push({ kind: 'noHay', horse: h.id });
         if (isSick(after) && !isSick(h)) news.push({ kind: 'sick', horse: h.id });
-        if (h.rest === 1) news.push({ kind: 'rested', horse: h.id });
+        if (h.rest === 1 && !isSick(after)) news.push({ kind: 'rested', horse: h.id });
         return after;
       });
-      if (feed > 0 && feed < horses.length * DATA.hayPerNight * 2) news.push({ kind: 'hayLow' });
+      if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
       return { ...state, day: state.day + 1, feed, horses, night: news };
     }
     case 'vet': {

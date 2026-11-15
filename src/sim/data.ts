@@ -20,6 +20,8 @@ export const DATA = {
   },
   /** Each horse eats this many hay bales from the store every night. */
   hayPerNight: 1,
+  /** The morning warns when the store holds hay for fewer nights than this. */
+  hayLowNights: 2,
   /** The vet ("Tierarzt"): what a visit costs, the health it gives back, and the days the horse must rest. */
   vet: { cost: 40, health: 70, restDays: 2 },
   /** Stalls ("Boxen") in the stable, per farm stage. */
