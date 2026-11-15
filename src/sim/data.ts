@@ -67,7 +67,7 @@ export const DATA = {
     happy: 5,
   },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
-  badge: { trainings: 3, quizPass: 4, maxFaults: 1 },
+  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 1 },
   /**
    * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
    * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their

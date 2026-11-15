@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { t } from '../strings';
 import { DATA } from './data';
-import { apply, badgeWaits, nextShowDay, showResult, showWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, passesBadge, type Pupil, roll, type State, stalls, takeOff } from './state';
+import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -277,21 +278,36 @@ describe('Sim', () => {
     expect(apply(s, { type: 'train', horse: h.id, faults: -1 })).toBe(s);
   });
 
-  it('opens the riding badge after practice; a pass opens shows, a fail waits for tomorrow', () => {
+  it('opens the riding badge after practice; the Sim scores the quiz; a pass opens shows, a fail waits for tomorrow', () => {
     let s = newGame(1);
     const kiwi = s.horses[0].id, B = DATA.badge, fresh = (st: State) => ({ ...st, horses: st.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) });
+    const right = [0, 0, 0, 0, 0], oneWrong = [0, 2, 0, 0, 0], twoWrong = [1, 2, 0, 0, 0];
     expect(badgeWaits(s)).toEqual({ why: 'practise', rounds: B.trainings });
     for (let i = 0; i < B.trainings; i++) s = apply(fresh(s), { type: 'train', horse: kiwi, faults: 1 });
+    s = fresh(s);
     expect(badgeWaits(s)).toBeNull();
-    const failed = apply(fresh(s), { type: 'badge', horse: kiwi, correct: B.quizPass - 1, faults: 0 });
+    expect(badgeWaits({ ...s, horses: s.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 0 } })) })).toEqual({ why: 'tired' });
+    expect([quizScore(right), quizScore(oneWrong), quizScore(twoWrong)]).toEqual([5, 4, 3]);
+    expect(t.quiz.map((q) => q.a.length)).toEqual(Array(B.questions).fill(B.answers)); // the texts fit the rule
+    // no jumping round without today's passed quiz; bad answers are refused
+    expect(apply(s, { type: 'badge', horse: kiwi, faults: 0 })).toBe(s);
+    for (const bad of [[0, 0, 0, 0], [0, 0, 0, 0, 3], [0, 0, 0, 0, 0.5], [0, 0, 0, 0, -1]]) expect(apply(s, { type: 'badgeQuiz', answers: bad })).toBe(s);
+    // too few right answers fail the badge for today at once
+    const quizFailed = apply(s, { type: 'badgeQuiz', answers: twoWrong });
+    expect(badgeWaits(quizFailed)).toEqual({ why: 'tomorrow' });
+    // enough right, then too many poles: also a fail for today
+    const quizOk = apply(s, { type: 'badgeQuiz', answers: oneWrong });
+    expect(quizOk.badgeQuizDay).toBe(s.day);
+    expect(apply(quizOk, { type: 'badgeQuiz', answers: right })).toBe(quizOk); // one quiz a day
+    expect(apply(quizOk, { type: 'badge', horse: kiwi, faults: -1 })).toBe(quizOk);
+    const failed = apply(quizOk, { type: 'badge', horse: kiwi, faults: B.maxFaults + 1 });
     expect([failed.badges, badgeWaits(failed)]).toEqual([0, { why: 'tomorrow' }]);
-    expect(apply(fresh(failed), { type: 'badge', horse: kiwi, correct: 5, faults: 0 }).badges).toBe(0); // not again today
-    const tomorrow = apply(failed, { type: 'sleep' });
+    // the next day: quiz and round again, this time passed
+    const tomorrow = fresh(apply(failed, { type: 'sleep' }));
     expect(badgeWaits(tomorrow)).toBeNull();
-    const passed = apply(fresh(tomorrow), { type: 'badge', horse: kiwi, correct: B.quizPass, faults: B.maxFaults });
+    const passed = apply(apply(tomorrow, { type: 'badgeQuiz', answers: right }), { type: 'badge', horse: kiwi, faults: B.maxFaults });
     expect([passed.badges, badgeWaits(passed)]).toEqual([1, { why: 'passed' }]);
     expect(passed.horses[0].needs.energy).toBe(100 - DATA.jumping.energy);
-    expect(passesBadge(5, B.maxFaults + 1)).toBe(false);
   });
 
   it('holds a show every few days once the badge is passed; the entry fee needs the money', () => {

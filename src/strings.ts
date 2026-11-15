@@ -136,20 +136,23 @@ export const t = {
     practise: (n: number) => `Übe erst noch ${n}× Springen.`,
     tomorrow: 'Morgen kannst du es noch einmal versuchen.',
     passed: 'Das hast du schon geschafft!',
+    tired: 'Alle Pferde sind zu müde für die Springrunde. Morgen geht es wieder.',
   },
+  badgeReady: 'Oma Hanne sagt: „Jetzt kannst du dein erstes Reitabzeichen machen! Komm zum Reitplatz.“',
   badgeIntro: 'Zuerst stelle ich dir fünf Fragen zur Pferdepflege. Dann reitest du eine Springrunde.',
   quiz: [
     { q: 'Was frisst ein Pony am meisten?', a: [{ text: 'Heu', icon: 'feed' }, { text: 'Schokolade' }, { text: 'Brötchen' }] },
     { q: 'Womit machst du die Hufe sauber?', a: [{ text: 'Mit dem Hufkratzer', icon: 'hooves' }, { text: 'Mit einem Kamm' }, { text: 'Mit einer Zahnbürste' }] },
-    { q: 'Wie gehst du zu einem Pferd?', a: [{ text: 'Von vorne an die Schulter, und ich spreche mit ihm' }, { text: 'Leise von hinten' }, { text: 'Schnell rennend' }] },
+    { q: 'Wie gehst du zu einem Pferd?', a: [{ text: 'Schräg von vorne zur Schulter und dabei mit ihm sprechen' }, { text: 'Leise von hinten' }, { text: 'Schnell rennend' }] },
     { q: 'Was trägst du beim Reiten immer?', a: [{ text: 'Einen Reithelm', icon: 'helmet' }, { text: 'Eine Mütze' }, { text: 'Eine Sonnenbrille' }] },
-    { q: 'Dein Pony humpelt und hat ein dickes Bein. Was tust du?', a: [{ text: 'Den Tierarzt rufen', icon: 'health' }, { text: 'Trotzdem reiten' }, { text: 'Nichts, das geht vorbei' }] },
+    { q: 'Dein Pony humpelt und hat ein dickes Bein. Was tust du?', a: [{ text: 'Einem Erwachsenen Bescheid sagen und den Tierarzt rufen', icon: 'health' }, { text: 'Trotzdem reiten' }, { text: 'Nichts, das geht vorbei' }] },
   ] as { q: string; a: { text: string; icon?: 'feed' | 'hooves' | 'helmet' | 'health' }[] }[], // the first answer is the right one
   quizRight: 'Richtig!',
   quizWrong: (right: string) => `Leider falsch. Richtig ist: ${right}.`,
   quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
+  quizFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht diesmal nicht. Morgen kannst du es noch einmal versuchen.`,
   badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
-  badgeFailed: 'Diesmal hat es nicht geklappt. Morgen kannst du es noch einmal versuchen.',
+  badgeFailed: 'Zu viele Stangen sind gefallen. Morgen kannst du es noch einmal versuchen.',
   // jumping shows
   show: 'Turnier',
   showWaits: {
@@ -164,8 +167,8 @@ export const t = {
   showPlace: (rank: number, prize: number) => prize ? `Du bist ${rank}. geworden! +${prize} € Preisgeld` : `Du bist ${rank}. geworden. Beim nächsten Turnier klappt es besser!`,
   // the player card
   playerCard: 'Meine Figur',
-  badges: 'Abzeichen',
-  noBadges: 'Noch keine Abzeichen.',
+  badges: 'Reitabzeichen',
+  noBadges: 'Noch kein Reitabzeichen.',
   badgeName: 'Reitabzeichen 1',
   noPupils: 'Heute möchte niemand mehr reiten. Morgen kommen neue Reitschüler.',
   newVersion: 'Das Spiel ist noch besser geworden! Beim nächsten Start ist es da.',
