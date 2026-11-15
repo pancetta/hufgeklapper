@@ -1,0 +1,57 @@
+src/scene/buildings.ts
+  s_7657db1b41ed88::t_b918283504d944 36,39
+  s_7657db1b41ed88::t_1d1097319f8d9d 37-38,40-41
+  s_7657db1b41ed88::t_4cd6991fc78bb3 31-32,34-35
+  s_7657db1b41ed88::t_98c9e500fab3dc 30,33
+src/strings.ts
+  s_7657db1b41ed88::t_e8d65c2b8404b4 99-109
+src/scene/life.ts
+  s_7657db1b41ed88::t_1d1097319f8d9d 8,63,65,151,174,197,199,201-206
+  s_7657db1b41ed88::t_fa3f437b0b4501 66,68
+  s_7657db1b41ed88::t_38745e7557d31c 10,53-62,64,69-70,152-153,172-173,185-186,190-196,198,200,207,226,273-282
+  s_7657db1b41ed88::t_a1e7860136614a 67
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_38683b90ad90bd 211
+  s_7657db1b41ed88::t_a750ef267f7a41 196-210,212-215
+src/style.css
+  s_7657db1b41ed88::t_ca815197abef37 246
+src/ui/screens.ts
+  s_7657db1b41ed88::t_0abbeb4eef862b 10,16,218-219,224,229-250,279-302,304,306
+  s_7657db1b41ed88::t_a1e7860136614a 274
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_7b55e6240cf101 39,44
+src/sim/data.ts
+  s_7657db1b41ed88::t_7b55e6240cf101 42-56
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_7b55e6240cf101 3,172-237
+GLOSSARY.md
+  s_7657db1b41ed88::t_e5e56ccb95f0ef 107-110
+src/scene/index.ts
+  s_7657db1b41ed88::t_38745e7557d31c 8,101-103
+src/sim/save.ts
+  s_7657db1b41ed88::t_7b55e6240cf101 11-13,16,48,52-53,78-84,94
+src/scene/kids.ts
+  s_7657db1b41ed88::t_52dff3e0b27719 1,3-20,25,29-33,46,76,85-105,107-109,111,113-114
+  s_7657db1b41ed88::t_690864434037ef 52
+  s_7657db1b41ed88::t_1d1097319f8d9d 37-39,110
+  s_7657db1b41ed88::t_ca815197abef37 2,21-24,26-28,34-36,40-45,47-51,53-75,77-84,106,112
+src/sim/state.ts
+  s_7657db1b41ed88::t_7b55e6240cf101 3,22-23,35-38,45-48,57,61-82,87,89,91,109-126,165-166,199-207
+  s_7657db1b41ed88::t_c89d267b6a250c 208-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "53a0c84b6f6747cc5e3d3f2b4e14c2b5c84cc1d1",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
