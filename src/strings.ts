@@ -4,4 +4,12 @@ export const t = {
   start: 'Los geht’s!',
   comingSoon: 'Dein Hof wird gerade gebaut. Bald geht es los!',
   rotate: 'Bitte dreh dein iPad quer.',
+  credits: 'Wer hat mitgemalt?',
+  creditsTitle: 'Danke!',
+  creditsIntro: 'Diese Bilder und die Schrift haben andere Menschen gemacht und frei verschenkt. Danke!',
+  creditsBy: 'Von',
+  creditsLicence: 'Lizenz',
+  creditsSource: 'Quelle',
+  creditsAll: 'Alle Namen',
+  back: 'Zurück',
 } as const;

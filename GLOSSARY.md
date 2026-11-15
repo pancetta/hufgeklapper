@@ -104,7 +104,7 @@ A visitor who books a **Lesson**.
 Bought and stored; used up each **Day** by every horse.
 
 **Plot** ("Bauplatz"):
-A fixed place on the farm map where a building can be built and later upgraded.
+A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.
 
 **Safety net**:
 With no money, feed comes on credit ("anschreiben") and the bank gives a small loan ("Kredit"); there is no game over.

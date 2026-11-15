@@ -1,0 +1,234 @@
+[
+  {
+    "title": "LPC Horse Extended",
+    "authors": "bluecarrot16; Benjamin K. Smith (BenCreating)",
+    "license": "CC-BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "page": "https://opengameart.org/content/lpc-horse-extended",
+    "creditsFile": "assets/credits/lpc-horse-extended.txt",
+    "files": [
+      "assets/horses/horse-idle-brown.png",
+      "assets/horses/mane-idle-brown.png",
+      "assets/horses/socks-idle-brown.png",
+      "assets/horses/horse-walk-brown.png",
+      "assets/horses/mane-walk-brown.png",
+      "assets/horses/socks-walk-brown.png",
+      "assets/horses/horse-gallop-brown.png",
+      "assets/horses/mane-gallop-brown.png",
+      "assets/horses/socks-gallop-brown.png",
+      "assets/horses/horse-idle-black.png",
+      "assets/horses/mane-idle-black.png",
+      "assets/horses/socks-idle-black.png",
+      "assets/horses/horse-walk-black.png",
+      "assets/horses/mane-walk-black.png",
+      "assets/horses/socks-walk-black.png",
+      "assets/horses/horse-gallop-black.png",
+      "assets/horses/mane-gallop-black.png",
+      "assets/horses/socks-gallop-black.png",
+      "assets/horses/horse-idle-gold.png",
+      "assets/horses/mane-idle-gold.png",
+      "assets/horses/socks-idle-gold.png",
+      "assets/horses/horse-walk-gold.png",
+      "assets/horses/mane-walk-gold.png",
+      "assets/horses/socks-walk-gold.png",
+      "assets/horses/horse-gallop-gold.png",
+      "assets/horses/mane-gallop-gold.png",
+      "assets/horses/socks-gallop-gold.png",
+      "assets/horses/horse-idle-gray.png",
+      "assets/horses/mane-idle-gray.png",
+      "assets/horses/socks-idle-gray.png",
+      "assets/horses/horse-walk-gray.png",
+      "assets/horses/mane-walk-gray.png",
+      "assets/horses/socks-walk-gray.png",
+      "assets/horses/horse-gallop-gray.png",
+      "assets/horses/mane-gallop-gray.png",
+      "assets/horses/socks-gallop-gray.png",
+      "assets/horses/horse-idle-white.png",
+      "assets/horses/mane-idle-white.png",
+      "assets/horses/socks-idle-white.png",
+      "assets/horses/horse-walk-white.png",
+      "assets/horses/mane-walk-white.png",
+      "assets/horses/socks-walk-white.png",
+      "assets/horses/horse-gallop-white.png",
+      "assets/horses/mane-gallop-white.png",
+      "assets/horses/socks-gallop-white.png",
+      "assets/credits/lpc-horse-extended.txt",
+      "assets/horses/pony-horse-idle-brown.png",
+      "assets/horses/pony-mane-idle-brown.png",
+      "assets/horses/pony-socks-idle-brown.png",
+      "assets/horses/pony-horse-walk-brown.png",
+      "assets/horses/pony-mane-walk-brown.png",
+      "assets/horses/pony-socks-walk-brown.png",
+      "assets/horses/pony-horse-gallop-brown.png",
+      "assets/horses/pony-mane-gallop-brown.png",
+      "assets/horses/pony-socks-gallop-brown.png",
+      "assets/horses/pony-horse-idle-black.png",
+      "assets/horses/pony-mane-idle-black.png",
+      "assets/horses/pony-socks-idle-black.png",
+      "assets/horses/pony-horse-walk-black.png",
+      "assets/horses/pony-mane-walk-black.png",
+      "assets/horses/pony-socks-walk-black.png",
+      "assets/horses/pony-horse-gallop-black.png",
+      "assets/horses/pony-mane-gallop-black.png",
+      "assets/horses/pony-socks-gallop-black.png",
+      "assets/horses/pony-horse-idle-gold.png",
+      "assets/horses/pony-mane-idle-gold.png",
+      "assets/horses/pony-socks-idle-gold.png",
+      "assets/horses/pony-horse-walk-gold.png",
+      "assets/horses/pony-mane-walk-gold.png",
+      "assets/horses/pony-socks-walk-gold.png",
+      "assets/horses/pony-horse-gallop-gold.png",
+      "assets/horses/pony-mane-gallop-gold.png",
+      "assets/horses/pony-socks-gallop-gold.png",
+      "assets/horses/pony-horse-idle-gray.png",
+      "assets/horses/pony-mane-idle-gray.png",
+      "assets/horses/pony-socks-idle-gray.png",
+      "assets/horses/pony-horse-walk-gray.png",
+      "assets/horses/pony-mane-walk-gray.png",
+      "assets/horses/pony-socks-walk-gray.png",
+      "assets/horses/pony-horse-gallop-gray.png",
+      "assets/horses/pony-mane-gallop-gray.png",
+      "assets/horses/pony-socks-gallop-gray.png",
+      "assets/horses/pony-horse-idle-white.png",
+      "assets/horses/pony-mane-idle-white.png",
+      "assets/horses/pony-socks-idle-white.png",
+      "assets/horses/pony-horse-walk-white.png",
+      "assets/horses/pony-mane-walk-white.png",
+      "assets/horses/pony-socks-walk-white.png",
+      "assets/horses/pony-horse-gallop-white.png",
+      "assets/horses/pony-mane-gallop-white.png",
+      "assets/horses/pony-socks-gallop-white.png"
+    ],
+    "note": "a glint added to every eye (scripts/eyes.ts); pony-* sheets derived by scripts/pony.ts (legs and body shortened, mane thickened)"
+  },
+  {
+    "title": "[LPC] Horses",
+    "authors": "bluecarrot16",
+    "license": "CC-BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "page": "https://opengameart.org/content/lpc-horses",
+    "files": [
+      "assets/horses/classic-brown.png",
+      "assets/horses/classic-black.png",
+      "assets/horses/classic-gold.png",
+      "assets/horses/classic-gray.png",
+      "assets/horses/classic-white.png",
+      "assets/horses/pony-classic-brown.png",
+      "assets/horses/pony-classic-black.png",
+      "assets/horses/pony-classic-gold.png",
+      "assets/horses/pony-classic-gray.png",
+      "assets/horses/pony-classic-white.png"
+    ],
+    "note": "a glint added to every eye (scripts/eyes.ts); pony-* sheets derived by scripts/pony.ts (legs and body shortened, mane thickened)"
+  },
+  {
+    "title": "[LPC] Farm",
+    "authors": "bluecarrot16; Wolthera van Hövell tot Westerflier (TheraHedwig); Ivan Voirol",
+    "license": "CC-BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "page": "https://opengameart.org/content/lpc-farm",
+    "creditsFile": "assets/credits/lpc-farm.txt",
+    "files": [
+      "assets/farm/barn.png",
+      "assets/credits/lpc-farm.txt"
+    ]
+  },
+  {
+    "title": "[LPC] Terrains",
+    "authors": "bluecarrot16, Sharm, Daneeklu, Jetrel, Zabin, Hyptosis, Casper Nilsson, Buko Studios, Nushio, ZaPaper, billknye, William Thompson, caeles, Redshrike, Bertram, RayaneFLX (all in the credits file)",
+    "license": "CC-BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "page": "https://opengameart.org/content/lpc-terrains",
+    "creditsFile": "assets/credits/lpc-terrains.txt",
+    "files": [
+      "assets/nature/terrain.png",
+      "assets/credits/lpc-terrains.txt"
+    ]
+  },
+  {
+    "title": "[LPC] Trees",
+    "authors": "bluecarrot16, Jetrel, Zabin, Hyptosis, Surt, Buch, Johann Charlot, Open Surge team, Gaurav Munjal, Ivan Voirol (all in the credits file)",
+    "license": "CC-BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "page": "https://opengameart.org/content/lpc-trees",
+    "creditsFile": "assets/credits/lpc-trees.txt",
+    "files": [
+      "assets/nature/trees.png",
+      "assets/credits/lpc-trees.txt"
+    ]
+  },
+  {
+    "title": "[LPC] Fruit Trees",
+    "authors": "bluecarrot16, Joshua Taylor, cynicmusic",
+    "license": "CC-BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "page": "https://opengameart.org/content/lpc-fruit-trees",
+    "creditsFile": "assets/credits/lpc-fruit-trees.txt",
+    "files": [
+      "assets/nature/fruit-trees.png",
+      "assets/credits/lpc-fruit-trees.txt"
+    ],
+    "note": "cropped to the part the game uses"
+  },
+  {
+    "title": "[LPC] Flowers / Plants / Fungi / Wood",
+    "authors": "bluecarrot16, Guido Bos, Ivan Voirol, SpiderDave, William Thompson, Yar and others (all in the credits file)",
+    "license": "CC-BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "page": "https://opengameart.org/content/lpc-flowers-plants-fungi-wood",
+    "creditsFile": "assets/credits/lpc-plants.txt",
+    "files": [
+      "assets/nature/plants.png",
+      "assets/credits/lpc-plants.txt"
+    ]
+  },
+  {
+    "title": "[LPC] Medieval Village Decorations",
+    "authors": "bluecarrot16, Sharm, Reemax, Xenodora, Johann C, Johannes Sjölund, Casper Nilsson, Daniel Cook, RayaneFLX, TheraHedwig and others (all in the credits file)",
+    "license": "CC-BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "page": "https://opengameart.org/content/lpc-medieval-village-decorations",
+    "creditsFile": "assets/credits/lpc-decorations.txt",
+    "files": [
+      "assets/farm/decorations.png",
+      "assets/farm/fences.png",
+      "assets/credits/lpc-decorations.txt"
+    ]
+  },
+  {
+    "title": "LPC style farm animals",
+    "authors": "Daniel Eddeland (daneeklu)",
+    "license": "CC-BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "page": "https://opengameart.org/content/lpc-style-farm-animals",
+    "files": [
+      "assets/animals/chicken-eat.png",
+      "assets/animals/chicken-walk.png",
+      "assets/animals/sheep-eat.png",
+      "assets/animals/sheep-walk.png"
+    ]
+  },
+  {
+    "title": "[LPC] Cats and Dogs",
+    "authors": "bluecarrot16",
+    "license": "CC-BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "page": "https://opengameart.org/content/lpc-cats-and-dogs",
+    "files": [
+      "assets/animals/cat.png",
+      "assets/animals/dog.png"
+    ]
+  },
+  {
+    "title": "Pixelify Sans",
+    "authors": "The Pixelify Sans Project Authors (Stefie Justprince)",
+    "license": "OFL 1.1",
+    "licenseUrl": "https://openfontlicense.org/",
+    "page": "https://github.com/eifetx/Pixelify-Sans",
+    "creditsFile": "assets/credits/pixelify-sans.txt",
+    "files": [
+      "assets/fonts/PixelifySans.ttf",
+      "assets/credits/pixelify-sans.txt"
+    ]
+  }
+]
