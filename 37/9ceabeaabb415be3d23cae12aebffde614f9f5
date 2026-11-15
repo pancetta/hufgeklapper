@@ -1,0 +1,23 @@
+src/scene/farm.test.ts
+  s_7657db1b41ed88::t_6da8ab1c7ba3f7 19-20
+src/scene/life.ts
+  s_7657db1b41ed88::t_e84150998c3b58 156
+src/ui/screens.ts
+  s_7657db1b41ed88::t_1551f0ae73b0c9 302-304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "379ceabeaabb415be3d23cae12aebffde614f9f5",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "unknown"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
