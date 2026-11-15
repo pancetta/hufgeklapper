@@ -174,13 +174,37 @@ function freePlot(p: Plot): Drawable[] {
   return [string, stake(x0, y0), stake(x1, y0), stake(x0, y1), stake(x1, y1), sign];
 }
 
+/** The manure heap by the barn (our own drawing): a brown mound with straw, a pitchfork stuck in it, two flies. */
+function manureHeap(x: number, y: number): Drawable {
+  return { y, draw: (ctx, t) => {
+    shadow(ctx, x, y, 16, 3, 0.28);
+    const px = (c: string, xx: number, yy: number, w: number, h = 1) => { ctx.fillStyle = c; ctx.fillRect(xx, yy, w, h); };
+    for (let r = 0; r < 14; r++) { // the mound, row by row, rounder at the top, lit from the top left
+      const w = Math.round(18 * Math.sqrt(1 - ((13 - r) / 14) ** 2));
+      px('#1e1209', x - w - 1, y - 14 + r, 2 * w + 2);
+      px(r < 5 ? '#6e4a2c' : '#4e321b', x - w, y - 14 + r, 2 * w);
+      if (r > 1) px('#8a6038', x - w + 1, y - 14 + r, Math.max(1, w - 4));
+    }
+    // straw sticking out of it, and darker clumps
+    for (const [dx, dy, c] of [[-10, -5, '#e2c068'], [2, -10, '#f0d47a'], [10, -4, '#d9b860'], [-3, -3, '#e2c068'], [-14, -2, '#d9b860'], [13, -2, '#f0d47a'], [-6, -9, '#d9b860'],
+      [-12, -1, '#2e1d0f'], [7, -7, '#2e1d0f'], [-1, -6, '#2e1d0f']] as const) px(c, x + dx, y + dy, 3);
+    // the pitchfork: a handle slanting up, three prongs in the heap
+    for (let k = 0; k < 18; k++) { px('#1e1209', x + 3 + Math.floor(k / 3), y - 12 - k, 3); px('#b07a42', x + 4 + Math.floor(k / 3), y - 12 - k, 1); }
+    px('#c9d1da', x + 2, y - 12, 5); px('#c9d1da', x + 2, y - 11, 1, 2); px('#c9d1da', x + 4, y - 11, 1, 2); px('#c9d1da', x + 6, y - 11, 1, 2);
+    for (let f = 0; f < 2; f++) { // flies circle it
+      const a = t * (3 + f) + f * 2;
+      px('#1e1a17', Math.round(x + Math.cos(a) * (8 + f * 4)), Math.round(y - 18 + Math.sin(a * 1.7) * 3), 1);
+    }
+  } };
+}
+
 /** Everything a plot draws. */
 export function plotDrawables(p: Plot, img: Images): Drawable[] {
   const b = bounds(p), cx = (b.x0 + b.x1) >> 1;
   switch (p.building) {
     case 'stall': {
       const c = barn(img), foot = b.y1 - 6;
-      return [{ y: foot, draw: (ctx) => { shadow(ctx, cx, foot - 2, 104, 7, 0.28); ctx.drawImage(c, cx - 95, foot - 340); } }];
+      return [{ y: foot, draw: (ctx) => { shadow(ctx, cx, foot - 2, 104, 7, 0.28); ctx.drawImage(c, cx - 95, foot - 340); } }, manureHeap(b.x1 - 58, b.y1 + 50)];
     }
     case 'feedStore': return [sprite('hayShed', cx, b.y1 - 6, img)];
     case 'pasture': return [...fence(p, [0, 0], img, p.c0 + 1), sprite('troughWater', b.x0 + 88, b.y0 + 86, img), sprite('hayRoll', b.x1 - 50, b.y0 + 166, img)];

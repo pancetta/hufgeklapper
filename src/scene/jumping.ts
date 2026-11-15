@@ -79,18 +79,22 @@ function pole(ctx: CanvasRenderingContext2D, xa: number, xb: number, colour: str
 /** One jump: standards at the lane's edges and its poles across; a knocked pole lies slanted on the sand. */
 function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number, fallen: boolean) {
   const top = LANE.y0 + 4, bottom = LANE.y1 - 4;
-  if (j.kind === 'oxer') standards(ctx, x + 12, j.colour); // the back part of an oxer, farther from the horse
+  // the back part of an oxer, farther from the horse; it is its back rail that falls
+  if (j.kind === 'oxer') { if (!fallen) pole(ctx, x + 12, x + 12, j.colour); standards(ctx, x + 12, j.colour); }
   if (fallen) {
+    if (j.kind === 'oxer') pole(ctx, x, x, j.colour);
+    if (j.kind === 'cross') pole(ctx, x + 4, x - 3, j.colour); // one of the crossed poles stays up
     // the knocked pole lies slanted in the sand, one end still near its standard
+    const from = j.kind === 'oxer' ? x + 14 : x + 2;
     for (let i = 0, n = bottom - top - 6; i < n; i += 2) {
-      const px = Math.round(x + 2 + (i / n) * 22), py = top + 4 + i;
+      const px = Math.round(from + (i / n) * 22), py = top + 4 + i;
       ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(px + 1, py + 2, 3, 2);
       ctx.fillStyle = Math.floor(i / 6) % 2 ? j.colour : '#ffffff'; ctx.fillRect(px, py, 3, 2);
     }
   } else if (j.kind === 'cross') {
-    pole(ctx, x - 9, x + 9, j.colour); pole(ctx, x + 9, x - 9, j.colour);
+    // the crossed poles, their ends near the standards
+    pole(ctx, x - 6, x + 7, j.colour); pole(ctx, x + 7, x - 6, j.colour);
   } else pole(ctx, x, x, j.colour);
-  if (j.kind === 'oxer' && !fallen) pole(ctx, x + 12, x + 12, j.colour);
   standards(ctx, x, j.colour);
 }
 
@@ -146,7 +150,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     // in the air the horse grows, as if closer to us, and rises above its shadow
     const grow = 1 + lift * 0.3;
     ctx.translate(x, HOOVES - lift * 16); ctx.scale(grow, grow); ctx.translate(-x, -HOOVES);
-    blit(ctx, sheet, [(Math.floor(t * 11) % 6) * 128, 3 * 128, 128, 128], x - 64, HOOVES - 93);
+    // the jump pose: legs stretched at take-off, tucked over the pole, reaching out to land (LPC gallop frames 3, 0, 4)
+    const phase = air ? (x - air.from) / (air.to - air.from) : -1;
+    const frame = phase < 0 ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
+    blit(ctx, sheet, [frame * 128, 3 * 128, 128, 128], x - 64, HOOVES - 93);
     drawRider(ctx, o.kid, x + s.dx, HOOVES + s.dy, 'E');
     ctx.restore();
     for (const j of jumps) if (!air && j.x >= x - 8) drawJump(ctx, j, j.x, fallen(j));
