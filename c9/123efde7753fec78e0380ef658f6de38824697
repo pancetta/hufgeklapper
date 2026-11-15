@@ -1,0 +1,25 @@
+src/sim/data.ts
+  s_7657db1b41ed88::t_11bcc66c35488e 23-24
+src/sim/save.ts
+  s_7657db1b41ed88::t_d7280cc4f51a96 7,9-10
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_c3e903d4555f49 64-65,86-93
+src/sim/state.ts
+  s_7657db1b41ed88::t_e22eada96fe0fb 83,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c9123efde7753fec78e0380ef658f6de38824697",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "unknown"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
