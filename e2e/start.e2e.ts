@@ -65,6 +65,12 @@ test('the game saves itself, carries on after a reload, and moves as a file', as
   await expect(page.getByText(t.overwrite('Wiesenhof'))).toBeVisible();
   await page.getByRole('button', { name: t.no }).tap();
   await expect(slot.getByText('Wiesenhof')).toBeVisible();
+  // a slot filled in another tab after this screen showed it as free still asks before it is overwritten
+  const free = page.getByRole('region', { name: t.slot(3) });
+  await page.evaluate(() => localStorage.setItem('hufgeklapper.slot.2', localStorage.getItem('hufgeklapper.slot.0')!));
+  await free.getByRole('button', { name: t.newGame }).tap();
+  await expect(page.getByText(t.overwrite('Wiesenhof'))).toBeVisible();
+  await page.getByRole('button', { name: t.no }).tap();
   // a file that is not a save is refused with a message
   const other = page.getByRole('region', { name: t.slot(2) });
   await page.locator('#import-file').setInputFiles({ name: 'foto.json', mimeType: 'application/json', buffer: Buffer.from('{"bild": 1}') });

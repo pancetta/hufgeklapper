@@ -12,7 +12,7 @@ import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { canBuild, type Horse, isSick, NEEDS, stalls } from '../sim/state';
-import { readSlot, type Slot, SLOTS, writeSlot } from '../slots';
+import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
 
@@ -101,9 +101,12 @@ export function showStart() {
     <p id="toast" class="toast" role="status" hidden></p>
     ${creditsSheet()}`);
   const say = (text: string) => { const el = $('toast'); el.textContent = text; el.hidden = false; setTimeout(() => { el.hidden = true; }, 3000); };
-  // overwriting a slot always asks first, so a save is never wiped by accident
-  const mayOverwrite = (slot: Slot, yes: string) => slot.kind === 'empty' ? Promise.resolve(true)
-    : ask(slot.kind === 'save' ? t.overwrite(slot.save.name) : t.overwriteBroken, yes);
+  // overwriting a slot always asks first, so a save is never wiped by accident; the slot is read again here,
+  // because another tab may have saved into it since this screen showed it
+  const mayOverwrite = (i: number, yes: string) => {
+    const slot = readSlot(i);
+    return slot.kind === 'empty' ? Promise.resolve(true) : ask(slot.kind === 'save' ? t.overwrite(slot.save.name) : t.overwriteBroken, yes);
+  };
   let importInto = 0;
   $('import-file').addEventListener('change', async () => {
     const input = $<HTMLInputElement>('import-file'), file = input.files?.[0];
@@ -111,14 +114,14 @@ export function showStart() {
     if (!file) return;
     const parsed = parseSave(await file.text());
     if (!parsed.ok) return say(parsed.reason === 'newer' ? t.importNewer : t.importInvalid);
-    if (!(await mayOverwrite(slots[importInto], t.yesLoad))) return;
+    if (!(await mayOverwrite(importInto, t.yesLoad))) return;
     if (!writeSlot(importInto, parsed.save)) return say(t.saveFailed);
     showStart();
   });
   app.querySelectorAll<HTMLButtonElement>('[data-do]').forEach((b) => b.addEventListener('click', async () => {
     const i = Number(b.dataset.slot), slot = slots[i];
     if (b.dataset.do === 'resume' && slot.kind === 'save') { game.resume(slot.save.state, i, slot.save.name); showFarm(); }
-    if (b.dataset.do === 'new' && (await mayOverwrite(slot, t.yesNew))) {
+    if (b.dataset.do === 'new' && (await mayOverwrite(i, t.yesNew))) {
       const name = await askName();
       if (name) { game.start(Date.now() % 100000, i, name); showFarm(); }
     }
@@ -127,7 +130,8 @@ export function showStart() {
       a.href = URL.createObjectURL(new Blob([JSON.stringify(slot.save, null, 2)], { type: 'application/json' }));
       a.download = `hufgeklapper-${slot.save.name.replace(/[^\p{L}\p{N}]+/gu, '-')}-tag-${slot.save.state.day}.json`;
       a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      // iPad Safari asks before it saves; the file must still be there when the child says yes
+      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
     }
     if (b.dataset.do === 'import') { importInto = i; $<HTMLInputElement>('import-file').click(); }
   }));
@@ -184,7 +188,10 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     clearTimeout(timer); timer = window.setTimeout(() => { el.hidden = true; }, 2600);
   };
   game.onSaveFailed(() => toast(t.saveFailed));
-  return { unsubscribe, toast };
+  // the same slot played in another tab: this one goes back to the start rather than overwrite newer progress
+  const elsewhere = (e: StorageEvent) => { if (e.key === slotKey(game.slot())) showStart(); };
+  addEventListener('storage', elsewhere);
+  return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast };
 }
 
 export function showFarm() {

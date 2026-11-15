@@ -6,16 +6,18 @@ import { writeSlot } from './slots';
 let state: State = newGame(1);
 let slot = 0, name = '';
 const listeners = new Set<() => void>();
-let onSaveFailed = () => {};
+let onSaveFailed = () => {}, saveFailed = false;
 
 function changed() {
-  if (!writeSlot(slot, toSave(state, name))) onSaveFailed();
+  saveFailed = !writeSlot(slot, toSave(state, name));
+  if (saveFailed) onSaveFailed();
   listeners.forEach((f) => f());
 }
 
 export const game = {
   get: () => state,
   name: () => name,
+  slot: () => slot,
   /** A fresh game in a slot; the seed makes it repeatable. */
   start(seed: number, inSlot: number, farmName: string) { state = newGame(seed); slot = inSlot; name = farmName; changed(); },
   /** Carries on a saved game. */
@@ -23,6 +25,6 @@ export const game = {
   dispatch(action: Action) { state = apply(state, action); changed(); },
   /** Calls `f` after every change; returns the unsubscribe. */
   subscribe(f: () => void) { listeners.add(f); return () => { listeners.delete(f); }; },
-  /** What to do when the browser refuses to save. */
-  onSaveFailed(f: () => void) { onSaveFailed = f; },
+  /** What to do when the browser refuses to save; called at once if the last save already failed. */
+  onSaveFailed(f: () => void) { onSaveFailed = f; if (saveFailed) f(); },
 };

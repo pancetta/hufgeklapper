@@ -29,7 +29,8 @@ function isLook(x: unknown): x is Look {
 }
 
 function isHorse(x: unknown): x is Horse {
-  return isObj(x) && isText(x.id, 40) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
+  // ids end up in HTML attributes, so only plain characters
+  return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
     && isObj(x.skills) && isInt(x.skills.jumping, 0, 100);
 }
