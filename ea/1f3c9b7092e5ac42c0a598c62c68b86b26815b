@@ -1,0 +1,25 @@
+src/riders/look.test.ts
+  s_7657db1b41ed88::t_37e58dacb29ef8 1-13
+src/ui/screens.ts
+  s_7657db1b41ed88::t_6a34a9a26652f2 81,87,106-109,260
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_35da1e8d7f2c7c 18-19,22
+src/strings.ts
+  s_7657db1b41ed88::t_6a34a9a26652f2 33-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea1f3c9b7092e5ac42c0a598c62c68b86b26815b",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
