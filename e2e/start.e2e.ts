@@ -382,7 +382,8 @@ test('the task list and Oma Hanne: she explains a place once, and says when a po
   // a hungry pony: one hint on the farm, which the child can close
   await changeSave(page, (s) => { (s.horses as { needs: { fed: number } }[])[0].needs.fed = 10; });
   await expect(page.getByText(t.hints.hungry('Kiwi'))).toBeVisible();
-  // neither the hint nor the open task list covers a place the child must tap
+  // neither the hint nor the open task list covers a place the child must tap (once the labels are placed)
+  await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
   const covered = await page.evaluate(() => {
     const boxes = ['#hint', '.goals'].map((q) => document.querySelector(q)!.getBoundingClientRect());
     return [...document.querySelectorAll<HTMLElement>('.label')].filter((l) => {
@@ -393,6 +394,11 @@ test('the task list and Oma Hanne: she explains a place once, and says when a po
   expect(covered).toEqual([]);
   await page.getByRole('button', { name: t.closeHint }).tap();
   await expect(page.getByText(t.hints.hungry('Kiwi'))).toBeHidden();
+  // the notice board: Oma explains it first, then the shop opens
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.explain.board)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.getByRole('heading', { name: t.shopTitle })).toBeVisible();
 });
 
 test('the credits name the artists and close again', async ({ page }) => {
