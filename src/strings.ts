@@ -21,6 +21,22 @@ export const t = {
   exportSave: 'Sichern',
   importSave: 'Laden',
   farmName: 'Wie heißt dein Hof?',
+  // the avatar editor
+  whoAreYou: 'Wer bist du?',
+  yourName: 'Wie heißt du?',
+  looks: { skin: 'Haut', hair: 'Frisur', hairColor: 'Haarfarbe', jacket: 'Jacke' },
+  hairStyles: { zopf: 'Pferdeschwanz', kurz: 'Kurz', zoepfe: 'Zöpfe', lang: 'Lang' },
+  colour: (what: string, n: number) => `${what} ${n}`,
+  // Oma Hanne hands over the farm
+  omaHanne: 'Oma Hanne',
+  intro: (name: string, horses: string[]) => [
+    `Hallo ${name}! Ich bin Oma Hanne.`,
+    'Ich bin alt geworden. Ab heute gehört mein Hof dir!',
+    `Im Stall warten ${horses.join(' und ')}. Bitte pflege sie gut.`,
+    'Am Reitplatz warten Reitschüler. Sie bringen dir Geld.',
+    'Brauchst du Hilfe, dann bin ich da. Viel Spaß!',
+  ],
+  next: 'Weiter',
   farmNameDefault: 'Mein Ponyhof',
   overwrite: (name: string) => `„${name}“ wird überschrieben. Sicher?`,
   overwriteBroken: 'Der alte Spielstand wird überschrieben. Sicher?',

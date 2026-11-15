@@ -4,6 +4,7 @@
  */
 import type { Breed, Look } from '../horses/look';
 import { breedLook } from '../horses/look';
+import type { HairStyle } from '../riders/look';
 import { DATA } from './data';
 
 export type Need = 'fed' | 'clean' | 'happy' | 'energy' | 'health';
@@ -19,7 +20,9 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 5;
+  version: 6;
+  /** The player's figure. */
+  avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
   day: number;
   money: number;
@@ -43,6 +46,9 @@ export type State = {
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
 export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson'; amount: number };
+
+/** The player's figure ("Avatar"): a name and a rider's look (indices into the palettes in riders/look.ts). */
+export type Avatar = { name: string; skin: number; hair: HairStyle; hairColor: number; jacket: number };
 
 /** A pupil ("Reitschüler"): a small or big child, a beginner or advanced rider. */
 export type Pupil = { id: string; name: string; size: 'small' | 'big'; level: 'beginner' | 'advanced'; look: number };
@@ -81,12 +87,12 @@ export function pupilsFor(day: number, reputation: number, seed: number): [Pupil
 }
 
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
-export function newGame(seed: number): State {
+export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 5, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 6, avatar, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [

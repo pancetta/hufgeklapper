@@ -1,6 +1,6 @@
 /** The running game: the Sim state the screens show, the one way to change it, and the autosave to its slot. */
 import { toSave } from './sim/save';
-import { type Action, apply, newGame, type State } from './sim/state';
+import { type Action, apply, type Avatar, newGame, type State } from './sim/state';
 import { writeSlot } from './slots';
 
 let state: State = newGame(1);
@@ -19,7 +19,7 @@ export const game = {
   name: () => name,
   slot: () => slot,
   /** A fresh game in a slot; the seed makes it repeatable. */
-  start(seed: number, inSlot: number, farmName: string) { state = newGame(seed); slot = inSlot; name = farmName; changed(); },
+  start(seed: number, inSlot: number, farmName: string, avatar: Avatar) { state = newGame(seed, avatar); slot = inSlot; name = farmName; changed(); },
   /** Carries on a saved game. */
   resume(saved: State, inSlot: number, farmName: string) { state = saved; slot = inSlot; name = farmName; listeners.forEach((f) => f()); },
   dispatch(action: Action) { state = apply(state, action); changed(); },

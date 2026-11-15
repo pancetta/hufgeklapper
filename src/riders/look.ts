@@ -7,9 +7,10 @@ export const HELMET = ['#2b2b3a', '#2f4f9a', '#7a2b4f', '#2f6b3a'];
 export const JACKET = ['#d94f3d', '#3d6fd9', '#f2c14e', '#43a047', '#b05ec9', '#ff8fc7'];
 export const HAIR = ['#4a2f1a', '#e2c068', '#1e1a17', '#a0522d'];
 export const HAIR_STYLES = ['zopf', 'kurz', 'zoepfe', 'lang'] as const;
+export type HairStyle = (typeof HAIR_STYLES)[number];
 
 /** A rider's look: indices into the palettes above. */
-export type Kid = { size: 'small' | 'big'; skin: number; hair: (typeof HAIR_STYLES)[number]; hairColor: number; jacket: number; helmet: number };
+export type Kid = { size: 'small' | 'big'; skin: number; hair: HairStyle; hairColor: number; jacket: number; helmet: number };
 
 /** A pupil's look from its look number: each part takes a few bits. */
 export function pupilKid(p: { size: Kid['size']; look: number }): Kid {

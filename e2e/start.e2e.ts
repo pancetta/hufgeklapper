@@ -1,12 +1,39 @@
 import { expect, type Page, test } from '@playwright/test';
 import { t } from '../src/strings';
 
-/** Starts a new game in the first slot under the given farm name. */
+/** Starts a new game in the first slot under the given farm name, with the default figure, and listens to Oma Hanne. */
 async function newGame(page: Page, name: string) {
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.newGame }).tap();
   await page.getByLabel(t.farmName).fill(name);
   await page.getByRole('button', { name: t.start }).tap();
+  for (let i = 0; i < t.intro('', []).length; i++) await page.getByRole('button', { name: t.next }).tap();
+  await expect(page.getByRole('button', { name: t.next })).toBeHidden();
 }
+
+test('a new game in slot 2: the player makes a figure, Oma Hanne hands over the farm, the slot keeps it', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('region', { name: t.slot(2) }).getByRole('button', { name: t.newGame }).tap();
+  await expect(page.getByRole('heading', { name: t.whoAreYou })).toBeVisible();
+  await page.getByLabel(t.yourName).fill('Mara');
+  await page.getByRole('button', { name: t.hairStyles.zoepfe }).tap();
+  await page.getByRole('button', { name: t.colour(t.looks.jacket, 5) }).tap();
+  await expect(page.getByRole('button', { name: t.hairStyles.zoepfe })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel(t.farmName).fill('Lindenhof');
+  await page.getByRole('button', { name: t.start }).tap();
+  // Oma Hanne greets the player by name, one sentence at a time
+  const lines = t.intro('Mara', ['Kiwi', 'Luna']);
+  for (const line of lines) {
+    await expect(page.getByText(line)).toBeVisible();
+    await page.getByRole('button', { name: t.next }).tap();
+  }
+  await expect(page.getByRole('img', { name: t.omaHanne })).toBeHidden();
+  await expect(page.getByText('Lindenhof')).toBeVisible();
+  // after a reload slot 2 holds the game, with the figure as made
+  await page.reload();
+  await expect(page.getByRole('region', { name: t.slot(2) }).getByRole('heading', { name: 'Lindenhof' })).toBeVisible();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.1')!).state.avatar);
+  expect(saved).toMatchObject({ name: 'Mara', hair: 'zoepfe', jacket: 4 });
+});
 
 test('the farm comes alive behind the title', async ({ page }) => {
   await page.goto('./');
