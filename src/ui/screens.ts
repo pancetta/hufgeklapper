@@ -13,7 +13,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { CARE, canBuild, canFeed, canPayVet, canQuickCare, type Care, type Horse, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -149,6 +149,7 @@ function topBar() {
     <header class="topbar">
       <span class="stat farm-name">${esc(game.name())}</span>
       <span class="stat" id="money"><img class="icon" src="${icon('coin')}" alt="">${t.money(game.get().money)}</span>
+      <span class="stat" id="hay"><img class="icon" src="${icon('feed')}" alt="">${t.hay(game.get().feed)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
       <button id="sleep" type="button"><img class="icon" src="${icon('moon')}" alt="">${t.sleep}</button>
@@ -179,10 +180,12 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   // the morning summary: one short line per piece of news, then on with the day
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
-    : n.kind === 'hayLow' ? t.newsHayLow : t.newsNoHay;
+    : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay : '';
   function morning(news: News[]) {
     if (!news.length) return;
-    const lines = [...new Set(news.map(line))]; // "no hay" comes once per horse; say it once
+    const lines = [...new Set(news.filter((n) => n.kind !== 'bill').map(line))]; // "no hay" comes once per horse; say it once
+    const bill = game.get().bill;
+    if (bill.length) lines.push(`<b>${t.billTitle}</b> ${bill.map((e) => `${t.billWhat[e.what]} ${t.euros(e.amount)}`).join(' · ')}`);
     const box = $('morning');
     box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
     box.hidden = false;
@@ -194,6 +197,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   const unsubscribe = game.subscribe(() => {
     $('money').lastChild!.textContent = t.money(game.get().money);
     $('day').textContent = t.day(game.get().day);
+    $('hay').lastChild!.textContent = t.hay(game.get().feed);
     onChange();
   });
   let timer = 0;
@@ -210,17 +214,36 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
 }
 
 export function showFarm() {
-  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}`);
+  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
+    <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>`);
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
-    else if (target === 'board') bar.toast(t.board);
+    else if (target === 'board') showShop();
     else if (target === 'arena') bar.toast(t.arena);
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
-  const bar = wireTopBar($, () => {});
+  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); });
+  /** The notice board: buy hay (on credit when the money is short) and borrow from the bank. */
+  function shop() {
+    const s = game.get();
+    $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
+      <p>${t.inStore(s.feed)}${s.debt ? ` · ${t.owe(s.debt)}` : ''}</p>
+      <h3>${t.buyHay}</h3>
+      ${DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('')}
+      ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
+      ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
+      <button type="button" id="close-shop">${t.close}</button>`;
+    $('shop').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
+      game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
+      bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));
+    }));
+    $('shop').querySelector('#loan')?.addEventListener('click', () => { game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount)); });
+    $('close-shop').addEventListener('click', () => { $('shop').hidden = true; });
+  }
+  function showShop() { shop(); $('shop').hidden = false; }
   // labels on the places: [id, world x, world y]
   const board = PROPS.find(([n]) => n === 'board')!;
   const places: [string, number, number][] = [
@@ -295,7 +318,7 @@ export function showStable() {
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
-      ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)}</p>`}
+      ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
       <button id="care" type="button">${t.care}</button>
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;

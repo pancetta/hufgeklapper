@@ -44,7 +44,6 @@ export const t = {
 
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz' } as Record<string, string>,
-  board: 'Hier kannst du bald Futter kaufen.',
   arena: 'Reiten kommt bald.',
   pasture: 'Hier grasen deine Ponys.',
   feedStore: (n: number) => `Im Lager liegen ${n} Heuballen.`,
@@ -82,4 +81,22 @@ export const t = {
   quickCare: 'Schnell erledigen',
   noHayLeft: 'Kein Heu mehr im Lager.',
   toStable: 'Zum Stall',
+
+  // the notice board: hay, the bank, and the bill
+  hay: (n: number) => `${n} Heu`,
+  shopTitle: 'Schwarzes Brett',
+  buyHay: 'Heu kaufen',
+  hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price} €`,
+  hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
+  inStore: (n: number) => `Im Lager: ${n} Heuballen`,
+  owe: (n: number) => `Du schuldest ${n} €.`,
+  omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
+  loan: (n: number) => `${n} € von der Bank leihen`,
+  omaLoan: 'Oma Hanne sagt: „Die Bank leiht dir Geld für den Tierarzt. Zurückgezahlt wird, wenn du etwas verdienst.“',
+  bought: (n: number) => `${n} Heuballen sind jetzt im Lager.`,
+  lent: (n: number) => `Du hast ${n} € geliehen.`,
+  askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
+  billTitle: 'Gestern:',
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt' },
+  euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;

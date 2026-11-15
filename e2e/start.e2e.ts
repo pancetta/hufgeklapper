@@ -24,8 +24,13 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await expect(page.getByText('Sonnenhof')).toBeVisible();
   await expect(page.getByText(t.money(300))).toBeVisible();
   await expect(page.getByText(t.day(1))).toBeVisible();
+  // the notice board sells hay
   await page.getByRole('button', { name: t.places.board }).tap();
-  await expect(page.getByRole('status')).toHaveText(t.board);
+  await page.getByRole('button', { name: t.hayPack(5, 25) }).tap();
+  await expect(page.getByRole('status')).toHaveText(t.bought(5));
+  await expect(page.locator('#hay')).toHaveText(t.hay(15));
+  await expect(page.locator('#money')).toHaveText(t.money(275));
+  await page.getByRole('button', { name: t.close }).tap();
   // the stable: both ponies with their needs
   await page.getByRole('button', { name: t.places.stall }).tap();
   for (const name of ['Kiwi', 'Luna']) await expect(page.locator('.nameplate', { hasText: name })).toBeVisible();
@@ -41,6 +46,9 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await page.getByRole('button', { name: t.sleep }).tap();
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
   expect(Number(await page.getByRole('meter', { name: t.needs.fed }).first().getAttribute('aria-valuenow'))).toBeLessThan(before);
+  // the morning bill shows yesterday's hay
+  await expect(page.getByText(`${t.billWhat.hay} ${t.euros(-25)}`)).toBeVisible();
+  await page.getByRole('button', { name: t.morningGo }).tap();
   // back to the farm
   await page.getByRole('button', { name: t.toFarm }).tap();
   await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
@@ -164,6 +172,25 @@ test('caring for a pony with gestures: brush, hooves, hay, manure; quick care af
   await page.getByRole('button', { name: t.care }).tap();
   await page.locator('[data-quick="muck"]').tap();
   await expect(page.getByText(t.doneCare.muck())).toBeVisible();
+});
+
+test('with no money, hay comes on credit and the bank lends for the vet', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sparhof');
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
+    save.state.money = 0;
+    localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.omaCredit)).toBeVisible();
+  await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
+  await expect(page.locator('#hay')).toHaveText(t.hay(20));
+  await expect(page.getByText(t.owe(45))).toBeVisible();
+  await page.getByRole('button', { name: t.loan(100) }).tap();
+  await expect(page.locator('#money')).toHaveText(t.money(100));
 });
 
 test('the credits name the artists and close again', async ({ page }) => {

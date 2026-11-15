@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canQuickCare, canWork, isSick, NEEDS, newGame, type State, stalls } from './state';
+import { apply, canBuild, canLoan, canQuickCare, canWork, earn, isSick, NEEDS, newGame, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -122,5 +122,43 @@ describe('Sim', () => {
     expect(canQuickCare(s, 'groom')).toBe(false);
     const quick = apply(s, { type: 'care', horse: 'kiwi', what: 'muck', quick: true });
     expect(quick.careDone.muck).toBe(DATA.quickCareAfter);
+  });
+
+  it('sells hay for money, and on credit when the money is short', () => {
+    const s = newGame(1), bought = apply(s, { type: 'buyHay', pack: 1 });
+    expect([bought.feed, bought.money, bought.debt]).toEqual([s.feed + 10, s.money - 45, 0]);
+    const broke = { ...s, money: 10 }, credit = apply(broke, { type: 'buyHay', pack: 0 });
+    expect([credit.feed, credit.money, credit.debt]).toEqual([s.feed + 5, 10, 25]);
+  });
+
+  it('never leaves the horses without a way to be fed, however long the money is gone', () => {
+    let s: State = { ...newGame(1), money: 0, feed: 0 };
+    for (let day = 0; day < 60; day++) {
+      if (s.feed < s.horses.length) s = apply(s, { type: 'buyHay', pack: 0 });
+      s = apply(s, { type: 'sleep' });
+      expect(s.night).not.toContainEqual(expect.objectContaining({ kind: 'noHay' }));
+    }
+  });
+
+  it('lends money while the debt stays below the limit', () => {
+    let s = { ...newGame(1), money: 0 };
+    while (canLoan(s)) s = apply(s, { type: 'loan' });
+    expect(s.debt).toBe(DATA.loan.debtLimit);
+    expect(apply(s, { type: 'loan' })).toBe(s);
+  });
+
+  it('pays debt back from income first, and never more than is owed', () => {
+    const s = { ...newGame(1), money: 0, debt: 30 };
+    const once = earn(s, 40);
+    expect([once.money, once.debt]).toEqual([20, 10]);
+    const twice = earn(once, 40);
+    expect([twice.money, twice.debt]).toEqual([50, 0]);
+  });
+
+  it('writes yesterday\'s money into the morning bill', () => {
+    const s = apply(apply(newGame(1), { type: 'buyHay', pack: 0 }), { type: 'sleep' });
+    expect(s.bill).toEqual([{ what: 'hay', amount: -25 }]);
+    expect(s.night).toContainEqual({ kind: 'bill' });
+    expect(apply(s, { type: 'sleep' }).bill).toEqual([]);
   });
 });

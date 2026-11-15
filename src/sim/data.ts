@@ -31,6 +31,12 @@ export const DATA = {
   hayPerNight: 1,
   /** The morning warns when the store holds hay for fewer nights than this. */
   hayLowNights: 2,
+  /** Hay for sale on the notice board: bales and price per pack. */
+  hayPacks: [{ bales: 5, price: 25 }, { bales: 10, price: 45 }],
+  /** The bank lends this much at a time, while the debt stays below the limit. */
+  loan: { amount: 100, debtLimit: 200 },
+  /** Of every income, this share goes to paying back debt first. */
+  repayShare: 0.5,
   /** The vet ("Tierarzt"): what a visit costs, the health it gives back, and the days the horse must rest. */
   vet: { cost: 40, health: 70, restDays: 2 },
   /** Stalls ("Boxen") in the stable, per farm stage. */

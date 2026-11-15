@@ -18,7 +18,7 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 3;
+  version: 4;
   seed: number; // the game's random seed (the first rule with chance adds a generator that uses it)
   day: number;
   money: number;
@@ -29,15 +29,24 @@ export type State = {
   night: News[];
   /** How often each care action was done by hand (quick care unlocks after a few). */
   careDone: Record<Care, number>;
+  /** Money owed: hay bought on credit ("angeschrieben") and bank loans. */
+  debt: number;
+  /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
+  today: Entry[];
+  bill: Entry[];
 };
+
+/** One line of the bill: what for, and the amount (+ in, − out). */
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay'; amount: number };
 
 export type Care = 'groom' | 'hooves' | 'feed' | 'muck';
 export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 
 /** Morning news: data only; the screens turn it into words. */
-export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested'; horse?: string };
+export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; horse?: string };
 
-export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean };
+export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
+  | { type: 'buyHay'; pack: number } | { type: 'loan' };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -46,8 +55,8 @@ export function newGame(seed: number): State {
   const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0 });
   return {
-    version: 3, seed, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
-    careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 },
+    version: 4, seed, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     horses: [
       horse('kiwi', 'Kiwi', 'haflinger', breedLook('haflinger')),
       horse('luna', 'Luna', 'islaender', breedLook('islaender', 'rappe', { face: 'stern' })),
@@ -61,6 +70,16 @@ export const canWork = (h: Horse) => !isSick(h) && h.rest === 0;
 export const canPayVet = (s: State) => s.money >= DATA.vet.cost;
 export const canQuickCare = (s: State, what: Care) => s.careDone[what] >= DATA.quickCareAfter;
 export const canFeed = (s: State) => s.feed >= 1;
+/** Hay can always be had: paid if the money is there, else on credit, so the horses never go hungry for lack of it. */
+export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
+export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
+
+/** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
+export function earn(s: State, amount: number): State {
+  const repay = Math.min(s.debt, Math.round(amount * DATA.repayShare));
+  const today: Entry[] = repay ? [...s.today, { what: 'repay', amount: -repay }] : s.today;
+  return { ...s, money: s.money + amount - repay, debt: s.debt - repay, today };
+}
 export const stalls = (s: State) => DATA.stalls[s.stage];
 export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
 
@@ -92,7 +111,8 @@ export function apply(state: State, action: Action): State {
         return after;
       });
       if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
-      return { ...state, day: state.day + 1, feed, horses, night: news };
+      if (state.today.length) news.push({ kind: 'bill' });
+      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [] };
     }
     case 'care': {
       const h = state.horses.find((x) => x.id === action.horse);
@@ -111,7 +131,23 @@ export function apply(state: State, action: Action): State {
       const h = state.horses.find((x) => x.id === action.horse);
       if (!h || !isSick(h) || !canPayVet(state)) return state;
       const healed = { ...h, needs: { ...h.needs, health: Math.max(h.needs.health, DATA.vet.health) }, rest: DATA.vet.restDays };
-      return { ...state, money: state.money - DATA.vet.cost, horses: state.horses.map((x) => (x === h ? healed : x)) };
+      return { ...state, money: state.money - DATA.vet.cost, horses: state.horses.map((x) => (x === h ? healed : x)),
+        today: [...state.today, { what: 'vet', amount: -DATA.vet.cost }] };
+    }
+    case 'buyHay': {
+      const p = DATA.hayPacks[action.pack];
+      if (!p) return state;
+      const credit = hayOnCredit(state, action.pack);
+      return {
+        ...state, feed: state.feed + p.bales,
+        money: credit ? state.money : state.money - p.price, debt: credit ? state.debt + p.price : state.debt,
+        today: [...state.today, { what: credit ? 'hayOnCredit' : 'hay', amount: -p.price }],
+      };
+    }
+    case 'loan': {
+      if (!canLoan(state)) return state;
+      const a = DATA.loan.amount;
+      return { ...state, money: state.money + a, debt: state.debt + a, today: [...state.today, { what: 'loan', amount: a }] };
     }
   }
 }
