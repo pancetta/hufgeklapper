@@ -1,0 +1,40 @@
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_57fd281ab05954 41-48
+src/ui/screens.ts
+  s_7657db1b41ed88::t_87bbde75e7dc3b 20,271-290,296-298,312-313,318-334,558
+  s_7657db1b41ed88::t_d79e1d9e20c954 619
+src/sim/data.ts
+  s_7657db1b41ed88::t_a2a7422a1a9e7b 87-95
+src/sim/state.ts
+  s_7657db1b41ed88::t_a2a7422a1a9e7b 23,48-50,76-77,109,235-261,263-269,271-272
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_57fd281ab05954 4,348-373
+  s_7657db1b41ed88::t_f2643595a02a3b 374
+src/style.css
+  s_7657db1b41ed88::t_d79e1d9e20c954 274,276-283,286-289
+  s_7657db1b41ed88::t_c25bdd4f72f2d7 275,284-285
+src/sim/save.ts
+  s_7657db1b41ed88::t_a2a7422a1a9e7b 17,26,55-57,117-123,137
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_5ad03136f8b934 16-20,26-35,305,339,365-384,394-395
+  s_7657db1b41ed88::t_6a86c2c93fe5bc 385-393
+  s_7657db1b41ed88::t_896e6cfd0bb5b7 396-397
+src/strings.ts
+  s_7657db1b41ed88::t_87bbde75e7dc3b 168-191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "33f19c58acc2b1c61cc4e423f1c9d9471f0869d8",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
