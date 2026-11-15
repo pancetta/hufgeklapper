@@ -17,7 +17,7 @@ export function paintOver(base: Pixels, layer: Pixels, tint?: string) {
     if (!a) continue;
     let r = l[i], g = l[i + 1], bl = l[i + 2];
     if (tint) {
-      const light = (r * 0.3 + g * 0.59 + bl * 0.11) / 160; // the pad's mid tone maps to the tint itself
+      const light = (r * 0.3 + g * 0.59 + bl * 0.11) / 128; // the pad's main tone (brightness 128) becomes the tint itself
       r = Math.min(255, tr * light); g = Math.min(255, tg * light); bl = Math.min(255, tb * light);
     }
     const ba = b[i + 3] / 255, out = a + ba * (1 - a);
@@ -68,7 +68,7 @@ export function horseSheet(look: Look, anim: Anim) {
     s = composeSheet(look, anim, loadPixels).then((px) => {
       const c = document.createElement('canvas');
       c.width = px.width; c.height = px.height;
-      c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(px.data), px.width, px.height), 0, 0);
+      c.getContext('2d')!.putImageData(new ImageData(px.data as Uint8ClampedArray<ArrayBuffer>, px.width, px.height), 0, 0); // composeSheet made it fresh
       return c;
     });
     sheets.set(key, s);
