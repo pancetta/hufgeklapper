@@ -87,7 +87,7 @@ export const DATA = {
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
   goals: {
     kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 5 }, { id: 'badge', need: 1 }, { id: 'savings', need: 400 }, { id: 'reputation', need: 50 }],
-    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 15 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
+    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
   } as Record<'kleinerHof' | 'reitschule', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses'; need: number }[]>,
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
