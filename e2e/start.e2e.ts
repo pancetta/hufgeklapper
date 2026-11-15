@@ -339,7 +339,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await changeSave(page, (s) => { Object.assign(s, { badges: 1, trainings: 3, day: DATA.shows.every }); });
   // the notice board's calendar names today
   await page.getByRole('button', { name: t.places.board }).tap();
-  await expect(page.getByText(t.nextShow(DATA.shows.every))).toBeVisible();
+  await expect(page.getByText(t.nextShow(DATA.shows.every, true))).toBeVisible();
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.show, exact: true }).tap();

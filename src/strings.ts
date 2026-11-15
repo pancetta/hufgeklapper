@@ -112,7 +112,7 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld Turnier', prize: 'Preisgeld' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
@@ -161,10 +161,10 @@ export const t = {
     money: (fee: number) => `Das Startgeld kostet ${fee} €. So viel hast du gerade nicht.`,
   },
   showEnter: (fee: number) => `Heute ist Turnier! Startgeld: ${fee} €. Mit welchem Pferd reitest du?`,
-  nextShow: (day: number) => `Nächstes Turnier: Tag ${day}`,
+  nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',
   points: (n: number) => `${n} Punkte`,
-  showPlace: (rank: number, prize: number) => prize ? `Du bist ${rank}. geworden! +${prize} € Preisgeld` : `Du bist ${rank}. geworden. Beim nächsten Turnier klappt es besser!`,
+  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
   goalText: {

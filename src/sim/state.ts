@@ -175,7 +175,7 @@ export type ShowRow = { rider: string; horse: string; score: number; you?: true 
 export function showResult(s: State, h: Horse, faults: number, rider: string) {
   const S = DATA.shows, J = DATA.jumping, rows: ShowRow[] = [];
   let seed = s.seed, r: number;
-  const pool = [...S.rivals];
+  const pool = S.rivals.filter(([name]) => name !== rider); // no rival with the player's own name
   for (let i = 0; i < S.rivalsPerShow; i++) {
     [r, seed] = roll(seed);
     const [name, horse] = pool.splice(Math.floor(r * pool.length), 1)[0];
