@@ -1,0 +1,44 @@
+src/scene/oma.ts
+  s_7657db1b41ed88::t_89e9c053a65758 38,40-43,45
+  s_7657db1b41ed88::t_6f75ba6b68624c 1-37,39,44,46-60
+src/game.ts
+  s_7657db1b41ed88::t_45328964f65225 3,22
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_84764c018adb82 4,9-10,13-36
+  s_7657db1b41ed88::t_2d3d61261585b0 37
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_004fdfc7fb272d 1,34-36,41-45
+  s_7657db1b41ed88::t_b5b6cf35d0c6fd 46-47
+src/ui/screens.ts
+  s_7657db1b41ed88::t_0522c1812c3f94 388
+  s_7657db1b41ed88::t_45328964f65225 11-13,19,67-71,73-75,77-90,92-106,108-111,163-164,252-253,256-266
+src/sim/state.ts
+  s_7657db1b41ed88::t_2427b045491859 7
+  s_7657db1b41ed88::t_274e93efa2ff70 23-25,50-52,90,95
+src/riders/look.ts
+  s_7657db1b41ed88::t_2427b045491859 10,13
+src/sim/data.ts
+  s_7657db1b41ed88::t_2427b045491859 58-59
+src/sim/save.ts
+  s_7657db1b41ed88::t_2427b045491859 6,17,48-52,54,93-99,110
+src/strings.ts
+  s_7657db1b41ed88::t_2f5e4cacbdb8e2 24-39
+src/style.css
+  s_7657db1b41ed88::t_c32e104d87258a 231-252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6b4af1c4dd72d65810434fdb536aa4d9866cb76d",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
