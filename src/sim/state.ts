@@ -130,6 +130,13 @@ export function jumpWindow(h: Horse) {
   return J.window.base + J.window.skill * (h.skills.jumping / 100) + J.window.kept * kept;
 }
 export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
+/**
+ * What a tap `offset` seconds from the perfect take-off does: too early to count yet, a clear jump, or a knocked pole.
+ * Without a tap, the pole falls once `missed`.
+ */
+export const takeOff = (h: Horse, offset: number): 'early' | 'clear' | 'fault' =>
+  offset < -DATA.jumping.early ? 'early' : clears(h, offset) ? 'clear' : 'fault';
+export const missed = (h: Horse, offset: number) => offset > jumpWindow(h) / 2 + DATA.jumping.late;
 
 /** Why the riding badge can't be tried now: passed already, more practice first, or tomorrow after a failed try. */
 export function badgeWaits(s: State): { why: 'passed' } | { why: 'practise'; rounds: number } | { why: 'tomorrow' } | null {

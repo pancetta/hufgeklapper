@@ -2,7 +2,7 @@
  * The jumping minigame, seen from above: the horse gallops to the right along a sand lane, the course scrolls,
  * and the player taps at take-off. In the air the horse grows while its shadow stays on the ground. A green
  * patch before each jump shows where to tap; how wide it is comes from the Sim's take-off window.
- * Animation and input only: whether a tap clears a jump is the Sim's `clears`, passed in as `judge`.
+ * Animation and input only: what a tap does is the Sim's `takeOff`, and when an untapped pole falls its `missed`.
  */
 import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
@@ -12,9 +12,10 @@ import { blit, shadow } from './draw';
 import { drawRider } from './kids';
 import { seat } from './life';
 
-const SPEED = 120; // px per second
-const TAKEOFF = 40; // the hooves leave the ground this far before the pole and land as far behind it
-const FIRST = 260, SPACING = 220, RUN_OUT = 170, LANE = { y0: 70, y1: 150 }, HOOVES = 124, H = 220;
+/** The course: speed (px per second), where the hooves leave the ground before a pole, the first jump, the gaps. */
+export const COURSE = { speed: 120, takeoff: 40, first: 260, spacing: 220 };
+const { speed: SPEED, takeoff: TAKEOFF, first: FIRST, spacing: SPACING } = COURSE;
+const RUN_OUT = 170, LANE = { y0: 70, y1: 150 }, HOOVES = 124, H = 220;
 const STEP = 1 / 60, BEFORE = 400; // the course starts this far before the horse
 
 export type JumpingOptions = {
@@ -22,7 +23,9 @@ export type JumpingOptions = {
   kid: Kid;
   jumps: number;
   window: number; // seconds; drawn as the green take-off patch
-  judge: (offset: number) => boolean; // seconds from the perfect take-off (− early, + late) → cleared?
+  // seconds from the perfect take-off (− early, + late): what a tap does, and whether an untapped pole falls
+  takeOff: (offset: number) => 'early' | 'clear' | 'fault';
+  missed: (offset: number) => boolean;
 };
 
 type Jump = { x: number; colour: string; done: boolean; down: boolean };
@@ -53,9 +56,9 @@ function paintCourse(width: number) {
 }
 
 /** One jump: two standards at the lane's edges and a striped pole across; a knocked pole lies on the sand. */
-function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number) {
+function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number, fallen: boolean) {
   const top = LANE.y0 + 4, bottom = LANE.y1 - 4;
-  if (j.down) {
+  if (fallen) {
     // the knocked pole lies slanted in the sand, one end still near its standard
     for (let i = 0, n = bottom - top - 6; i < n; i += 2) {
       const px = Math.round(x + 2 + (i / n) * 22), py = top + 4 + i;
@@ -93,14 +96,13 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   }
 
   const ideal = (j: Jump) => j.x - TAKEOFF; // where the hooves should leave the ground
-  /** The next jump still to come, if the horse is close enough to take off for it. */
-  const upcoming = () => jumps.find((j) => !j.done && x > ideal(j) - SPEED * 0.6);
+  const offset = (j: Jump) => (x - ideal(j)) / SPEED;
 
   function step() {
     t += STEP; x += SPEED * STEP;
     if (air && x >= air.to) air = null;
     // a jump nobody tapped for: the horse runs into the pole
-    for (const j of jumps) if (!j.done && x > ideal(j) + SPEED * (o.window / 2 + 0.15)) { j.done = true; j.down = true; }
+    for (const j of jumps) if (!j.done && o.missed(offset(j))) { j.done = true; j.down = true; }
     if (x >= finish && running) { running = false; done(jumps.filter((j) => j.down).length); }
   }
 
@@ -119,7 +121,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     for (let y = LANE.y0; y < LANE.y1; y += 4) { ctx.fillStyle = (y / 4) % 2 ? '#ffffff' : '#2a1a10'; ctx.fillRect(finish, y, 4, 4); ctx.fillStyle = (y / 4) % 2 ? '#2a1a10' : '#ffffff'; ctx.fillRect(finish + 4, y, 4, 4); }
     // jumps behind the horse's hooves first, the horse, then the rest: poles across the lane overlap correctly
     const lift = air ? Math.sin(((x - air.from) / (air.to - air.from)) * Math.PI) : 0;
-    for (const j of jumps) if (j.x < x - 8) drawJump(ctx, j, j.x);
+    // a knocked pole falls when the horse gets there; in the air the horse is above every pole
+    const fallen = (j: Jump) => j.down && x > j.x - 10;
+    for (const j of jumps) if (air || j.x < x - 8) drawJump(ctx, j, j.x, fallen(j));
     shadow(ctx, x, HOOVES - 1, 24 - lift * 6, 4, 0.28 - lift * 0.1);
     ctx.save();
     // in the air the horse grows, as if closer to us, and rises above its shadow
@@ -128,7 +132,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     blit(ctx, sheet, [(Math.floor(t * 11) % 6) * 128, 3 * 128, 128, 128], x - 64, HOOVES - 93);
     drawRider(ctx, o.kid, x + s.dx, HOOVES + s.dy, 'E');
     ctx.restore();
-    for (const j of jumps) if (j.x >= x - 8) drawJump(ctx, j, j.x);
+    for (const j of jumps) if (!air && j.x >= x - 8) drawJump(ctx, j, j.x, fallen(j));
   }
 
   function frame(now: number) {
@@ -139,20 +143,24 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     requestAnimationFrame(frame);
   }
 
+  // turning the iPad clears the canvas: draw again at once, also before and after the round
+  const onResize = () => { fit(); draw(); };
   fit();
-  addEventListener('resize', fit);
+  addEventListener('resize', onResize);
   draw();
   return {
     /** Starts the gallop; resolves with the faults when the horse is past the finish. */
     run() { last = performance.now(); requestAnimationFrame(frame); return result; },
     /** The player tapped: take off for the next jump, cleared or not as the judge says. */
     tap() {
-      const j = upcoming();
+      const j = jumps.find((k) => !k.done);
       if (!j || air) return;
+      const what = o.takeOff(offset(j));
+      if (what === 'early') return;
       j.done = true;
-      j.down = !o.judge((x - ideal(j)) / SPEED);
+      j.down = what === 'fault';
       air = { from: x, to: Math.max(x + 2 * TAKEOFF, j.x + TAKEOFF) };
     },
-    stop() { running = false; x = Infinity; removeEventListener('resize', fit); },
+    stop() { running = false; x = Infinity; removeEventListener('resize', onResize); },
   };
 }

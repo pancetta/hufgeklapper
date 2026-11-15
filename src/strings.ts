@@ -126,7 +126,7 @@ export const t = {
   giveLesson: 'Reitstunde geben',
   practiseJumping: 'Springen üben',
   whichHorse: 'Mit welchem Pferd?',
-  jumpHow: 'Tippe, wenn die Hufe im grünen Feld sind. Dann springt dein Pferd!',
+  jumpHow: (pony: boolean) => `Tippe, wenn dein ${pony ? 'Pony' : 'Pferd'} mitten auf dem grünen Feld ist. Dann springt es!`,
   go: 'Los!',
   jumpClear: (horse: string) => `Fehlerfrei! ${horse} springt jetzt besser.`,
   jumpFaults: (n: number, horse: string) => `${n} ${n === 1 ? 'Stange ist' : 'Stangen sind'} gefallen. ${horse} hat trotzdem geübt.`,

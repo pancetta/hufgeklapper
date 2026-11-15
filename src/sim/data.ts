@@ -59,6 +59,9 @@ export const DATA = {
   jumping: {
     jumps: 5,
     window: { base: 0.12, skill: 0.2, kept: 0.1 },
+    /** A tap more than this many seconds early is not yet a take-off; this long after the window, the horse runs into the pole. */
+    early: 0.6,
+    late: 0.15,
     gain: { clear: 3, faults: 1 },
     energy: 25,
     happy: 5,
