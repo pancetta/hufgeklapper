@@ -1,0 +1,38 @@
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_ee1339787ef9e5 41-49
+  s_7657db1b41ed88::t_702b698d5882ae 50
+src/scene/stable.ts
+  s_7657db1b41ed88::t_2b540db2946299 78-81,86-87
+src/ui/screens.ts
+  s_7657db1b41ed88::t_9edad022c86cd4 317,409-411,430
+src/sim/save.ts
+  s_7657db1b41ed88::t_2e6a1115d6b068 59,134
+src/strings.ts
+  s_7657db1b41ed88::t_2e6a1115d6b068 187-188,196-198,204
+src/sim/state.ts
+  s_7657db1b41ed88::t_2e6a1115d6b068 53-54,113,118,125-126,142,146,275,313,315,319,346,402
+src/sim/data.ts
+  s_7657db1b41ed88::t_2e6a1115d6b068 90
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_9ad667b7491042 442-447
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_ee1339787ef9e5 391-393,404-405
+GLOSSARY.md
+  s_7657db1b41ed88::t_a56c5d47d7ae91 31-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "828081ba9e71ae1cd2f1544acf4aa39787591068",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
