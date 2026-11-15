@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
+  type Action, apply, badgeWaits, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
   showWaits, stalls,
 } from './state';
 
@@ -24,16 +24,21 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   let s = newGame(seed), luck = seed ^ 0x5eed, shows = 0, sickDays = 0, maxDebt = 0, badgeDay: number | null = null, inspectionDay: number | null = null;
   const money: number[] = [];
   const act = (a: Action) => { s = apply(s, a); };
-  /** Poles a middling rider knocks: each of the round's jumps falls one time in five. */
-  const faults = () => {
+  /**
+   * Poles a middling rider knocks: one time in five on a new pony, fewer the wider the horse's take-off window
+   * (skill and care, as in the minigame), more on a neglected one.
+   */
+  const base = jumpWindow(newGame(seed).horses[0]);
+  const faults = (h: Horse) => {
     let n = 0, r: number;
-    for (let i = 0; i < DATA.jumping.jumps; i++) { [r, luck] = roll(luck); if (r < 0.2) n++; }
+    for (let i = 0; i < DATA.jumping.jumps; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
     return n;
   };
   const fresh = (energy: number) => s.horses.filter((h) => !cantWork(h, energy)).sort((a, b) => b.needs.energy - a.needs.energy);
 
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
+    sickDays += s.horses.filter(isSick).length; // counted in the morning, before the vet comes
     // the vet for a sick horse, with a loan if the money is short
     for (const h of s.horses.filter(isSick)) { if (s.money < DATA.vet.cost) act({ type: 'loan' }); act({ type: 'vet', horse: h.id }); }
     // hay: the careful keep a few nights in store, the careless buy when it's gone
@@ -44,23 +49,24 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     const sport = () => {
       if (s.trainings < DATA.badge.trainings || (strategy === 'sport' && s.badges)) {
         const h = fresh(DATA.jumping.energy)[0];
-        if (h && (strategy === 'sport' || s.trainings < DATA.badge.trainings)) act({ type: 'train', horse: h.id, faults: faults() });
+        if (h && (strategy === 'sport' || s.trainings < DATA.badge.trainings)) act({ type: 'train', horse: h.id, faults: faults(h) });
       }
       if (!badgeWaits(s)) {
         act({ type: 'badgeQuiz', answers: ALL_RIGHT });
         const h = fresh(DATA.jumping.energy)[0];
-        if (h) act({ type: 'badge', horse: h.id, faults: faults() });
+        if (h) act({ type: 'badge', horse: h.id, faults: faults(h) });
         if (s.badges && badgeDay === null) badgeDay = s.day;
       }
       if (!showWaits(s)) {
         const h = fresh(DATA.jumping.energy)[0];
-        if (h) { act({ type: 'show', horse: h.id, faults: faults() }); shows++; }
+        if (h) { act({ type: 'show', horse: h.id, faults: faults(h) }); shows++; }
       }
     };
     const lessons = () => {
+      const first = s.pupils[0];
       for (const p of [...s.pupils]) {
         const best = fresh(DATA.lessons.energy).sort((a: Horse, b: Horse) => lessonOutcome(p, b).pay - lessonOutcome(p, a).pay)[0];
-        if (best && (strategy !== 'sport' || s.horses.length > 2 || p === s.pupils[0])) act({ type: 'lesson', pupil: p.id, horse: best.id });
+        if (best && (strategy !== 'sport' || s.horses.length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
       }
     };
     if (strategy === 'sport') { sport(); lessons(); } else { lessons(); sport(); }
@@ -72,12 +78,11 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (offer && s.horses.length < stalls(s)) act({ type: 'buyHorse', offer: offer.id });
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }
-    sickDays += s.horses.filter(isSick).length;
     maxDebt = Math.max(maxDebt, s.debt);
     money.push(s.money);
     act({ type: 'sleep' });
   }
-  // stuck: every horse sick or exhausted with no way to the vet, or debts at the limit with no money
+  // stuck: every horse sick, no money for the vet and no more loans
   const stuck = s.horses.every((h) => isSick(h)) && s.money < DATA.vet.cost && s.debt + DATA.loan.amount > DATA.loan.debtLimit;
   return { strategy, seed, days, money, badgeDay, inspectionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, stuck };
 }
