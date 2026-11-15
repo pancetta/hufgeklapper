@@ -4,7 +4,7 @@
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
-import { CARE, type Entry, type Horse, NEEDS, type News, type State } from './state';
+import { CARE, type Care, type Entry, type Horse, NEEDS, type News, type State } from './state';
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1 };
@@ -36,7 +36,8 @@ function isHorse(x: unknown): x is Horse {
   // ids end up in HTML attributes, so only plain characters
   return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
-    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.rest, 0, 30);
+    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.rest, 0, 30)
+    && Array.isArray(x.cared) && x.cared.length <= CARE.length && x.cared.every((c) => CARE.includes(c as Care));
 }
 
 const isEntries = (x: unknown) => Array.isArray(x) && x.length < 100 && x.every((e) => isObj(e) && oneOf(e.what, ENTRIES) && isInt(e.amount));
@@ -60,7 +61,8 @@ function fromVersion1(x: Obj): unknown {
 function fromVersion2(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
-  return { ...x, version: 3, state: { ...s, version: 3, careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 } } };
+  return { ...x, version: 3, state: { ...s, version: 3, careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 },
+    horses: Array.isArray(s.horses) ? s.horses.map((h) => (isObj(h) ? { ...h, cared: [] } : h)) : s.horses } };
 }
 
 /** Version 3 (before money): no debt, no bill. */

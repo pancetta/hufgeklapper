@@ -344,13 +344,11 @@ export function showCare(id: string) {
     <button id="to-stable" class="corner" type="button">${t.toStable}</button>`);
   const bar = wireTopBar($, () => tools());
   const scene = startCare($<HTMLCanvasElement>('care-scene'), {
-    look: h.look, dirt: (100 - h.needs.clean) / 100,
-    onDone: (what) => {
-      game.dispatch({ type: 'care', horse: id, what });
-      done.add(what); bar.toast(t.doneCare[what](esc(h.name))); tools();
-    },
+    look: h.look, dirt: (100 - h.needs.clean) / 100, cared: h.cared,
+    onDone: (what) => { game.dispatch({ type: 'care', horse: id, what }); bar.toast(t.doneCare[what](h.name)); tools(); },
   });
-  const done = new Set<Care>();
+  // what this horse already had today comes from the Sim (once a day each)
+  const cared = () => game.get().horses.find((x) => x.id === id)!.cared;
   let current: Care = 'groom';
   function pick(what: Care) {
     if (what === 'feed' && !canFeed(game.get())) return bar.toast(t.noHayLeft);
@@ -364,11 +362,11 @@ export function showCare(id: string) {
     app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => {
       const c = b.dataset.tool as Care;
       b.setAttribute('aria-pressed', String(c === current));
-      b.classList.toggle('done', done.has(c));
+      b.classList.toggle('done', cared().includes(c));
     });
     app.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach((b) => {
       const c = b.dataset.quick as Care;
-      b.hidden = done.has(c) || !canQuickCare(s, c) || (c === 'feed' && !canFeed(s));
+      b.hidden = cared().includes(c) || !canQuickCare(s, c) || (c === 'feed' && !canFeed(s));
     });
   }
   app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tool as Care)));
@@ -376,7 +374,7 @@ export function showCare(id: string) {
     const what = b.dataset.quick as Care;
     game.dispatch({ type: 'care', horse: id, what, quick: true });
     scene.then((sc) => sc.skip(what));
-    done.add(what); bar.toast(t.doneCare[what](esc(h.name))); tools();
+    bar.toast(t.doneCare[what](h.name)); tools();
   }));
   $('to-stable').addEventListener('click', showStable);
   pick('groom');
