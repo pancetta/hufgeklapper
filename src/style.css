@@ -244,3 +244,5 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
   button:active { transform: none; }
 }
 .label.pupil { font-size: calc(6 * var(--px)); padding: calc(1 * var(--px)) calc(3 * var(--px)); }
+/* the "new version" notice sits above the screens' own notices */
+.toast.update { bottom: calc(env(safe-area-inset-bottom, 0px) + 40 * var(--px)); }

@@ -107,5 +107,6 @@ export const t = {
   lessonDone: (pupil: string, mood: 'delighted' | 'happy' | 'unhappy', pay: number, repaid: number) =>
     `${pupil} war ${{ delighted: 'begeistert', happy: 'zufrieden', unhappy: 'nicht so glücklich' }[mood]}! +${pay} €${repaid ? ` (davon ${repaid} € für die Schulden)` : ''}`,
   noPupils: 'Heute möchte niemand mehr reiten. Morgen kommen neue Reitschüler.',
+  newVersion: 'Das Spiel ist noch besser geworden! Beim nächsten Start ist es da.',
   euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;
