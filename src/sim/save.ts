@@ -3,6 +3,7 @@
  * before it can replace anything; an unreadable or newer file is reported, never used.
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
+import { HAIR, HAIR_STYLES, type HairStyle, JACKET, SKIN } from '../riders/look';
 import { DATA } from './data';
 import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, type State } from './state';
 
@@ -13,7 +14,7 @@ const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -44,8 +45,13 @@ function isHorse(x: unknown): x is Horse {
 
 const isEntries = (x: unknown) => Array.isArray(x) && x.length < 100 && x.every((e) => isObj(e) && oneOf(e.what, ENTRIES) && isInt(e.amount));
 
+function isAvatar(x: unknown) {
+  return isObj(x) && isText(x.name, 20) && isInt(x.skin, 0, SKIN.length - 1) && HAIR_STYLES.includes(x.hair as HairStyle)
+    && isInt(x.hairColor, 0, HAIR.length - 1) && isInt(x.jacket, 0, JACKET.length - 1);
+}
+
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 5 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+  return isObj(x) && x.version === 6 && isAvatar(x.avatar) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
     && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
     && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0))
@@ -84,6 +90,13 @@ function fromVersion4(x: Obj): unknown {
   return { ...x, version: 5, state: { ...s, version: 5, seed, pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0 } };
 }
 
+/** Version 5 (before the avatar editor): the player gets the default figure. */
+function fromVersion5(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 6, state: { ...s, version: 6, avatar: { ...DATA.avatar } } };
+}
+
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
 export function parseSave(text: string): Parsed {
   let x: unknown;
@@ -94,6 +107,7 @@ export function parseSave(text: string): Parsed {
   if (isObj(x) && x.version === 2) x = fromVersion2(x);
   if (isObj(x) && x.version === 3) x = fromVersion3(x);
   if (isObj(x) && x.version === 4) x = fromVersion4(x);
+  if (isObj(x) && x.version === 5) x = fromVersion5(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

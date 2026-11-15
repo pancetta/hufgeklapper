@@ -8,12 +8,15 @@ import { horseSheet } from '../horses/compose';
 import { BREEDS, COATS } from '../horses/look';
 import { startFarm } from '../scene';
 import { bounds, waitingSpots } from '../scene/buildings';
+import { avatarKid, HAIR, HAIR_STYLES, JACKET, pupilKid, SKIN } from '../riders/look';
+import { drawKid } from '../scene/kids';
+import { omaPortrait } from '../scene/oma';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { CARE, canBuild, cantTeach, fit, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { type Avatar, CARE, canBuild, cantTeach, fit, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -61,18 +64,54 @@ function ask(question: string, yes: string): Promise<boolean> {
   }));
 }
 
-/** Asks for the farm's name; null if cancelled. */
-function askName(): Promise<string | null> {
+/**
+ * A new game: the player makes their figure (name, skin, hair style and colour, jacket; the preview follows every
+ * tap) and names the farm. Null if cancelled.
+ */
+function askNewGame(): Promise<{ farmName: string; avatar: Avatar } | null> {
   const box = document.createElement('section');
+  const avatar: Avatar = { ...DATA.avatar };
+  const swatches = (key: 'skin' | 'hairColor' | 'jacket', colours: string[]) => colours.map((c, i) =>
+    `<button type="button" class="swatch" data-k="${key}" data-v="${i}" style="background:${c}" aria-label="${t.colour(t.looks[key], i + 1)}"></button>`).join('');
   box.className = 'overlay';
-  box.innerHTML = `<form class="sheet ask"><label for="farm-name">${t.farmName}</label>
-    <input id="farm-name" maxlength="20" autocomplete="off" value="${t.farmNameDefault}">
-    <button type="submit">${t.start}</button><button type="button" data-a="no">${t.back}</button></form>`;
+  box.innerHTML = `<form class="sheet editor"><h2>${t.whoAreYou}</h2>
+    <div class="editor-body">
+      <canvas class="preview" width="40" height="32" aria-hidden="true"></canvas>
+      <div class="editor-fields">
+        <label>${t.yourName} <input id="player-name" maxlength="20" autocomplete="off" placeholder="${DATA.avatar.name}" enterkeyhint="done"></label>
+        <div class="choice" role="group" aria-label="${t.looks.skin}"><span>${t.looks.skin}</span>${swatches('skin', SKIN)}</div>
+        <div class="choice" role="group" aria-label="${t.looks.hair}"><span>${t.looks.hair}</span>${HAIR_STYLES.map((h) =>
+          `<button type="button" class="style" data-k="hair" data-v="${h}">${t.hairStyles[h]}</button>`).join('')}</div>
+        <div class="choice" role="group" aria-label="${t.looks.hairColor}"><span>${t.looks.hairColor}</span>${swatches('hairColor', HAIR)}</div>
+        <div class="choice" role="group" aria-label="${t.looks.jacket}"><span>${t.looks.jacket}</span>${swatches('jacket', JACKET)}</div>
+        <label>${t.farmName} <input id="farm-name" maxlength="20" autocomplete="off" placeholder="${t.farmNameDefault}" enterkeyhint="done"></label>
+      </div>
+    </div>
+    <div class="editor-buttons"><button type="button" data-a="no">${t.back}</button><button type="submit">${t.start}</button></div></form>`;
   app.append(box);
-  const input = box.querySelector('input')!;
-  input.select();
+  const preview = box.querySelector('canvas')!, g = preview.getContext('2d')!;
+  const show = () => {
+    // the figure from the front and from the side; aria-pressed marks the current choices
+    g.clearRect(0, 0, preview.width, preview.height);
+    drawKid(g, avatarKid(avatar), 11, 30, 'S');
+    drawKid(g, avatarKid(avatar), 29, 30, 'E');
+    box.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) => b.setAttribute('aria-pressed', String(String(avatar[b.dataset.k as keyof Avatar]) === b.dataset.v)));
+  };
+  box.querySelectorAll<HTMLButtonElement>('[data-k]').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.k as 'skin' | 'hair' | 'hairColor' | 'jacket';
+    if (k === 'hair') avatar.hair = b.dataset.v as Avatar['hair']; else avatar[k] = Number(b.dataset.v);
+    show();
+  }));
+  show();
+  // the save allows 20 UTF-16 units; WebKit's maxlength counts emoji as one
+  const field = (id: string) => box.querySelector<HTMLInputElement>(`#${id}`)!.value.trim().slice(0, 20);
+  // Return on the iPad keyboard only closes it: the game starts with the Start button, after the figure is made
+  box.querySelectorAll('input').forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }));
   return new Promise((ok) => {
-    box.querySelector('form')!.addEventListener('submit', (e) => { e.preventDefault(); box.remove(); ok(input.value.trim() || t.farmNameDefault); });
+    box.querySelector('form')!.addEventListener('submit', (e) => {
+      e.preventDefault(); box.remove();
+      ok({ farmName: field('farm-name') || t.farmNameDefault, avatar: { ...avatar, name: field('player-name') || DATA.avatar.name } });
+    });
     box.querySelector('[data-a=no]')!.addEventListener('click', () => { box.remove(); ok(null); });
   });
 }
@@ -124,8 +163,8 @@ export function showStart() {
     const i = Number(b.dataset.slot), slot = slots[i];
     if (b.dataset.do === 'resume' && slot.kind === 'save') { game.resume(slot.save.state, i, slot.save.name); showFarm(); }
     if (b.dataset.do === 'new' && (await mayOverwrite(i, t.yesNew))) {
-      const name = await askName();
-      if (name) { game.start(Date.now() % 100000, i, name); showFarm(); }
+      const made = await askNewGame();
+      if (made) { game.start(Date.now() % 100000, i, made.farmName, made.avatar); showFarm(true); }
     }
     if (b.dataset.do === 'export' && slot.kind === 'save') {
       const a = document.createElement('a');
@@ -213,10 +252,21 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast };
 }
 
-export function showFarm() {
+/** The farm map; with `intro`, Oma Hanne first hands the farm over in a few speech bubbles. */
+export function showFarm(intro = false) {
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
     <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>
-    <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>`);
+    <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>
+    <section id="intro" class="overlay talk" hidden><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p>
+      <button type="button" id="intro-next">${t.next}</button></div></section>`);
+  if (intro) {
+    const s = game.get(), lines = t.intro(s.avatar.name, s.horses.map((h) => h.name));
+    let i = 0;
+    const say = () => { $('intro').querySelector('p')!.textContent = lines[i]; };
+    $('intro-next').addEventListener('click', () => { if (++i < lines.length) say(); else $('intro').hidden = true; });
+    say();
+    $('intro').hidden = false;
+  }
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
@@ -245,7 +295,7 @@ export function showFarm() {
       if (game.get().lessonsGiven === before.lessonsGiven) return; // the Sim said no (the pupil or horse changed meanwhile)
       const repaid = before.debt - game.get().debt;
       bar.toast(t.lessonRuns(p.name, h.name));
-      farm.then((f) => f.lesson(i, p)).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
+      farm.then((f) => f.lesson(i, pupilKid(p))).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
     }));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
@@ -301,7 +351,7 @@ export function showFarm() {
     }));
     // sick horses, and those resting after the vet, stay in the stable, off the pasture
     const inStall = game.get().horses.flatMap((h, i) => (isSick(h) || h.rest ? [i] : []));
-    farm.then((f) => { f.setPupils(waiting); f.setAway(inStall); });
+    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(inStall); });
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {
@@ -338,7 +388,7 @@ export function showStable() {
     place();
   };
   const bar = wireTopBar($, render);
-  $('to-farm').addEventListener('click', showFarm);
+  $('to-farm').addEventListener('click', () => showFarm());
   const scene = startStable($<HTMLCanvasElement>('stable'), { horses: s.horses.map((h) => h.look), stalls: stalls(s), onLayout: () => place() });
   function place() {
     scene.then((sc) => {

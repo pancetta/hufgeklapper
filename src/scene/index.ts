@@ -5,7 +5,7 @@ import { ground, plotDrawables } from './buildings';
 import { FOCUS, MAP, PLOTS, PROPS, SPRITES, WORLD } from './farm';
 import type { Look } from '../horses/look';
 import { bounds } from './buildings';
-import type { Kid } from './kids';
+import type { Kid } from '../riders/look';
 import { createLife, type Drawable, lifeSheets, loadHorses, START_HERD } from './life';
 import { paintTerrain } from './terrain';
 

@@ -165,26 +165,6 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
   background: rgba(246, 236, 210, 0.92); border: var(--px) solid var(--wood-dark); border-radius: calc(3 * var(--px));
 }
 .need { display: flex; align-items: center; gap: calc(3 * var(--px)); font-size: calc(8 * var(--px)); }
-.needs /* save slots on the start screen: three wooden boards */
-.slots { display: flex; gap: calc(6 * var(--px)); flex-wrap: wrap; justify-content: center; }
-.slot {
-  display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--px));
-  width: calc(110 * var(--px)); padding: calc(5 * var(--px));
-  background: rgba(246, 236, 210, 0.95); border: var(--px) solid var(--wood-dark); border-radius: calc(4 * var(--px));
-  box-shadow: 0 calc(3 * var(--px)) 0 rgba(30, 20, 5, 0.35);
-}
-.slot h2 { margin: 0; font-size: calc(10 * var(--px)); text-align: center; overflow-wrap: anywhere; }
-.slot p { margin: 0; font-size: calc(8 * var(--px)); }
-.slot.empty h2, .slot.broken h2 { opacity: 0.75; font-weight: 400; }
-.slot button { font-size: calc(9 * var(--px)); padding: calc(3 * var(--px)) calc(8 * var(--px)); }
-.slot button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc(6 * var(--px)); }
-.file-buttons { display: flex; gap: calc(3 * var(--px)); }
-.sheet.ask { display: grid; gap: 12px; text-align: center; font-size: 20px; min-width: min(90vw, 340px); }
-.sheet.ask p, .sheet.ask label { margin: 0; }
-.sheet.shop h3 { margin: 4px 0 0; font-size: 20px; }
-.oma { font-size: 16px; font-style: italic; color: #5a3419; }
-.sheet.ask input { font: inherit; font-size: 22px; padding: 6px 10px; border: 2px solid var(--wood-dark); border-radius: 6px; text-align: center; }
-.farm-name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .icon { width: calc(9 * var(--px)); height: calc(9 * var(--px)); }
 .need > span:not(.bar) { width: calc(48 * var(--px)); text-align: left; }
@@ -246,3 +226,25 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .label.pupil { font-size: calc(6 * var(--px)); padding: calc(1 * var(--px)) calc(3 * var(--px)); }
 /* the "new version" notice sits above the screens' own notices */
 .toast.update { bottom: calc(env(safe-area-inset-bottom, 0px) + 40 * var(--px)); }
+
+/* the avatar editor */
+.sheet.editor { display: grid; gap: 10px; font-size: 18px; max-width: 94vw; }
+.sheet.editor h2 { text-align: center; }
+.editor-body { display: flex; gap: 20px; align-items: center; }
+.preview { width: 200px; height: 160px; image-rendering: pixelated; background: #8fc56a; border: 2px solid var(--wood-dark); border-radius: 6px; flex: none; }
+.editor-fields { display: grid; gap: 8px; }
+.editor-fields label { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.editor-fields input { font: inherit; padding: 4px 8px; border: 2px solid var(--wood-dark); border-radius: 6px; width: 11em; }
+.choice { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.choice span { width: 6em; }
+.overlay .swatch { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+.overlay .style { font-size: 15px; padding: 6px 8px; }
+.swatch[aria-pressed="true"], .style[aria-pressed="true"] { outline: 3px solid #fff; box-shadow: 0 0 0 6px var(--wood-dark); }
+.editor-buttons { display: flex; justify-content: center; gap: 12px; }
+
+/* Oma Hanne talks: her portrait and a speech bubble at the bottom left */
+.overlay.talk { align-items: flex-end; justify-content: flex-start; padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 20px) 20px; background: rgba(30, 20, 5, 0.25); }
+.sheet.bubble { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: center; max-width: min(640px, 90vw); font-size: 22px; }
+.bubble img { width: 120px; image-rendering: pixelated; grid-row: span 2; }
+.bubble p { margin: 0; }
+.bubble button { justify-self: end; }

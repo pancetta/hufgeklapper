@@ -1,3 +1,4 @@
+import { DATA } from './data';
 import { describe, expect, it } from 'vitest';
 import { parseSave, SAVE_VERSION, toSave } from './save';
 import { apply, newGame } from './state';
@@ -30,8 +31,18 @@ describe('save files', () => {
       { ...save, state: { ...save.state, horses: [{ ...save.state.horses[0], look: { build: 'pony', coat: 'rappe', blanket: 'red' } }] } },
       { ...save, name: '' },
       { ...save, state: { ...save.state, horses: [{ ...save.state.horses[0], id: '"><img src=x onerror=alert(1)>' }] } },
+      { ...save, state: { ...save.state, avatar: { ...save.state.avatar, jacket: 99 } } },
+      { ...save, state: { ...save.state, avatar: { ...save.state.avatar, hair: 'glatze' } } },
+      { ...save, state: { ...save.state, avatar: { ...save.state.avatar, name: '' } } },
     ];
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('gives a save from version 5 (before the avatar editor) the default figure', () => {
+    const now = toSave(played(), 'Hof');
+    const { avatar: _, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 5, state: { ...old, version: 5 } }));
+    expect(p.ok && p.save.state.avatar).toEqual(DATA.avatar);
   });
 
   it('reads a save from version 1 (before the day cycle) and brings it up to date', () => {
