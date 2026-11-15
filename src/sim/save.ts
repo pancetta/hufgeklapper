@@ -114,11 +114,11 @@ function fromVersion7(x: Obj): unknown {
   return { ...x, version: 8, state: { ...s, version: 8, lastShowDay: 0 } };
 }
 
-/** Version 8 (before goals and Oma's explanations): none reached or explained yet; goals already met count on the next action. */
+/** Version 8 (before goals and Oma's explanations): none reached yet; a player that far knows the places already. */
 function fromVersion8(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
-  return { ...x, version: 9, state: { ...s, version: 9, goalsDone: [], explained: [] } };
+  return { ...x, version: 9, state: { ...s, version: 9, goalsDone: [], explained: [...DATA.features] } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */

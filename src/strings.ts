@@ -168,7 +168,7 @@ export const t = {
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
   goalText: {
-    groom: (n: number) => `Putze deine Ponys ${n}-mal`,
+    groom: (n: number) => `Putze ${n}-mal ein Pony`,
     lessons: (n: number) => `Gib ${n} Reitstunden`,
     badge: () => 'Mach dein erstes Reitabzeichen',
     savings: (n: number) => `Spare ${n} € (ohne Schulden)`,
@@ -183,7 +183,7 @@ export const t = {
   },
   explain: {
     stable: 'Im Stall siehst du, wie es deinen Ponys geht. Tippe ein Pony an, dann kannst du es pflegen.',
-    care: 'Wähle unten ein Werkzeug. Dann wische mit dem Finger über das Pony.',
+    care: 'Wähle unten ein Werkzeug. Jedes geht anders: Der Satz oben sagt dir, was du tun musst.',
     board: 'Am Schwarzen Brett kaufst du Heu. Wenn das Geld knapp ist, hilft dir die Bank.',
     arena: 'Auf dem Reitplatz gibst du Reitstunden und übst Springen.',
   },

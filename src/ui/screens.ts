@@ -273,8 +273,8 @@ function omaSays(text: string): Promise<void> {
   const box = document.createElement('section');
   box.className = 'overlay talk';
   box.innerHTML = `<div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p><button type="button">${t.gotIt}</button></div>`;
-  box.querySelector('p')!.textContent = text;
   app.append(box);
+  box.querySelector('p')!.textContent = text; // after attaching, so screen readers hear it
   return new Promise((done) => box.querySelector('button')!.addEventListener('click', () => { box.remove(); done(); }));
 }
 
@@ -326,8 +326,9 @@ export function showFarm(intro = false) {
       + (allGoalsDone(s) && list.length ? `<li class="all">${t.allGoals}</li>` : '');
     const h = hint(s), name = (id: string) => s.horses.find((x) => x.id === id)?.name ?? '';
     const text = !h ? '' : h.kind === 'hay' ? t.hints.hay : t.hints[h.kind](name(h.horse));
+    if (!text) hintAway = ''; // a closed hint comes back the next time it is due
     $('hint').hidden = !text || text === hintAway;
-    $('hint').querySelector('p')!.textContent = text;
+    if ($('hint').querySelector('p')!.textContent !== text) $('hint').querySelector('p')!.textContent = text; // read out once, not on every change
   }
   $('goals-toggle').addEventListener('click', () => { goalsOpen = !goalsOpen; guide(); });
   $('hint-close').addEventListener('click', () => { hintAway = $('hint').querySelector('p')!.textContent!; guide(); });
@@ -435,7 +436,7 @@ export function showFarm(intro = false) {
       `<button class="label pupil" type="button" data-pupil="${p.id}" data-x="${spots[i][0]}" data-y="${spots[i][1] - 34}">${esc(p.name)}</button>`).join('');
     $('pupils').querySelectorAll<HTMLButtonElement>('[data-pupil]').forEach((b) => b.addEventListener('click', () => {
       const p = game.get().pupils.find((x) => x.id === b.dataset.pupil);
-      if (p) chooseHorse(p);
+      if (p) explain('arena').then(() => chooseHorse(p));
     }));
     // sick horses, and those resting after the vet, stay in the stable, off the pasture
     const inStall = game.get().horses.flatMap((h, i) => (isSick(h) || h.rest ? [i] : []));

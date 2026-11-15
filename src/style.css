@@ -275,7 +275,7 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 /* the goal list, top left under the top bar; Oma Hanne's hint, top right (clear of the place labels) */
 .goals { position: fixed; z-index: 4; left: calc(env(safe-area-inset-left, 0px) + 6 * var(--px)); top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px));
   max-width: min(42vw, 360px); font-size: 15px; }
-.goals button { font-size: 16px; padding: 4px 12px; }
+.goals button { font-size: 16px; padding: 4px 12px; min-height: 44px; }
 .goals ul { margin: 4px 0 0; padding: 8px 12px 8px 30px; background: rgba(246, 236, 210, 0.94); border: 2px solid var(--wood-dark); border-radius: 6px; }
 .goals li { margin: 2px 0; }
 .goals li span { opacity: 0.75; }
@@ -286,4 +286,4 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
   background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 8px; }
 .hint img { width: 54px; image-rendering: pixelated; }
 .hint p { margin: 0; }
-.hint button { font-size: 18px; padding: 2px 10px; align-self: flex-start; }
+.hint button { font-size: 18px; padding: 2px 10px; align-self: flex-start; min-width: 44px; min-height: 44px; }

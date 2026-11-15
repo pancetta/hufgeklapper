@@ -367,6 +367,7 @@ describe('Sim', () => {
     expect(hint({ ...s, horses: [dirty, { ...hungry, needs: { ...hungry.needs, health: 5 } }] })).toEqual({ kind: 'sick', horse: b.id });
     expect(hint({ ...s, horses: [dirty, b] })).toEqual({ kind: 'dirty', horse: a.id });
     expect(hint({ ...s, feed: 1 })).toEqual({ kind: 'hay' });
+    expect(hint({ ...s, feed: 0, horses: [dirty, hungry] })).toEqual({ kind: 'hay' }); // no hay: buy some before feeding
   });
 
   it('notes what Oma Hanne has explained, once', () => {

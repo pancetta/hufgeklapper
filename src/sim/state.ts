@@ -231,7 +231,6 @@ function night(h: Horse, hay: boolean): Horse {
   return { ...h, needs, rest: Math.max(0, h.rest - 1), cared: [] };
 }
 
-/** Applies one action; never changes the state it was given. */
 export type GoalId = (typeof DATA.goals.kleinerHof)[number]['id'];
 export type Feature = (typeof DATA.features)[number];
 
@@ -250,15 +249,17 @@ export const allGoalsDone = (s: State) => goals(s).every((g) => g.done);
  * One at a time, so the child is not flooded.
  */
 export function hint(s: State): { kind: 'sick' | 'hungry' | 'dirty'; horse: string } | { kind: 'hay' } | null {
-  const below = DATA.hints.needBelow;
-  for (const [kind, test] of [['sick', isSick], ['hungry', (h: Horse) => h.needs.fed < below], ['dirty', (h: Horse) => h.needs.clean < below]] as const) {
+  const below = DATA.hints.needBelow, sick = s.horses.find(isSick);
+  if (sick) return { kind: 'sick', horse: sick.id };
+  if (s.feed < 1) return { kind: 'hay' }; // with no hay, "feed the hungry pony" can't be done: buying hay comes first
+  for (const [kind, test] of [['hungry', (h: Horse) => h.needs.fed < below], ['dirty', (h: Horse) => h.needs.clean < below]] as const) {
     const h = s.horses.find(test);
     if (h) return { kind, horse: h.id };
   }
   return s.feed < s.horses.length * DATA.hints.hayNights ? { kind: 'hay' } : null;
 }
 
-/** Applies an action; afterwards every goal just reached is noted as done. */
+/** Applies one action (never changing the state it was given); afterwards every goal just reached is noted as done. */
 export function apply(state: State, action: Action): State {
   const next = step(state, action);
   if (next === state) return state;
