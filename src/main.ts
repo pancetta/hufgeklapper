@@ -18,7 +18,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   const updating = !!navigator.serviceWorker.controller; // a worker already ran this page: a new one is an update
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!updating) return;
-    const note = Object.assign(document.createElement('p'), { className: 'toast', textContent: t.newVersion });
+    const note = Object.assign(document.createElement('p'), { className: 'toast update', textContent: t.newVersion });
     note.setAttribute('role', 'status');
     document.body.append(note);
     setTimeout(() => note.remove(), 6000);

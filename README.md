@@ -8,7 +8,7 @@ A browser game about running a riding farm, for children aged 8–12. Work in pr
 
 ### On the iPad
 
-Open the game in Safari, tap *Teilen* → *Zum Home-Bildschirm*. It then starts full screen like an app and runs offline: a service worker keeps the whole game, and a new version is fetched in the background and starts the next time the game is opened.
+Open the game in Safari, tap *Teilen* → *Zum Home-Bildschirm*, and open the new app once while online. From then on it starts full screen like an app and runs offline: a service worker keeps the whole game, and a new version is fetched in the background and starts the next time the game is opened.
 
 - iOS keeps the home-screen app's saves apart from Safari's: a game saved in Safari is not in the app, and the other way round. To move one, export it from the save slot and import it on the other side.
 - Safari deletes a website's saves after 7 days without a visit. The home-screen app is not affected, so play it from there.

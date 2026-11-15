@@ -4,7 +4,9 @@ const CACHE = `hufgeklapper-${VERSION}`;
 
 self.addEventListener('install', (e) => {
   // a new version takes over at once: the open page keeps its loaded code, the next start runs the new one
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // 'reload' skips the browser's HTTP cache (Pages sends max-age=600): an old index.html must never land next to new code
+  // shortcut: assumes the Pages CDN serves index.html and sw.js from the same deploy
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
