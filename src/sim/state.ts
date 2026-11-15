@@ -49,6 +49,10 @@ export function newGame(seed: number): State {
   };
 }
 
+export const isSick = (h: Horse) => h.needs.health < DATA.needs.sickBelow;
+export const stalls = (s: State) => DATA.stalls[s.stage];
+export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
+
 /** Applies one action; never changes the state it was given. */
 export function apply(state: State, action: Action): State {
   switch (action.type) {

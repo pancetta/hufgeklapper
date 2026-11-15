@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, NEEDS, newGame, roll } from './state';
+import { apply, canBuild, isSick, NEEDS, newGame, roll, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -28,6 +28,19 @@ describe('Sim', () => {
     const s = newGame(1), copy = structuredClone(s);
     apply(s, { type: 'sleep' });
     expect(s).toEqual(copy);
+  });
+
+  it('has room for the starting ponies, and no building yet on the small farm', () => {
+    const s = newGame(1);
+    expect(stalls(s)).toBeGreaterThanOrEqual(s.horses.length);
+    expect(canBuild(s)).toBe(false);
+    expect(canBuild({ ...s, stage: 'reitschule' })).toBe(true);
+  });
+
+  it('calls a horse sick when its health is low', () => {
+    const h = newGame(1).horses[0];
+    expect(isSick(h)).toBe(false);
+    expect(isSick({ ...h, needs: { ...h.needs, health: DATA.needs.sickBelow - 1 } })).toBe(true);
   });
 
   it('rolls the same numbers from the same seed', () => {

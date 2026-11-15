@@ -77,7 +77,7 @@ const walker = (area: Area, rnd: () => number): Walker => {
 
 const YARD: Area = [180, 425, 350, 465];
 
-const HERD: Look[] = [
+export const START_HERD: Look[] = [
   { build: 'pony', coat: 'isabell' },
   { build: 'horse', coat: 'brauner' },
   { build: 'horse', coat: 'falbe' },
@@ -91,14 +91,14 @@ const RIDER_PONY: Look = { build: 'pony', coat: 'schimmel', mane: 'blond', blank
 const grazes = (l: Look) => l.build === 'horse' && !l.mane && !l.face && !l.legs && !l.saddle && !l.blanket && COATS[l.coat].mane === 'schwarz';
 
 /** Every plain image the farm's life draws from (for preloading). */
-export function lifeSheets() {
+export function lifeSheets(herd: Look[]) {
   return ['animals/chicken-walk.png', 'animals/chicken-eat.png', 'animals/sheep-walk.png', 'animals/sheep-eat.png', 'animals/cat.png', 'animals/dog.png',
-    ...HERD.filter(grazes).map((l) => horseKey(l, 'eat'))];
+    ...herd.filter(grazes).map((l) => horseKey(l, 'eat'))];
 }
 
 /** Composes the herd's and the rider pony's sheets into the image map. */
-export async function loadHorses(img: Images) {
-  const wanted: [Look, Anim][] = [...HERD.flatMap((l) => [[l, 'idle'], [l, 'walk']] as [Look, Anim][]), [RIDER_PONY, 'gallop']];
+export async function loadHorses(img: Images, herd: Look[], canter: boolean) {
+  const wanted: [Look, Anim][] = [...herd.flatMap((l) => [[l, 'idle'], [l, 'walk']] as [Look, Anim][]), ...(canter ? [[RIDER_PONY, 'gallop'] as [Look, Anim]] : [])];
   await Promise.all(wanted.map(async ([l, a]) => { img[horseKey(l, a)] = await horseSheet(l, a); }));
 }
 
@@ -118,17 +118,18 @@ function cloudShape(s: number) {
   return c;
 }
 
-export function createLife(seed: number, plots: Plot[]) {
+/** The farm's life: `herd` roams the pasture; with `canter`, a pony canters over the jumps in the arena. */
+export function createLife(seed: number, plots: Plot[], herd: Look[], canter: boolean) {
   const rnd = random(seed);
   // the herd lives on the first pasture, the pony canters in the first arena
   const PASTURE = inside(plots.find((p) => p.building === 'pasture')!);
   const arena = plots.find((p) => p.building === 'arena')!;
   const LOOP = canterLoop(arena), JUMPS = jumps(arena);
-  const herd = HERD.map((look) => ({ look, w: walker(PASTURE, rnd) }));
+  const horses = herd.map((look) => ({ look, w: walker(PASTURE, rnd) }));
   const sheep = [walker(PASTURE, rnd)];
   const chickens = [0, 1, 2, 3, 4].map(() => walker(YARD, rnd));
   const dog = { x: 420, dir: 1, wait: 0 };
-  const canter = { leg: 0, t: 0 };
+  const ride = { leg: 0, t: 0 };
   const butterflies = ['#ffe066', '#ffffff', '#ff9f43', '#7ec8ff', '#ff8fc7'].map((color, i) => ({
     color, hx: [250, 430, 600, 300, 820][i], hy: [528, 520, 536, 120, 150][i], phase: rnd() * 10, speed: 0.6 + rnd() * 0.5,
   }));
@@ -138,8 +139,8 @@ export function createLife(seed: number, plots: Plot[]) {
   const glints = [0, 1, 2, 3, 4, 5].map(() => ({ x: 362 + rnd() * 108, y: 110 + rnd() * 70, phase: rnd() * 6 }));
 
   function update(dt: number) {
-    const crowd = [...herd.map((h) => h.w), ...sheep];
-    for (const h of herd) wander(h.w, PASTURE, h.look.build === 'pony' ? 13 : 16, dt, rnd, grazes(h.look), crowd);
+    const crowd = [...horses.map((h) => h.w), ...sheep];
+    for (const h of horses) wander(h.w, PASTURE, h.look.build === 'pony' ? 13 : 16, dt, rnd, grazes(h.look), crowd);
     for (const s of sheep) wander(s, PASTURE, 8, dt, rnd, true, crowd);
     for (const c of chickens) wander(c, YARD, 14, dt, rnd);
     if (dog.wait > 0) dog.wait -= dt;
@@ -147,12 +148,12 @@ export function createLife(seed: number, plots: Plot[]) {
       dog.x += dog.dir * 22 * dt;
       if (dog.x > 690 || dog.x < 300) { dog.dir *= -1; dog.wait = 1.5 + rnd() * 2; }
     }
-    // canter: move along the loop at a steady speed
-    let step = 60 * dt;
+    // the canter pony moves along the loop at a steady speed
+    let step = canter ? 60 * dt : 0;
     while (step > 0) {
-      const a = LOOP[canter.leg], b = LOOP[(canter.leg + 1) % 4];
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]), left = len * (1 - canter.t);
-      if (step < left) { canter.t += step / len; step = 0; } else { step -= left; canter.t = 0; canter.leg = (canter.leg + 1) % 4; }
+      const a = LOOP[ride.leg], b = LOOP[(ride.leg + 1) % 4];
+      const len = Math.hypot(b[0] - a[0], b[1] - a[1]), left = len * (1 - ride.t);
+      if (step < left) { ride.t += step / len; step = 0; } else { step -= left; ride.t = 0; ride.leg = (ride.leg + 1) % 4; }
     }
     for (const c of clouds) { c.x += 7 * dt; if (c.x > 1100) c.x = -300; }
     for (const r of ripples) {
@@ -164,7 +165,7 @@ export function createLife(seed: number, plots: Plot[]) {
 
   function drawables(t: number, img: Images): Drawable[] {
     const out: Drawable[] = [];
-    for (const { look, w } of herd) {
+    for (const { look, w } of horses) {
       const anim: HorseAnim = w.mode === 'walk' ? 'walk' : w.mode === 'eat' ? 'eat' : 'idle';
       const f = Math.floor((t + w.phase) * (anim === 'eat' ? 3 : 7));
       out.push({ y: w.y, draw: (ctx) => drawHorse(ctx, img, look, anim, w.dir, f, w.x, w.y) });
@@ -185,11 +186,13 @@ export function createLife(seed: number, plots: Plot[]) {
     const df = dog.wait > 0 ? 0 : Math.floor(t * 8) % 3;
     out.push({ y: 466, draw: (ctx) => { shadow(ctx, dog.x, 465, 8, 2); blit(ctx, img['animals/dog.png'], [df * 32, (dog.dir > 0 ? 0 : 3) * 32, 32, 32], dog.x - 16, 466 - 28); } });
     // the pony in the arena: gallop, lifting over a jump as it passes
-    const a = LOOP[canter.leg], b = LOOP[(canter.leg + 1) % 4];
-    const px = a[0] + (b[0] - a[0]) * canter.t, py = a[1] + (b[1] - a[1]) * canter.t, dir = dirOf(b[0] - a[0], b[1] - a[1]);
-    let lift = 0;
-    for (const { x: jx, y: jy } of JUMPS) if (Math.abs(py - jy) < 20 && Math.abs(px - jx) < 26) lift = Math.max(lift, 14 * Math.cos(((px - jx) / 26) * (Math.PI / 2)));
-    out.push({ y: py, draw: (ctx) => drawHorse(ctx, img, RIDER_PONY, 'gallop', dir, Math.floor(t * 11), px, py, Math.round(lift)) });
+    if (canter) {
+      const a = LOOP[ride.leg], b = LOOP[(ride.leg + 1) % 4];
+      const px = a[0] + (b[0] - a[0]) * ride.t, py = a[1] + (b[1] - a[1]) * ride.t, dir = dirOf(b[0] - a[0], b[1] - a[1]);
+      let lift = 0;
+      for (const { x: jx, y: jy } of JUMPS) if (Math.abs(py - jy) < 20 && Math.abs(px - jx) < 26) lift = Math.max(lift, 14 * Math.cos(((px - jx) / 26) * (Math.PI / 2)));
+      out.push({ y: py, draw: (ctx) => drawHorse(ctx, img, RIDER_PONY, 'gallop', dir, Math.floor(t * 11), px, py, Math.round(lift)) });
+    }
     return out;
   }
 
