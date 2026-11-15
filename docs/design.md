@@ -25,7 +25,8 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | Living farm | The farm map is animated: horses and ponies wander and stand on the pasture, the windmill turns. |
 | Career | Two tracks: **Farm stage** (Kleiner Hof → Reitschule → Pensionsstall → Zuchthof → Reitsportzentrum), each ended by a **Farm inspection** (goals plus a short quiz), and **Riding badges** (quiz plus minigame) that open harder sports. |
 | First income | **Lessons**: pupils show up, the player assigns a horse, the lesson runs by itself; pay and satisfaction depend on the horse's needs and on the fit (small child → pony). |
-| Building | Fixed **Plots** on a drawn farm map: tap a plot, choose a building, upgrade it later. |
+| Building | Fixed **Plots** on a drawn farm map: tap a plot, choose a building, upgrade it later. Each building places itself on its plot (ground, fence, parts); a free plot shows stakes and a sign. |
+| Start screen | The living farm behind the title: herd and sheep on the pasture, a pony cantering over the jumps, chickens, a sleeping cat, a dog, butterflies, birds, cloud shadows, ripples on the pond; warm colours. |
 | Difficulty | One level. Empty money box is no game over: feed on credit (*anschreiben*) and a small bank loan, with a friendly hint. More levels only once the balance holds. |
 | Free play | Comes once there is more than one career stage worth unlocking (after the MVP). |
 | Saves | 3 named **Save slots**, autosave, export and import as a file. |
@@ -56,6 +57,7 @@ Money is in euros, whole numbers only. Every price, rate and need curve lives in
 - **Screens** (farm map, stable, shop, menus) are HTML/CSS over pixel-art images, scaled by whole numbers with `image-rendering: pixelated`.
 - **Minigames** each draw on one canvas with a small fixed-step loop. The rules of a minigame (timing window, scoring) live in the Sim and are tested there.
 - **Horse looks** are composed from layers and palettes at load time and cached ([ADR-0002](adr/0002-layered-horses.md)).
+- **Scenes** (`src/scene/`): the landscape map is painted once with LPC blob autotiling; buildings come from plots (`buildings.ts`); everything standing on the ground is drawn in order of its foot point, so nearer things overlap farther ones.
 - **Strings**: every German text in one file; code identifiers are English, and the glossary maps the two.
 - **Save**: JSON in `localStorage` per slot, with a version number; an import is validated before it replaces anything.
 

@@ -1,14 +1,23 @@
 /* --px is one logical pixel (set from fitPixels); UI sizes are whole multiples of it so pixel art stays crisp. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('/assets/fonts/PixelifySans.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
 :root {
   --px: 2px;
   --ink: #2b1d12;
   --paper: #f6ecd2;
-  --wood: #7a4a26;
+  --wood: #8a5530;
+  --wood-light: #a86b3c;
   --wood-dark: #4e2d15;
-  --grass: #6fa34a;
+  --grass: #4f8a32;
   --sun: #f2c14e;
+  --font: 'Pixelify Sans', system-ui, sans-serif;
   color-scheme: light;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font);
 }
 
 [hidden] { display: none !important; }
@@ -24,25 +33,44 @@ body {
   -webkit-user-select: none;
 }
 
+#farm {
+  position: fixed;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  /* warm, sunny grading over the whole scene */
+  filter: saturate(1.12) sepia(0.08) brightness(1.03);
+}
+
 .start, .rotate {
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: calc(12 * var(--px));
   margin: 0;
-  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
+  padding: calc(env(safe-area-inset-top, 0px) + 8 * var(--px)) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 10 * var(--px)) max(16px, env(safe-area-inset-left, 0px));
   text-align: center;
 }
+.start { justify-content: space-between; pointer-events: none; }
+.start > * { pointer-events: auto; }
 
-h1 {
+/* the title on a wooden sign, with a darker frame and a light top edge like the pixel art */
+.plaque {
   margin: 0;
-  font-size: calc(32 * var(--px));
+  font-size: calc(26 * var(--px));
+  font-weight: 700;
+  letter-spacing: var(--px);
   color: var(--paper);
+  background: var(--wood);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: calc(4 * var(--px));
+  padding: calc(3 * var(--px)) calc(14 * var(--px)) calc(5 * var(--px));
+  box-shadow: inset 0 var(--px) 0 var(--wood-light), inset 0 calc(-2 * var(--px)) 0 rgba(0, 0, 0, 0.25), 0 calc(3 * var(--px)) 0 rgba(30, 20, 5, 0.35);
   text-shadow: var(--px) var(--px) 0 var(--wood-dark), calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--wood-dark);
 }
+
+.actions { display: flex; flex-direction: column; align-items: center; gap: calc(4 * var(--px)); }
 
 button {
   font: inherit;
@@ -52,26 +80,55 @@ button {
   background: var(--wood);
   border: var(--px) solid var(--wood-dark);
   border-radius: calc(3 * var(--px));
-  padding: calc(4 * var(--px)) calc(12 * var(--px));
-  box-shadow: 0 calc(2 * var(--px)) 0 var(--wood-dark);
+  padding: calc(4 * var(--px)) calc(14 * var(--px));
+  box-shadow: inset 0 var(--px) 0 var(--wood-light), 0 calc(2 * var(--px)) 0 var(--wood-dark);
   cursor: pointer;
 }
-button:active { transform: translateY(var(--px)); box-shadow: 0 var(--px) 0 var(--wood-dark); }
+button:active { transform: translateY(var(--px)); box-shadow: inset 0 var(--px) 0 var(--wood-light), 0 var(--px) 0 var(--wood-dark); }
 button:focus-visible { outline: var(--px) solid var(--sun); outline-offset: var(--px); }
+button.small { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 6 * var(--px)); font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc(6 * var(--px)); }
 
-#soon {
+.note {
   margin: 0;
-  font-size: calc(10 * var(--px));
+  font-size: calc(9 * var(--px));
   background: var(--paper);
   border: var(--px) solid var(--wood-dark);
   border-radius: calc(3 * var(--px));
-  padding: calc(4 * var(--px)) calc(8 * var(--px));
+  padding: calc(3 * var(--px)) calc(8 * var(--px));
 }
 
-.rotate { display: none; background: var(--wood-dark); color: var(--paper); font-size: 24px; }
+.credits {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 20, 5, 0.55);
+  padding: 16px max(16px, env(safe-area-inset-left, 0px));
+}
+.credits .sheet {
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  background: var(--paper);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: calc(4 * var(--px));
+  padding: 16px 20px;
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.credits h2 { font-family: var(--font); margin: 0 0 8px; font-size: 28px; }
+.credits ul { padding-left: 18px; display: grid; gap: 10px; }
+.credits a { color: var(--wood-dark); }
+.credits button { font-size: 18px; }
+
+.rotate { display: none; justify-content: center; background: var(--wood-dark); color: var(--paper); font-size: 24px; }
 
 @media (orientation: portrait) {
-  .start { display: none; }
+  .start, #farm { display: none; }
   .rotate { display: flex; }
 }
 
