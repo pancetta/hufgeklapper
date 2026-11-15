@@ -15,7 +15,7 @@ import { seat } from './life';
 const SPEED = 120; // px per second
 const TAKEOFF = 40; // the hooves leave the ground this far before the pole and land as far behind it
 const FIRST = 260, SPACING = 220, RUN_OUT = 170, LANE = { y0: 70, y1: 150 }, HOOVES = 124, H = 220;
-const STEP = 1 / 60;
+const STEP = 1 / 60, BEFORE = 400; // the course starts this far before the horse
 
 export type JumpingOptions = {
   look: Look;
@@ -56,8 +56,12 @@ function paintCourse(width: number) {
 function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number) {
   const top = LANE.y0 + 4, bottom = LANE.y1 - 4;
   if (j.down) {
-    ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(x + 6, top + 12, 3, bottom - top - 8);
-    for (let y = top + 10; y < bottom - 2; y += 6) { ctx.fillStyle = (y / 6) % 2 < 1 ? '#ffffff' : j.colour; ctx.fillRect(x + 4, y, 3, 6); }
+    // the knocked pole lies slanted in the sand, one end still near its standard
+    for (let i = 0, n = bottom - top - 6; i < n; i += 2) {
+      const px = Math.round(x + 2 + (i / n) * 22), py = top + 4 + i;
+      ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(px + 1, py + 2, 3, 2);
+      ctx.fillStyle = Math.floor(i / 6) % 2 ? j.colour : '#ffffff'; ctx.fillRect(px, py, 3, 2);
+    }
   } else {
     ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(x + 4, top + 6, 3, bottom - top);
     ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, top - 9, 4, bottom - top + 2);
@@ -74,7 +78,7 @@ function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number) {
 export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions) {
   const sheet = await horseSheet(o.look, 'gallop');
   const jumps: Jump[] = Array.from({ length: o.jumps }, (_, i) => ({ x: FIRST + i * SPACING, colour: ['#d94f3d', '#3d6fd9', '#f2c14e'][i % 3], done: false, down: false }));
-  const finish = FIRST + (o.jumps - 1) * SPACING + RUN_OUT, course = paintCourse(finish + 400);
+  const finish = FIRST + (o.jumps - 1) * SPACING + RUN_OUT, course = paintCourse(BEFORE + finish + 400);
   const ctx = canvas.getContext('2d')!, s = seat(o.look.build, 'E');
   let S = 1, W = 0, x = 0, t = 0, acc = 0, last = performance.now(), running = true;
   let air: { from: number; to: number } | null = null;
@@ -105,7 +109,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     ctx.imageSmoothingEnabled = false;
     ctx.setTransform(1, 0, 0, 1, -cam, oy);
     ctx.fillStyle = '#5a9a3a'; ctx.fillRect(cam, -oy, W, canvas.height);
-    ctx.drawImage(course, cam, 0, W, H, cam, 0, W, H);
+    ctx.drawImage(course, cam + BEFORE, 0, W, H, cam, 0, W, H);
     // the green take-off patches, as wide as the window
     for (const j of jumps) if (!j.done) {
       const half = (o.window / 2) * SPEED;
