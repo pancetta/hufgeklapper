@@ -300,9 +300,9 @@ export function showFarm() {
       const p = game.get().pupils.find((x) => x.id === b.dataset.pupil);
       if (p) chooseHorse(p);
     }));
-    // sick horses stay in the stable, off the pasture
-    const sick = game.get().horses.flatMap((h, i) => (isSick(h) ? [i] : []));
-    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(sick); });
+    // sick horses, and those resting after the vet, stay in the stable, off the pasture
+    const inStall = game.get().horses.flatMap((h, i) => (isSick(h) || h.rest ? [i] : []));
+    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(inStall); });
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {

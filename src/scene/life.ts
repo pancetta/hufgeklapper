@@ -154,7 +154,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   const TRACK = track(arena), LAP = loopLength(LOOP), TRACK_LAP = loopLength(TRACK), SPOTS = waitingSpots(arena);
   let ride = 0, waiting: Kid[] = [];
   let lesson: { horse: number; kid: Kid; d: number; done: () => void } | null = null, lessons = Promise.resolve();
-  let away = new Set<number>(); // herd horses not on the pasture (sick)
+  let away = new Set<number>(); // herd horses not on the pasture (sick or resting, in the stable)
   const butterflies = ['#ffe066', '#ffffff', '#ff9f43', '#7ec8ff', '#ff8fc7'].map((color, i) => ({
     color, hx: [250, 430, 600, 300, 820][i], hy: [528, 520, 536, 120, 150][i], phase: rnd() * 10, speed: 0.6 + rnd() * 0.5,
   }));

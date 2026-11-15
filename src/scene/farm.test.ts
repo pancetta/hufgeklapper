@@ -16,8 +16,8 @@ describe('farm layout', () => {
 
   it('shows the windmill with its blades, and the waiting pupils, on the smallest view, clear of the plots', () => {
     const arena = PLOTS.find((p) => p.building === 'arena')!;
-    // the windmill reaches 72 px up (blades 64 wide); a pupil with its name label about 40 px
-    const things = [[WINDMILL.x - 32, WINDMILL.y - 72, WINDMILL.x + 32, WINDMILL.y], ...waitingSpots(arena).map(([x, y]) => [x - 8, y - 40, x + 8, y])];
+    // the blades' tips reach 92 px above the windmill's foot (64 wide); a pupil with its name label about 40 px
+    const things = [[WINDMILL.x - 32, WINDMILL.y - 92, WINDMILL.x + 32, WINDMILL.y], ...waitingSpots(arena).map(([x, y]) => [x - 8, y - 40, x + 8, y])];
     for (const [x0, y0, x1, y1] of things) expect(x0 >= view.x0 && y0 >= view.y0 && x1 <= view.x1 && y1 <= view.y1, `${x0},${y0}`).toBe(true);
     const foot = PLOTS.find((p) => { const b = bounds(p); return WINDMILL.x >= b.x0 && WINDMILL.x < b.x1 && WINDMILL.y >= b.y0 && WINDMILL.y < b.y1; });
     expect(foot).toBeUndefined();
