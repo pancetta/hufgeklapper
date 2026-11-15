@@ -8,6 +8,7 @@ import { horseSheet } from '../horses/compose';
 import { BREEDS, COATS } from '../horses/look';
 import { startFarm } from '../scene';
 import { bounds, waitingSpots } from '../scene/buildings';
+import { pupilKid } from '../riders/look';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
@@ -245,7 +246,7 @@ export function showFarm() {
       if (game.get().lessonsGiven === before.lessonsGiven) return; // the Sim said no (the pupil or horse changed meanwhile)
       const repaid = before.debt - game.get().debt;
       bar.toast(t.lessonRuns(p.name, h.name));
-      farm.then((f) => f.lesson(i, p)).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
+      farm.then((f) => f.lesson(i, pupilKid(p))).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
     }));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
@@ -301,7 +302,7 @@ export function showFarm() {
     }));
     // sick horses stay in the stable, off the pasture
     const sick = game.get().horses.flatMap((h, i) => (isSick(h) ? [i] : []));
-    farm.then((f) => { f.setPupils(waiting); f.setAway(sick); });
+    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(sick); });
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {

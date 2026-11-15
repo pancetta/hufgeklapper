@@ -1,18 +1,14 @@
 /**
- * Riding pupils as pixel figures (our own drawing): riding helmet, jacket, light breeches, boots, and a
- * ponytail. Each pupil's look number picks skin, helmet, jacket and hair; small and big children differ in size.
+ * Riders as pixel figures (our own drawing): riding helmet, jacket, light breeches, boots and hair in one of four
+ * styles. Pupils and the player's avatar are both drawn this way; small and big children differ in size.
  * Figures are drawn once per look and view into a little canvas, outlined like the LPC sprites, and cached.
  */
-export type Kid = { size: 'small' | 'big'; look: number };
-export type View = 'S' | 'N' | 'W' | 'E';
+import { HAIR, HELMET, JACKET, type Kid, SKIN } from '../riders/look';
 
-const SKIN = ['#f2d3b3', '#e8bf98', '#c99268', '#8d5a3b'];
-const HELMET = ['#2b2b3a', '#2f4f9a', '#7a2b4f', '#2f6b3a'];
-const JACKET = ['#d94f3d', '#3d6fd9', '#f2c14e', '#43a047', '#b05ec9', '#ff8fc7'];
-const HAIR = ['#4a2f1a', '#e2c068', '#1e1a17', '#a0522d'];
 const OUTLINE = '#2a1a10', PANTS = '#efe6d0', BOOTS = '#2a1d14';
 
-const pick = <T>(list: T[], n: number) => list[n % list.length];
+export type View = 'S' | 'N' | 'W' | 'E';
+
 function shade(hex: string, f: number) {
   const n = parseInt(hex.slice(1), 16), c = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));
   return `rgb(${c(n >> 16)}, ${c((n >> 8) & 255)}, ${c(n & 255)})`;
@@ -29,7 +25,7 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
   const c = document.createElement('canvas');
   c.width = w + 2; c.height = h + 2;
   const g = c.getContext('2d')!;
-  const n = kid.look, skin = pick(SKIN, n), helmet = pick(HELMET, n >> 2), jacket = pick(JACKET, n >> 4), hair = pick(HAIR, n >> 6);
+  const skin = SKIN[kid.skin], helmet = HELMET[kid.helmet], jacket = JACKET[kid.jacket], hair = HAIR[kid.hairColor], style = kid.hair;
   const px = (color: string, x: number, y: number, ww = 1, hh = 1) => { g.fillStyle = color; g.fillRect(x + 1, y + 1, ww, hh); };
   const mid = w / 2, hx = mid - headW / 2, faceTop = 3, bodyTop = faceTop + headH, legTop = bodyTop + bodyH, bx = mid - bodyW / 2;
   const dark = shade(jacket, 0.72), light = shade(jacket, 1.18);
@@ -53,11 +49,14 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
   if (!side) {
     for (const x of [bx - 2, bx + bodyW]) { px(dark, x, bodyTop + 1, 2, bodyH - 2); px(skin, x, bodyTop + bodyH - 1, 2, 1); }
   } else px(skin, view === 'W' ? bx + 1 : bx + bodyW - 3, bodyTop + bodyH - 2, 2, 2);
-  // the head: face, hair under the helmet, a ponytail at the back
+  // the head: face, hair under the helmet in its style (ponytail, short, two pigtails, long)
   px(skin, hx, faceTop, headW, headH);
   px(shade(skin, 0.88), hx, faceTop + headH - 1, headW, 1); // chin shadow
+  const temples = style === 'kurz' ? 2 : 4;
   if (view === 'S') {
-    px(hair, hx, faceTop, 1, 4); px(hair, hx + headW - 1, faceTop, 1, 4); // hair at the temples
+    px(hair, hx, faceTop, 1, temples); px(hair, hx + headW - 1, faceTop, 1, temples); // hair at the temples
+    if (style === 'lang') { px(hair, hx - 1, faceTop, 1, headH + 3); px(hair, hx + headW, faceTop, 1, headH + 3); }
+    if (style === 'zoepfe') { px(hair, hx - 2, faceTop + 2, 2, 2); px(hair, hx + headW, faceTop + 2, 2, 2); px(hair, hx - 2, faceTop + 4, 1, 3); px(hair, hx + headW + 1, faceTop + 4, 1, 3); }
     px(OUTLINE, hx + 2, faceTop + 3, 1, 2); px(OUTLINE, hx + headW - 3, faceTop + 3, 1, 2); // eyes
     px('#ffffff', hx + 2, faceTop + 3); px('#ffffff', hx + headW - 3, faceTop + 3); // glints
     px('#f29a9a', hx + 1, faceTop + 5); px('#f29a9a', hx + headW - 2, faceTop + 5); // cheeks
@@ -65,11 +64,16 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
   } else if (view === 'N') {
     px(hair, hx, faceTop, headW, headH - 1);
     px(shade(hair, 1.3), hx + 2, faceTop + 1, 2, 2);
-    px(hair, mid - 1, faceTop + headH - 1, 2, 4); // ponytail down the back
+    if (style === 'zopf') px(hair, mid - 1, faceTop + headH - 1, 2, 4); // ponytail down the back
+    if (style === 'lang') px(hair, hx, faceTop + headH - 1, headW, 4);
+    if (style === 'zoepfe') { px(hair, hx - 1, faceTop + 3, 2, 5); px(hair, hx + headW - 1, faceTop + 3, 2, 5); }
   } else {
     const back = view === 'W' ? hx + headW - 3 : hx, front = view === 'W' ? hx + 1 : hx + headW - 2;
-    px(hair, back, faceTop, 3, headH - 2);
-    px(hair, view === 'W' ? hx + headW : hx - 2, faceTop + 2, 2, 4); // ponytail
+    px(hair, back, faceTop, 3, style === 'kurz' ? headH - 4 : headH - 2);
+    const tail = view === 'W' ? hx + headW : hx - 2;
+    if (style === 'zopf') px(hair, tail, faceTop + 2, 2, 4); // ponytail
+    if (style === 'zoepfe') px(hair, tail, faceTop + 3, 2, 3);
+    if (style === 'lang') px(hair, view === 'W' ? hx + headW - 3 : hx, faceTop + headH - 2, 3, 5);
     px(OUTLINE, front, faceTop + 3, 1, 2);
     px('#ffffff', front, faceTop + 3);
     px('#f29a9a', front + (view === 'W' ? 1 : -1), faceTop + 5);
@@ -93,7 +97,7 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
 
 const cache = new Map<string, HTMLCanvasElement>();
 function figure(kid: Kid, view: View, step: number, upper = false) {
-  const key = `${kid.size}:${kid.look}:${view}:${step % 2}:${upper}`;
+  const key = `${JSON.stringify(kid)}:${view}:${step % 2}:${upper}`;
   let c = cache.get(key);
   if (!c) cache.set(key, (c = paint(kid, view, step % 2, upper)));
   return c;
