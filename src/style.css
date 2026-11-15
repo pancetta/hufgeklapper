@@ -43,7 +43,7 @@ body {
   padding: calc(env(safe-area-inset-top, 0px) + 8 * var(--px)) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 10 * var(--px)) max(16px, env(safe-area-inset-left, 0px));
   text-align: center;
 }
-.start { justify-content: space-between; pointer-events: none; }
+.start { justify-content: space-between; gap: calc(6 * var(--px)); pointer-events: none; }
 .start > * { pointer-events: auto; }
 
 /* the title on a wooden sign, with a darker frame and a light top edge like the pixel art */
@@ -82,6 +82,25 @@ button:active { transform: translateY(var(--px)); box-shadow: inset 0 var(--px) 
 button:focus-visible { outline: var(--px) solid var(--sun); outline-offset: var(--px); }
 button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc(6 * var(--px)); }
 .corner { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 6 * var(--px)); }
+
+/* save slots on the start screen: three wooden boards */
+.slots { display: flex; gap: calc(6 * var(--px)); flex-wrap: wrap; justify-content: center; }
+.slot {
+  display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--px));
+  width: calc(110 * var(--px)); padding: calc(5 * var(--px));
+  background: rgba(246, 236, 210, 0.95); border: var(--px) solid var(--wood-dark); border-radius: calc(4 * var(--px));
+  box-shadow: 0 calc(3 * var(--px)) 0 rgba(30, 20, 5, 0.35);
+}
+.slot h2 { margin: 0; font-size: calc(10 * var(--px)); text-align: center; overflow-wrap: anywhere; }
+.slot p { margin: 0; font-size: calc(8 * var(--px)); }
+.slot.empty h2, .slot.broken h2 { opacity: 0.75; font-weight: 400; }
+.slot button { font-size: calc(9 * var(--px)); padding: calc(3 * var(--px)) calc(8 * var(--px)); }
+.slot button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc(6 * var(--px)); }
+.file-buttons { display: flex; gap: calc(3 * var(--px)); }
+.sheet.ask { display: grid; gap: 12px; text-align: center; font-size: 20px; min-width: min(90vw, 340px); }
+.sheet.ask p, .sheet.ask label { margin: 0; }
+.sheet.ask input { font: inherit; font-size: 22px; padding: 6px 10px; border: 2px solid var(--wood-dark); border-radius: 6px; text-align: center; }
+.farm-name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .icon { width: calc(7 * var(--px)); height: calc(7 * var(--px)); image-rendering: pixelated; flex: none; }
 
@@ -140,7 +159,26 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
   background: rgba(246, 236, 210, 0.92); border: var(--px) solid var(--wood-dark); border-radius: calc(3 * var(--px));
 }
 .need { display: flex; align-items: center; gap: calc(3 * var(--px)); font-size: calc(8 * var(--px)); }
-.needs .icon { width: calc(9 * var(--px)); height: calc(9 * var(--px)); }
+.needs /* save slots on the start screen: three wooden boards */
+.slots { display: flex; gap: calc(6 * var(--px)); flex-wrap: wrap; justify-content: center; }
+.slot {
+  display: flex; flex-direction: column; align-items: center; gap: calc(3 * var(--px));
+  width: calc(110 * var(--px)); padding: calc(5 * var(--px));
+  background: rgba(246, 236, 210, 0.95); border: var(--px) solid var(--wood-dark); border-radius: calc(4 * var(--px));
+  box-shadow: 0 calc(3 * var(--px)) 0 rgba(30, 20, 5, 0.35);
+}
+.slot h2 { margin: 0; font-size: calc(10 * var(--px)); text-align: center; overflow-wrap: anywhere; }
+.slot p { margin: 0; font-size: calc(8 * var(--px)); }
+.slot.empty h2, .slot.broken h2 { opacity: 0.75; font-weight: 400; }
+.slot button { font-size: calc(9 * var(--px)); padding: calc(3 * var(--px)) calc(8 * var(--px)); }
+.slot button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc(6 * var(--px)); }
+.file-buttons { display: flex; gap: calc(3 * var(--px)); }
+.sheet.ask { display: grid; gap: 12px; text-align: center; font-size: 20px; min-width: min(90vw, 340px); }
+.sheet.ask p, .sheet.ask label { margin: 0; }
+.sheet.ask input { font: inherit; font-size: 22px; padding: 6px 10px; border: 2px solid var(--wood-dark); border-radius: 6px; text-align: center; }
+.farm-name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.icon { width: calc(9 * var(--px)); height: calc(9 * var(--px)); }
 .need > span:not(.bar) { width: calc(48 * var(--px)); text-align: left; }
 .bar { flex: 1; height: calc(6 * var(--px)); background: #6b5844; border: var(--px) solid var(--wood-dark); border-radius: var(--px); overflow: hidden; }
 .bar i { display: block; height: 100%; background: #5cb85c; box-shadow: inset 0 var(--px) 0 rgba(255, 255, 255, 0.35); }

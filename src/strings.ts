@@ -12,6 +12,27 @@ export const t = {
   creditsAll: 'Alle Namen',
   back: 'Zurück',
 
+  // save slots on the start screen
+  slot: (n: number) => `Platz ${n}`,
+  slotEmpty: 'Freier Platz',
+  slotInfo: (day: number, money: number) => `Tag ${day} · ${money} €`,
+  resumeGame: 'Weiterspielen',
+  newGame: 'Neues Spiel',
+  exportSave: 'Sichern',
+  importSave: 'Laden',
+  farmName: 'Wie heißt dein Hof?',
+  farmNameDefault: 'Mein Ponyhof',
+  overwrite: (name: string) => `„${name}“ wird überschrieben. Sicher?`,
+  overwriteBroken: 'Der alte Spielstand wird überschrieben. Sicher?',
+  yesNew: 'Ja, neu anfangen',
+  yesLoad: 'Ja, laden',
+  no: 'Nein',
+  slotBroken: 'Dieser Spielstand ist kaputt.',
+  slotNewer: 'Dieser Spielstand ist von einer neueren Version.',
+  importInvalid: 'Diese Datei ist kein Hufgeklapper-Spielstand.',
+  importNewer: 'Diese Datei ist von einer neueren Version.',
+  saveFailed: 'Speichern hat nicht geklappt. Ist der Speicher voll?',
+
   // top bar and menu
   money: (n: number) => `${n} €`,
   day: (n: number) => `Tag ${n}`,

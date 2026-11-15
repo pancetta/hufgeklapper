@@ -1,0 +1,52 @@
+/**
+ * A save file: what one slot stores and what export/import moves. A file from outside is checked field by field
+ * before it can replace anything; an unreadable or newer file is reported, never used.
+ */
+import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
+import { DATA } from './data';
+import { type Horse, NEEDS, type State } from './state';
+
+/** Bump when State changes shape, and add the step from the old shape to parseSave. */
+export const SAVE_VERSION = 1;
+export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
+export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
+
+export function toSave(state: State, name: string, now = new Date()): SaveFile {
+  return { app: 'hufgeklapper', version: SAVE_VERSION, name, savedAt: now.toISOString(), state };
+}
+
+type Obj = Record<string, unknown>;
+const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
+const isInt = (x: unknown, min = -Infinity, max = Infinity) => Number.isInteger(x) && (x as number) >= min && (x as number) <= max;
+const isText = (x: unknown, max: number) => typeof x === 'string' && x.length > 0 && x.length <= max;
+const oneOf = (x: unknown, options: object) => typeof x === 'string' && Object.hasOwn(options, x);
+
+function isLook(x: unknown): x is Look {
+  return isObj(x) && (x.build === 'horse' || x.build === 'pony') && oneOf(x.coat, COATS)
+    && (x.mane === undefined || oneOf(x.mane, MANES)) && (x.face === undefined || oneOf(x.face, FACES))
+    && (x.legs === undefined || oneOf(x.legs, LEGS)) && (x.saddle === undefined || typeof x.saddle === 'boolean')
+    && (x.blanket === undefined || (typeof x.blanket === 'string' && /^#[0-9a-f]{6}$/i.test(x.blanket)));
+}
+
+function isHorse(x: unknown): x is Horse {
+  // ids end up in HTML attributes, so only plain characters
+  return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
+    && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
+    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100);
+}
+
+function isState(x: unknown): x is State {
+  return isObj(x) && x.version === 1 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+    && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse);
+}
+
+/** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
+export function parseSave(text: string): Parsed {
+  let x: unknown;
+  try { x = JSON.parse(text); } catch { return { ok: false, reason: 'invalid' }; }
+  if (!isObj(x) || x.app !== 'hufgeklapper' || !isInt(x.version, 1)) return { ok: false, reason: 'invalid' };
+  if ((x.version as number) > SAVE_VERSION) return { ok: false, reason: 'newer' };
+  // older versions get migrated here once there is one; today version 1 is the only one
+  if (!isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
+  return { ok: true, save: x as SaveFile };
+}
