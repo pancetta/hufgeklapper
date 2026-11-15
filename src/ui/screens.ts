@@ -7,13 +7,13 @@ import { game } from '../game';
 import { horseSheet } from '../horses/compose';
 import { BREEDS, COATS } from '../horses/look';
 import { startFarm } from '../scene';
-import { bounds } from '../scene/buildings';
+import { bounds, waitingSpots } from '../scene/buildings';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { CARE, canBuild, cantTeach, fit, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -215,17 +215,41 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
 
 export function showFarm() {
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
-    <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>`);
+    <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>
+    <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>`);
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
     else if (target === 'board') showShop();
-    else if (target === 'arena') bar.toast(t.arena);
+    else if (target === 'arena') { if (s.pupils.length) chooseHorse(s.pupils[0]); else bar.toast(t.noPupils); }
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
-  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); });
+  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
+  /** A pupil wants a lesson: pick a horse; each shows how well it fits, or why it can't. */
+  function chooseHorse(p: Pupil) {
+    const s = game.get(), sheet = $('lesson');
+    sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
+      <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
+      ${s.horses.map((h) => {
+        const why = cantTeach(h);
+        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)} · ${why ? t.cantTeach[why] : t.fits[fit(p, h)]}</button>`;
+      }).join('')}
+      <button type="button" id="close-lesson">${t.close}</button>`;
+    sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {
+      const before = game.get(), i = before.horses.findIndex((h) => h.id === b.dataset.horse), h = before.horses[i];
+      const { pay, happy } = lessonOutcome(p, h);
+      sheet.hidden = true;
+      game.dispatch({ type: 'lesson', pupil: p.id, horse: h.id });
+      if (game.get().lessonsGiven === before.lessonsGiven) return; // the Sim said no (the pupil or horse changed meanwhile)
+      const repaid = before.debt - game.get().debt;
+      bar.toast(t.lessonRuns(p.name, h.name));
+      farm.then((f) => f.lesson(i, p)).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
+    }));
+    $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
+    sheet.hidden = false;
+  }
   /** The notice board: buy hay (on credit when the money is short) and borrow from the bank. */
   function shop() {
     const s = game.get();
@@ -249,24 +273,39 @@ export function showFarm() {
   const places: [string, number, number][] = [
     ...PLOTS.map((p): [string, number, number] => {
       const b = bounds(p);
-      return [p.id, (b.x0 + b.x1) / 2, p.id === 'stall' ? b.y1 - 20 : (b.y0 + b.y1) / 2];
+      return [p.id, (b.x0 + b.x1) / 2, p.id === 'stall' ? b.y1 - 20 : p.id === 'arena' ? b.y1 - 4 : (b.y0 + b.y1) / 2];
     }),
     ['board', board[1], board[2] - 36],
   ];
   const labels = $('labels');
-  labels.innerHTML = places.map(([id]) => `<button class="label" type="button" data-place="${id}">${t.places[id] ?? id}</button>`).join('');
-  labels.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => tap(b.dataset.place!)));
-  const farm = startFarm($<HTMLCanvasElement>('farm'), {
-    herd: game.get().horses.map((h) => h.look), canter: false, onTap: tap,
-    onLayout: () => farm.then((f) => {
-      labels.hidden = false; // shown once placed, not stacked in a corner while the farm loads
-      places.forEach(([id, x, y]) => {
-        const el = labels.querySelector<HTMLElement>(`[data-place="${id}"]`)!, p = f.toScreen(x, y);
-        // centred on the place (set here, not with a CSS transform: WebKit then misses taps on it)
-        el.style.left = `${p.left - el.offsetWidth / 2}px`; el.style.top = `${p.top - el.offsetHeight / 2}px`;
-      });
-    }),
+  labels.innerHTML = places.map(([id, x, y]) => `<button class="label" type="button" data-place="${id}" data-x="${x}" data-y="${y}">${t.places[id] ?? id}</button>`).join('')
+    + '<span id="pupils"></span>';
+  labels.querySelectorAll<HTMLButtonElement>('[data-place]').forEach((b) => b.addEventListener('click', () => tap(b.dataset.place!)));
+  /** Puts every label over its world point, centred (set here, not with a CSS transform: WebKit then misses taps on it). */
+  const place = () => farm.then((f) => {
+    labels.hidden = false; // shown once placed, not stacked in a corner while the farm loads
+    labels.querySelectorAll<HTMLElement>('[data-x]').forEach((el) => {
+      const p = f.toScreen(Number(el.dataset.x), Number(el.dataset.y));
+      el.style.left = `${p.left - el.offsetWidth / 2}px`; el.style.top = `${p.top - el.offsetHeight / 2}px`;
+    });
   });
+  const spots = waitingSpots(PLOTS.find((p) => p.building === 'arena')!);
+  /** The waiting pupils, on the map and as name labels above their heads. */
+  function pupils() {
+    const waiting = game.get().pupils.slice(0, spots.length);
+    $('pupils').innerHTML = waiting.map((p, i) =>
+      `<button class="label pupil" type="button" data-pupil="${p.id}" data-x="${spots[i][0]}" data-y="${spots[i][1] - 34}">${esc(p.name)}</button>`).join('');
+    $('pupils').querySelectorAll<HTMLButtonElement>('[data-pupil]').forEach((b) => b.addEventListener('click', () => {
+      const p = game.get().pupils.find((x) => x.id === b.dataset.pupil);
+      if (p) chooseHorse(p);
+    }));
+    farm.then((f) => f.setPupils(waiting));
+    place();
+  }
+  const farm = startFarm($<HTMLCanvasElement>('farm'), {
+    herd: game.get().horses.map((h) => h.look), canter: false, onTap: tap, onLayout: place,
+  });
+  pupils();
   leave = () => { bar.unsubscribe(); farm.then((f) => f.stop()); };
 }
 

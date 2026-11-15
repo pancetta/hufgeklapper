@@ -5,6 +5,7 @@ import { ground, plotDrawables } from './buildings';
 import { FOCUS, MAP, PLOTS, PROPS, SPRITES, WORLD } from './farm';
 import type { Look } from '../horses/look';
 import { bounds } from './buildings';
+import type { Kid } from './kids';
 import { createLife, type Drawable, lifeSheets, loadHorses, START_HERD } from './life';
 import { paintTerrain } from './terrain';
 
@@ -97,6 +98,9 @@ export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {
   return {
     /** CSS pixel position of a world point, for HTML labels over the map. */
     toScreen: (x: number, y: number) => ({ left: (x + ox) * S, top: (y + oy) * S }),
+    setPupils: (kids: Kid[]) => life.setWaiting(kids),
+    /** Herd horse number `horse` gives `kid` a lesson: one lap of the arena. */
+    lesson: (horse: number, kid: Kid) => life.lesson(horse, kid),
     stop() { running = false; removeEventListener('resize', fit); canvas.removeEventListener('click', tap); },
   };
 }

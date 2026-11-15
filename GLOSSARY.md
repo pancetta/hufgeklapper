@@ -104,7 +104,10 @@ Whole euros.
 A **Pupil** rides one of the farm's horses; it runs by itself once assigned and pays by the horse's state and fit.
 
 **Pupil** ("Reitschüler"):
-A visitor who books a **Lesson**.
+A visitor who books a **Lesson**. Small pupils fit a pony, big ones a horse. New pupils come each morning; a good **Reputation** brings more.
+
+**Reputation** ("Ruf"):
+How well the farm is known for its lessons (0–100). Happy pupils raise it, unhappy ones lower it.
 
 **Feed** ("Futter", in hay bales: "Heuballen"):
 Bought and stored; every horse eats one bale from the store each night. With none left it goes hungry.
