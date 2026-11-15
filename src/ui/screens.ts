@@ -11,7 +11,8 @@ import { bounds } from '../scene/buildings';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
-import { canBuild, type Horse, isSick, NEEDS, stalls } from '../sim/state';
+import { DATA } from '../sim/data';
+import { canBuild, canPayVet, type Horse, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -159,6 +160,7 @@ function topBar() {
       </div>
     </section>
     <div id="night" class="night" hidden><p></p></div>
+    <section id="morning" class="overlay" hidden><div class="sheet ask"></div></section>
     <p id="toast" class="toast" role="status" hidden></p>`;
 }
 
@@ -170,9 +172,21 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     setTimeout(() => {
       game.dispatch({ type: 'sleep' });
       night.querySelector('p')!.textContent = t.day(game.get().day);
-      setTimeout(() => { night.hidden = true; }, 900);
+      setTimeout(() => { night.hidden = true; morning(game.get().night); }, 900);
     }, 900);
   });
+  // the morning summary: one short line per piece of news, then on with the day
+  const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
+  const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
+    : n.kind === 'hayLow' ? t.newsHayLow : t.newsNoHay;
+  function morning(news: News[]) {
+    if (!news.length) return;
+    const lines = [...new Set(news.map(line))]; // "no hay" comes once per horse; say it once
+    const box = $('morning');
+    box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
+    box.hidden = false;
+    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; });
+  }
   $('menu').addEventListener('click', () => { $('menu-sheet').hidden = false; });
   $('resume').addEventListener('click', () => { $('menu-sheet').hidden = true; });
   $('to-start').addEventListener('click', showStart);
@@ -250,7 +264,7 @@ export function showStable() {
     boxes.innerHTML = Array.from({ length: stalls(st) }, (_, i) => {
       const h = st.horses[i];
       return h
-        ? `<div class="box" data-box="${i}"><button class="nameplate" type="button" data-horse="${h.id}">${esc(h.name)}</button>
+        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
             <button class="horse-hit" type="button" data-horse="${h.id}" aria-label="${esc(h.name)}"></button>
             <div class="needs">${NEEDS.map((n) => needBar(h, n)).join('')}</div></div>`
         : `<div class="box" data-box="${i}"><span class="nameplate empty">${t.freeStall}</span></div>`;
@@ -279,11 +293,13 @@ export function showStable() {
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
-      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : t.healthy(esc(h.name))}</p>
+      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
+      ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)}</p>`}
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
     $('close-card').addEventListener('click', () => { card.hidden = true; });
+    card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
   }
   render();
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };

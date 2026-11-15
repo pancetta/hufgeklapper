@@ -33,4 +33,12 @@ describe('save files', () => {
     ];
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
   });
+
+  it('reads a save from version 1 (before the day cycle) and brings it up to date', () => {
+    const now = toSave(played(), 'Hof');
+    const v1 = { ...now, version: 1, state: { ...now.state, version: 1, night: undefined, horses: now.state.horses.map(({ rest: _, ...h }) => h) } };
+    const p = parseSave(text(v1));
+    expect(p.ok && p.save.state.horses.every((h) => h.rest === 0) && p.save.state.night).toEqual([]);
+    expect(p.ok && p.save.version).toBe(SAVE_VERSION);
+  });
 });

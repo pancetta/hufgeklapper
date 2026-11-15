@@ -84,6 +84,33 @@ test('the game saves itself, carries on after a reload, and moves as a file', as
   await expect(page.locator('#day')).toHaveText(t.day(2));
 });
 
+test('a sick pony: red name plate, the vet heals it for money; no hay shows in the morning', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Krankenhof');
+  // change the saved game: Kiwi is sick and the hay store is empty
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
+    save.state.horses[0].needs.health = 10;
+    save.state.feed = 0;
+    localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await expect(page.locator('.nameplate.sick', { hasText: 'Kiwi' })).toBeVisible();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await expect(page.getByText(t.sick('Kiwi'))).toBeVisible();
+  await page.getByRole('button', { name: t.callVet(40) }).tap();
+  await expect(page.getByText(t.resting('Kiwi'))).toBeVisible();
+  await expect(page.getByText(t.money(260))).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  // a night without hay: the morning says so
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.newsNoHay)).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: t.morningGo }).tap();
+  await expect(page.getByText(t.newsNoHay)).toBeHidden();
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

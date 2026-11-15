@@ -6,8 +6,10 @@ import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
 import { type Horse, NEEDS, type State } from './state';
 
+const NEWS = { sick: 1, noHay: 1, hayLow: 1, rested: 1 };
+
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -32,12 +34,20 @@ function isHorse(x: unknown): x is Horse {
   // ids end up in HTML attributes, so only plain characters
   return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
-    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100);
+    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.rest, 0, 30);
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 1 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
-    && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse);
+  return isObj(x) && x.version === 2 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+    && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
+    && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)));
+}
+
+/** Version 1 (before the day cycle): horses had no rest days and there was no morning news. */
+function fromVersion1(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s) || !Array.isArray(s.horses)) return x;
+  return { ...x, version: 2, state: { ...s, version: 2, night: [], horses: s.horses.map((h) => (isObj(h) ? { ...h, rest: 0 } : h)) } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
@@ -46,7 +56,7 @@ export function parseSave(text: string): Parsed {
   try { x = JSON.parse(text); } catch { return { ok: false, reason: 'invalid' }; }
   if (!isObj(x) || x.app !== 'hufgeklapper' || !isInt(x.version, 1)) return { ok: false, reason: 'invalid' };
   if ((x.version as number) > SAVE_VERSION) return { ok: false, reason: 'newer' };
-  // older versions get migrated here once there is one; today version 1 is the only one
-  if (!isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
+  if (x.version === 1) x = fromVersion1(x);
+  if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

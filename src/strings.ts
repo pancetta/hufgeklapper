@@ -58,4 +58,15 @@ export const t = {
   healthy: (name: string) => `${name} ist gesund.`,
   sick: (name: string) => `${name} ist krank.`,
   close: 'Schließen',
+  callVet: (cost: number) => `Tierarzt rufen (${cost} €)`,
+  vetTooExpensive: (cost: number) => `Der Tierarzt kostet ${cost} €. So viel Geld hast du nicht.`,
+  resting: (name: string) => `${name} ruht sich aus.`,
+
+  // the morning after
+  morning: 'Guten Morgen!',
+  newsSick: (name: string) => `${name} ist krank. Ruf den Tierarzt!`,
+  newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
+  newsHayLow: 'Das Heu wird knapp.',
+  newsRested: (name: string) => `${name} ist wieder fit.`,
+  morningGo: 'Los geht’s!',
 } as const;
