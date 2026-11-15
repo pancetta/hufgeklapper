@@ -98,5 +98,6 @@ export const t = {
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
   billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt' },
+  newVersion: 'Es gibt eine neue Version. Sie startet, wenn du das Spiel das nächste Mal öffnest.',
   euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;

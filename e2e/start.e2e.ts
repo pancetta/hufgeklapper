@@ -202,6 +202,25 @@ test('the credits name the artists and close again', async ({ page }) => {
   await expect(page.getByRole('heading', { name: t.creditsTitle })).toBeHidden();
 });
 
+test('a home-screen app: manifest with icons, and the game runs offline once loaded', async ({ page, context }) => {
+  await page.goto('./');
+  const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+  const manifest = await (await page.request.get(href!)).json();
+  expect(manifest).toMatchObject({ name: t.title, display: 'fullscreen', orientation: 'landscape' });
+  for (const i of manifest.icons) expect((await page.request.get(new URL(i.src, new URL(href!, page.url())).href)).ok()).toBe(true);
+  // the service worker has cached the game: offline, it still starts, draws the farm and plays
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: t.title })).toBeVisible();
+  const farm = page.locator('#farm');
+  await expect.poll(() => farm.evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3])).toBe(255);
+  await newGame(page, 'Offlinehof');
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
+  await expect.poll(() => page.locator('#stable').evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3])).toBe(255);
+});
+
 test('portrait asks to turn the iPad', async ({ page }) => {
   await page.setViewportSize({ width: 820, height: 1180 });
   await page.goto('./');
