@@ -99,6 +99,8 @@ export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {
     /** CSS pixel position of a world point, for HTML labels over the map. */
     toScreen: (x: number, y: number) => ({ left: (x + ox) * S, top: (y + oy) * S }),
     setPupils: (kids: Kid[]) => life.setWaiting(kids),
+    /** Herd horses (by index) kept off the pasture, e.g. sick ones in the stable. */
+    setAway: (horses: number[]) => life.setAway(horses),
     /** Herd horse number `horse` gives `kid` a lesson: one lap of the arena. */
     lesson: (horse: number, kid: Kid) => life.lesson(horse, kid),
     stop() { running = false; removeEventListener('resize', fit); canvas.removeEventListener('click', tap); },

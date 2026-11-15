@@ -60,7 +60,7 @@ const PACKS: Record<string, Pack> = {
   'lpc-farm': {
     title: '[LPC] Farm', authors: 'bluecarrot16; Wolthera van Hövell tot Westerflier (TheraHedwig); Ivan Voirol', ...lic('CC-BY 4.0'),
     page: 'https://opengameart.org/content/lpc-farm', download: [`${OGA}/lpc-farm.zip`], credits: 'lpc-farm/CREDITS-farm.txt',
-    copy: { 'farm/barn.png': 'lpc-farm/barn.png' },
+    copy: { 'farm/barn.png': 'lpc-farm/barn.png', 'farm/windmill-blades.png': 'lpc-farm/blade-small.png' },
   },
   'lpc-terrains': {
     title: '[LPC] Terrains', authors: 'bluecarrot16, Sharm, Daneeklu, Jetrel, Zabin, Hyptosis, Casper Nilsson, Buko Studios, Nushio, ZaPaper, billknye, William Thompson, caeles, Redshrike, Bertram, RayaneFLX (all in the credits file)',

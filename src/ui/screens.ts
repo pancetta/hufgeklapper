@@ -290,7 +290,7 @@ export function showFarm() {
     });
   });
   const spots = waitingSpots(PLOTS.find((p) => p.building === 'arena')!);
-  /** The waiting pupils, on the map and as name labels above their heads. */
+  /** The waiting pupils, on the map and as name labels above their heads; which horses are on the pasture. */
   function pupils() {
     const waiting = game.get().pupils.slice(0, spots.length);
     $('pupils').innerHTML = waiting.map((p, i) =>
@@ -299,7 +299,9 @@ export function showFarm() {
       const p = game.get().pupils.find((x) => x.id === b.dataset.pupil);
       if (p) chooseHorse(p);
     }));
-    farm.then((f) => f.setPupils(waiting));
+    // sick horses stay in the stable, off the pasture
+    const sick = game.get().horses.flatMap((h, i) => (isSick(h) ? [i] : []));
+    farm.then((f) => { f.setPupils(waiting); f.setAway(sick); });
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {

@@ -148,6 +148,7 @@
     "creditsFile": "assets/credits/lpc-farm.txt",
     "files": [
       "assets/farm/barn.png",
+      "assets/farm/windmill-blades.png",
       "assets/credits/lpc-farm.txt"
     ]
   },
