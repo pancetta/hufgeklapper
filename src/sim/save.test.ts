@@ -38,6 +38,14 @@ describe('save files', () => {
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
   });
 
+  it('gives a save from version 8 (before goals) no goals and nothing explained', () => {
+    const now = toSave(played(), 'Hof');
+    const { goalsDone: _a, explained: _b, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 8, state: { ...old, version: 8 } }));
+    expect(p.ok && [p.save.state.goalsDone, p.save.state.explained]).toEqual([[], []]);
+    expect(parseSave(text({ ...now, state: { ...now.state, goalsDone: ['fliegen'] } }))).toEqual({ ok: false, reason: 'invalid' });
+  });
+
   it('gives a save from version 7 (before shows) no show ridden yet', () => {
     const now = toSave(played(), 'Hof');
     const { lastShowDay: _, ...old } = now.state;

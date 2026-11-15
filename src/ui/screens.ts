@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, badgeWaits, quizScore, nextShowDay, showResult, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, type Feature, goals, hint, quizScore, nextShowDay, showResult, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -268,11 +268,34 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast };
 }
 
+/** Oma Hanne says something in her speech bubble; resolves when the child taps "Alles klar!". */
+function omaSays(text: string): Promise<void> {
+  const box = document.createElement('section');
+  box.className = 'overlay talk';
+  box.innerHTML = `<div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p><button type="button">${t.gotIt}</button></div>`;
+  box.querySelector('p')!.textContent = text;
+  app.append(box);
+  return new Promise((done) => box.querySelector('button')!.addEventListener('click', () => { box.remove(); done(); }));
+}
+
+/** The first time the child opens a feature, Oma Hanne explains it in a sentence or two. */
+async function explain(what: Feature) {
+  if (game.get().explained.includes(what)) return;
+  await omaSays(t.explain[what]);
+  game.dispatch({ type: 'explained', what });
+}
+
+let goalsOpen = true; // the goal list is open until the child folds it away
+let hintAway = ''; // the hint the child closed; it stays away until another one is due
+
 /** The farm map; with `intro`, Oma Hanne first hands the farm over in a few speech bubbles. */
 export function showFarm(intro = false) {
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
     <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>
     <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>
+    <aside class="goals"><button type="button" id="goals-toggle"></button><ul id="goal-list"></ul></aside>
+    <aside id="hint" class="hint" hidden><img src="${omaPortrait()}" alt="${t.omaHanne}"><p role="status"></p>
+      <button type="button" id="hint-close" aria-label="${t.closeHint}">×</button></aside>
     <section id="intro" class="overlay talk" hidden><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p>
       <button type="button" id="intro-next">${t.next}</button></div></section>`);
   if (intro) {
@@ -286,13 +309,29 @@ export function showFarm(intro = false) {
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
-    else if (target === 'board') showShop();
-    else if (target === 'arena') arena();
+    else if (target === 'board') explain('board').then(showShop);
+    else if (target === 'arena') explain('arena').then(arena);
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
-  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
+  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); guide(); });
+  /** The goal list (open or folded) and Oma Hanne's hint for now, at most one. */
+  function guide() {
+    const s = game.get(), list = goals(s), done = list.filter((g) => g.done).length;
+    $('goals-toggle').textContent = t.goalsTitle(done, list.length);
+    $('goals-toggle').setAttribute('aria-expanded', String(goalsOpen));
+    $('goal-list').hidden = !goalsOpen;
+    $('goal-list').innerHTML = list.map((g) => `<li class="${g.done ? 'done' : ''}">${t.goalText[g.id](g.need)}${g.need > 1 ? ` <span>${g.have}/${g.need}</span>` : ''}</li>`).join('')
+      + (allGoalsDone(s) && list.length ? `<li class="all">${t.allGoals}</li>` : '');
+    const h = hint(s), name = (id: string) => s.horses.find((x) => x.id === id)?.name ?? '';
+    const text = !h ? '' : h.kind === 'hay' ? t.hints.hay : t.hints[h.kind](name(h.horse));
+    $('hint').hidden = !text || text === hintAway;
+    $('hint').querySelector('p')!.textContent = text;
+  }
+  $('goals-toggle').addEventListener('click', () => { goalsOpen = !goalsOpen; guide(); });
+  $('hint-close').addEventListener('click', () => { hintAway = $('hint').querySelector('p')!.textContent!; guide(); });
+  guide();
   /** The arena: give a lesson to the first waiting pupil, or practise jumping with a horse. */
   function arena() {
     const sheet = $('lesson'), s = game.get(), wait = badgeWaits(s), show = showWaits(s);
@@ -516,6 +555,7 @@ export function showStable() {
     <button id="to-farm" class="corner" type="button">${t.toFarm}</button>
     <section id="card" class="overlay" hidden></section>`);
   const boxes = $('boxes');
+  explain('stable');
   const render = () => {
     const st = game.get();
     boxes.innerHTML = Array.from({ length: stalls(st) }, (_, i) => {
@@ -576,6 +616,7 @@ export function showCare(id: string) {
     </nav>
     <button id="to-stable" class="corner" type="button">${t.toStable}</button>`);
   const bar = wireTopBar($, () => tools());
+  explain('care');
   const scene = startCare($<HTMLCanvasElement>('care-scene'), {
     look: h.look, dirt: (100 - h.needs.clean) / 100, cared: h.cared,
     onDone: (what) => { game.dispatch({ type: 'care', horse: id, what }); bar.toast(t.doneCare[what](h.name)); tools(); },
