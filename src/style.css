@@ -1,0 +1,80 @@
+/* --px is one logical pixel (set from fitPixels); UI sizes are whole multiples of it so pixel art stays crisp. */
+:root {
+  --px: 2px;
+  --ink: #2b1d12;
+  --paper: #f6ecd2;
+  --wood: #7a4a26;
+  --wood-dark: #4e2d15;
+  --grass: #6fa34a;
+  --sun: #f2c14e;
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+}
+
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--grass);
+  color: var(--ink);
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.start, .rotate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(12 * var(--px));
+  margin: 0;
+  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: calc(32 * var(--px));
+  color: var(--paper);
+  text-shadow: var(--px) var(--px) 0 var(--wood-dark), calc(2 * var(--px)) calc(2 * var(--px)) 0 var(--wood-dark);
+}
+
+button {
+  font: inherit;
+  font-size: calc(12 * var(--px));
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--wood);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: calc(3 * var(--px));
+  padding: calc(4 * var(--px)) calc(12 * var(--px));
+  box-shadow: 0 calc(2 * var(--px)) 0 var(--wood-dark);
+  cursor: pointer;
+}
+button:active { transform: translateY(var(--px)); box-shadow: 0 var(--px) 0 var(--wood-dark); }
+button:focus-visible { outline: var(--px) solid var(--sun); outline-offset: var(--px); }
+
+#soon {
+  margin: 0;
+  font-size: calc(10 * var(--px));
+  background: var(--paper);
+  border: var(--px) solid var(--wood-dark);
+  border-radius: calc(3 * var(--px));
+  padding: calc(4 * var(--px)) calc(8 * var(--px));
+}
+
+.rotate { display: none; background: var(--wood-dark); color: var(--paper); font-size: 24px; }
+
+@media (orientation: portrait) {
+  .start { display: none; }
+  .rotate { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active { transform: none; }
+}
