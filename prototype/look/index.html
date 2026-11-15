@@ -4,9 +4,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Nunito:wght@600;800&display=swap">
 <!--
-  PROTOTYPE – throwaway. Question: do free sprites (LPC vs. Loota) carry the look of Hufgeklapper on an iPad,
-  with the same horse shown from the side (stable, grooming) and from above (farm map, jumping course)?
-  Two variants, switchable with the bottom bar, the arrow keys or the URL hash (#lpc, #loota).
+  PROTOTYPE – throwaway. Question: do free LPC sprites carry the look of Hufgeklapper on an iPad,
+  with the same horse or pony shown from the side (stable, grooming) and from above (farm map, jumping course)?
+  Round 1 compared LPC with Loota (too coarse, dropped). Round 2: ponies derived by tools/ponyfy.py,
+  animated farm map (wandering herd, windmill).
   Run locally: python3 -m http.server -d prototype/look 8000
 -->
 <style>
@@ -67,21 +68,17 @@
 <div id="hud"></div>
 <div id="panel" hidden>
   <h2>Dein Pferd</h2>
+  <section><h3>Körperbau</h3><div class="opts" id="opt-build"></div></section>
   <section><h3>Fellfarbe</h3><div class="opts" id="opt-coat"></div></section>
   <section><h3>Mähne</h3><div class="opts" id="opt-mane"></div></section>
   <section><h3>Abzeichen</h3><div class="opts" id="opt-mark"></div></section>
-</div>
-<div class="bar" id="switch" role="group" aria-label="Prototyp-Variante">
-  <button id="prev" aria-label="Vorherige Variante">‹</button>
-  <span id="vlabel"></span>
-  <button id="next" aria-label="Nächste Variante">›</button>
 </div>
 <div id="credits" hidden>
   <div>
     <h2>Credits</h2>
     <p><b>[LPC] Horses</b> von bluecarrot16, überarbeitet als <b>LPC Horse Extended</b> von Benjamin K. Smith (BenCreating). Lizenz: CC-BY 3.0 (gewählt aus CC-BY 3.0 / CC-BY-SA 3.0 / GPL / OGA-BY 3.0). Quellen: <a href="https://opengameart.org/content/lpc-horses" target="_blank" rel="noopener">opengameart.org/content/lpc-horses</a>, <a href="https://opengameart.org/content/lpc-horse-extended" target="_blank" rel="noopener">opengameart.org/content/lpc-horse-extended</a>. Geändert: nur neu komprimiert.</p>
-    <p><b>Horses Sprites Pack</b> von Loota. Lizenz: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Quelle: <a href="https://loota9.itch.io/horses-sprites-pack" target="_blank" rel="noopener">loota9.itch.io/horses-sprites-pack</a>. Unverändert.</p>
-    <p><b>[LPC] Farm</b> von bluecarrot16, Wolthera van Hövell tot Westerflier (TheraHedwig) und Ivan Voirol. Lizenz: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC-BY 4.0</a>. Quelle: <a href="https://opengameart.org/content/lpc-farm" target="_blank" rel="noopener">opengameart.org/content/lpc-farm</a>. Geändert: einzelne Teile (Unterstände, Tränke, Zaun, Heu) ausgeschnitten.</p>
+    <p><b>Pony</b>: aus LPC Horse Extended abgeleitet (Beine, Hals und Rumpf gekürzt, Mähne dichter), gleiche Lizenz CC-BY 3.0, Urheber wie oben.</p>
+    <p><b>[LPC] Farm</b> von bluecarrot16, Wolthera van Hövell tot Westerflier (TheraHedwig) und Ivan Voirol. Lizenz: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC-BY 4.0</a>. Quelle: <a href="https://opengameart.org/content/lpc-farm" target="_blank" rel="noopener">opengameart.org/content/lpc-farm</a>. Geändert: einzelne Teile (Unterstände, Tränke, Zaun, Heu, Turm) ausgeschnitten; Windmühlenflügel unverändert.</p>
     <p>Gras, Sand, Stallwand, Stroh und Hindernisse: selbst gemacht (im Code gezeichnet).</p>
     <button id="close-credits">Schließen</button>
   </div>
@@ -93,57 +90,41 @@ const $ = (id) => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 let S = 2, W = 400, H = 300;
 
+// Only LPC is left: Loota (64×48) was too coarse for the stable close-up. Ponies are derived from the LPC
+// horse by tools/ponyfy.py (pony-* files), so every coat, mane and marking works for both builds.
 const VARIANTS = {
   lpc: {
-    label: 'A · LPC (realistisch)', fw: 128, fh: 128,
+    fw: 128, fh: 128,
+    buildNames: ['Pferd', 'Pony'],
     coats: ['brown', 'black', 'gold', 'gray', 'white'], coatNames: ['Brauner', 'Rappe', 'Falbe', 'Grauschimmel', 'Schimmel'],
     manes: [null, 'brown', 'black', 'gold', 'gray', 'white'], maneNames: ['eigene', 'braun', 'schwarz', 'blond', 'grau', 'weiß'],
     markNames: ['keine', 'Socken'],
     layers(look, anim) {
-      const a = anim === 'run' ? 'gallop' : 'idle', c = this.coats[look.coat];
-      const L = [`lpc/horse-${a}-${c}`];
-      if (look.mane) L.push(`lpc/mane-${a}-${this.manes[look.mane]}`);
-      if (look.mark) L.push(`lpc/socks-${a}-${c}`);
+      const a = anim === 'run' ? 'gallop' : anim, c = this.coats[look.coat], p = look.build ? 'lpc/pony-' : 'lpc/';
+      // a pony always wears its thick mane layer, in its own colour unless one is chosen
+      const L = [`${p}horse-${a}-${c}`];
+      if (look.mane || look.build) L.push(`${p}mane-${a}-${this.manes[look.mane] || c}`);
+      if (look.mark) L.push(`${p}socks-${a}-${c}`);
       return L;
     },
     rect(anim, dir, f) {
-      const d = { up: 0, side: 1, down: 2 }[dir];
+      const d = { up: 0, side: 1, down: 2, right: 3 }[dir];
       return anim === 'idle' ? [d * 128, 0] : [(f % 6) * 128, d * 128];
     },
     frames: (anim) => anim === 'idle' ? 1 : 6,
     stallScale: 3, mapScale: 1, runScale: 1,
   },
-  loota: {
-    label: 'B · Loota (niedlich)', fw: 64, fh: 48,
-    coats: [1, 2, 3, 4, 5, 6, 7, 8], coatNames: ['1', '2', '3', '4', '5', '6', '7', '8'],
-    manes: [0, ...Array.from({ length: 15 }, (_, i) => i + 1)], maneNames: ['eigene', ...Array.from({ length: 15 }, (_, i) => String(i + 1))],
-    markNames: ['keine', '1', '2', '3', '4', '5', '6', '7', '8'],
-    layers(look) {
-      const L = [`loota/horse-${look.coat + 1}`];
-      if (look.mane) L.push(`loota/hair-${look.mane}`);
-      if (look.mark) L.push(`loota/face-${look.mark}`);
-      return L;
-    },
-    rect(anim, dir, f) {
-      const g = anim === 'idle' ? 0 : 3, d = { side: 0, down: 2, up: 3 }[dir], n = anim === 'idle' ? 3 : 6;
-      return [(f % n) * 64, (g * 4 + d) * 48];
-    },
-    frames: (anim) => anim === 'idle' ? 3 : 6,
-    stallScale: 6, mapScale: 1, runScale: 2,
-  },
 };
-const ORDER = ['lpc', 'loota'];
-const looks = { lpc: { coat: 0, mane: 0, mark: 0 }, loota: { coat: 0, mane: 0, mark: 0 } };
-let variant = ORDER.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'lpc';
+const looks = { lpc: { build: 1, coat: 2, mane: 0, mark: 0 } };
+const variant = 'lpc';
 let screen = 'hof';
 
 // ---------- assets ----------
 const images = {};
 function assetList() {
-  const list = ['farm/shed-red', 'farm/shed-brown', 'farm/trough', 'farm/fence', 'farm/hay'];
-  for (const c of VARIANTS.lpc.coats) for (const a of ['idle', 'gallop']) list.push(`lpc/horse-${a}-${c}`, `lpc/mane-${a}-${c}`, `lpc/socks-${a}-${c}`);
-  for (let i = 1; i <= 8; i++) list.push(`loota/horse-${i}`, `loota/face-${i}`);
-  for (let i = 1; i <= 15; i++) list.push(`loota/hair-${i}`);
+  const list = ['farm/shed-red', 'farm/shed-brown', 'farm/trough', 'farm/fence', 'farm/hay', 'farm/tower', 'farm/blade'];
+  for (const p of ['', 'pony-']) for (const c of VARIANTS.lpc.coats) for (const a of ['idle', 'walk', 'gallop'])
+    list.push(`lpc/${p}horse-${a}-${c}`, `lpc/${p}mane-${a}-${c}`, `lpc/${p}socks-${a}-${c}`);
   return list;
 }
 function loadAll() {
@@ -212,8 +193,8 @@ function tile(img, x, y, w, h, ox = 0, oy = 0) {
   ctx.restore();
 }
 function fenceRow(x, y, w) { const f = images['farm/fence']; if (!f) return; for (let fx = x; fx < x + w - 10; fx += 64) ctx.drawImage(f, 0, 0, Math.min(76, x + w - fx), 58, fx, y, Math.min(76, x + w - fx), 58); }
-function drawHorse(v, anim, dir, f, cx, groundY, sc, extraScale = 1, lift = 0) {
-  const h = compose(v, looks[v], anim, dir, f), b = h.bbox, s = sc * extraScale;
+function drawHorse(v, anim, dir, f, cx, groundY, sc, extraScale = 1, lift = 0, look = looks[v]) {
+  const h = compose(v, look, anim, dir, f), b = h.bbox, s = sc * extraScale;
   const x = Math.round(cx - (b.x + b.w / 2) * s), y = Math.round(groundY - (b.y + b.h) * s - lift);
   ctx.drawImage(h.c, x, y, h.c.width * s, h.c.height * s);
   return { x, y, s, h };
@@ -222,16 +203,43 @@ function drawMap(t) {
   tile(grass, 0, 0, W, H);
   const a = L.arena, p = L.pasture;
   tile(sand, a.x + 6, a.y + 30, a.w - 12, a.h - 30);
+  // windmill: stone tower plus the 8-frame blade animation
+  const tw = images['farm/tower'], bl = images['farm/blade'], mx = L.store.x + 128 + 6;
+  if (tw) ctx.drawImage(tw, mx, 70);
+  if (bl) ctx.drawImage(bl, 0, (Math.floor(t * 6) % 8) * 128, 128, 128, mx + 32 - 64, 70 + 18 - 64, 128, 128);
   fenceRow(a.x, a.y, a.w); fenceRow(a.x, a.y + a.h - 40, a.w);
   fenceRow(p.x, p.y, p.w); fenceRow(p.x, p.y + p.h - 40, p.w);
   if (images['farm/shed-red']) ctx.drawImage(images['farm/shed-red'], L.stall.x, L.stall.y);
   if (images['farm/shed-brown']) ctx.drawImage(images['farm/shed-brown'], L.store.x, L.store.y);
   if (images['farm/hay']) ctx.drawImage(images['farm/hay'], p.x + 14, p.y + p.h - 120);
   if (images['farm/trough']) ctx.drawImage(images['farm/trough'], p.x + p.w - 80, p.y + p.h - 92);
-  const V = VARIANTS[variant], f = Math.floor(t * 3) % V.frames('idle');
-  drawHorse(variant, 'idle', 'down', f, p.x + p.w / 2, p.y + p.h / 2 + 30, V.mapScale);
-  // a second horse from the side shows the side view at map scale
-  drawHorse(variant, 'idle', 'side', 0, p.x + p.w / 2 - 10, p.y + p.h / 2 + 90, V.mapScale);
+  updateHerd(t);
+  for (const a of [...herd].sort((m, n) => m.y - n.y))
+    drawHorse(variant, a.walking ? 'walk' : 'idle', a.dir, Math.floor(t * 8), a.x, a.y, 1, 1, 0, a.look);
+}
+
+// ---------- herd: horses and ponies wander on the pasture ----------
+const herd = [
+  { look: looks.lpc, x: 0, y: 0 },
+  { look: { build: 0, coat: 1, mane: 0, mark: 1 }, x: 0, y: 0 },
+  { look: { build: 1, coat: 4, mane: 2, mark: 0 }, x: 0, y: 0 },
+];
+let herdT = 0;
+function pastureSpot() { const p = L.pasture; return [p.x + 30 + Math.random() * (p.w - 60), p.y + 90 + Math.random() * (p.h - 150)]; }
+function updateHerd(t) {
+  const dt = Math.min(0.05, t - herdT || 0); herdT = t;
+  for (const a of herd) {
+    if (!a.tx) { [a.x, a.y] = pastureSpot(); a.tx = a.x; a.ty = a.y; a.wait = Math.random() * 3; a.dir = 'down'; }
+    const dx = a.tx - a.x, dy = a.ty - a.y, dist = Math.hypot(dx, dy);
+    if (dist < 1) {
+      a.walking = false; a.wait -= dt;
+      if (a.wait < 0) { [a.tx, a.ty] = pastureSpot(); a.wait = 2 + Math.random() * 4; }
+      continue;
+    }
+    a.walking = true;
+    const step = Math.min(dist, 16 * dt); a.x += dx / dist * step; a.y += dy / dist * step;
+    a.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'side' : 'right') : (dy < 0 ? 'up' : 'down');
+  }
 }
 function makeLabels() {
   const box = $('labels'); box.innerHTML = '';
@@ -363,7 +371,7 @@ function thumb(v, look) {
 }
 function buildPanel() {
   const V = VARIANTS[variant], look = looks[variant];
-  const groups = [['opt-coat', 'coat', V.coatNames], ['opt-mane', 'mane', V.maneNames], ['opt-mark', 'mark', V.markNames]];
+  const groups = [['opt-build', 'build', V.buildNames], ['opt-coat', 'coat', V.coatNames], ['opt-mane', 'mane', V.maneNames], ['opt-mark', 'mark', V.markNames]];
   for (const [id, key, names] of groups) {
     const box = $(id); box.innerHTML = '';
     names.forEach((n, i) => {
@@ -374,26 +382,14 @@ function buildPanel() {
     });
   }
 }
-function setVariant(v) {
-  variant = v; history.replaceState(null, '', '#' + v);
-  $('vlabel').textContent = VARIANTS[v].label;
-  buildPanel(); resetDirt(); go(screen);
-}
-function cycle(d) { setVariant(ORDER[(ORDER.indexOf(variant) + d + ORDER.length) % ORDER.length]); }
 
 let down = false;
 function pos(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / S, (e.clientY - r.top) / S]; }
 cv.addEventListener('pointerdown', (e) => { down = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); if (screen === 'stall') stallPointer(x, y, true); if (screen === 'platz') platzTap(); });
 cv.addEventListener('pointermove', (e) => { if (down && screen === 'stall') { const [x, y] = pos(e); stallPointer(x, y, false); } });
 addEventListener('pointerup', () => { down = false; if (screen === 'stall' && dirt) dirtLeft = countAlpha(dirt.getContext('2d'), VARIANTS[variant]); });
-addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft') cycle(-1);
-  if (e.key === 'ArrowRight') cycle(1);
-  if (e.key === ' ' && screen === 'platz') { e.preventDefault(); platzTap(); }
-});
-addEventListener('hashchange', () => { const v = location.hash.slice(1); if (ORDER.includes(v) && v !== variant) setVariant(v); });
+addEventListener('keydown', (e) => { if (e.key === ' ' && screen === 'platz') { e.preventDefault(); platzTap(); } });
 for (const b of document.querySelectorAll('#top button')) b.onclick = () => go(b.dataset.screen);
-$('prev').onclick = () => cycle(-1); $('next').onclick = () => cycle(1);
 $('btn-credits').onclick = () => { $('credits').hidden = false; };
 $('close-credits').onclick = () => { $('credits').hidden = true; };
 addEventListener('resize', resize);
@@ -404,5 +400,5 @@ function frame(ms) {
   if (screen === 'hof') drawMap(t); else if (screen === 'stall') drawStall(t); else drawPlatz(t, dt);
   requestAnimationFrame(frame);
 }
-loadAll().then(() => { resize(); setVariant(variant); requestAnimationFrame(frame); });
+loadAll().then(() => { resize(); buildPanel(); go('hof'); requestAnimationFrame(frame); });
 </script>
