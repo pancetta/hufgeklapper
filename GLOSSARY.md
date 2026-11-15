@@ -76,7 +76,10 @@ Füttern, Putzen, Hufe auskratzen, Misten; done with touch gestures on the stabl
 One-tap version of a **Care action**, unlocked after doing it by hand 5 times.
 
 **Vet** ("Tierarzt"):
-Treats a **Sick** horse for money.
+Treats a **Sick** horse for money; afterwards it rests for a few days ("ruht sich aus") and can't be ridden or used for lessons.
+
+**Morning** ("Guten Morgen!"):
+After *Schlafen gehen*, a short list of last night's news: who fell sick, who is fit again, whether the hay ran out or runs low.
 
 ### Sport
 
@@ -103,8 +106,8 @@ A **Pupil** rides one of the farm's horses; it runs by itself once assigned and 
 **Pupil** ("Reitschüler"):
 A visitor who books a **Lesson**.
 
-**Feed** ("Futter"):
-Bought and stored; used up each **Day** by every horse.
+**Feed** ("Futter", in hay bales: "Heuballen"):
+Bought and stored; every horse eats one bale from the store each night. With none left it goes hungry.
 
 **Plot** ("Bauplatz"):
 A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.

@@ -76,6 +76,7 @@ button {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: calc(3 * var(--px));
 }
 button:active { transform: translateY(var(--px)); box-shadow: inset 0 var(--px) 0 var(--wood-light), 0 var(--px) 0 var(--wood-dark); }
@@ -99,13 +100,16 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .file-buttons { display: flex; gap: calc(3 * var(--px)); }
 .sheet.ask { display: grid; gap: 12px; text-align: center; font-size: 20px; min-width: min(90vw, 340px); }
 .sheet.ask p, .sheet.ask label { margin: 0; }
+.sheet.shop h3 { margin: 4px 0 0; font-size: 20px; }
+.oma { font-size: 16px; font-style: italic; color: #5a3419; }
 .sheet.ask input { font: inherit; font-size: 22px; padding: 6px 10px; border: 2px solid var(--wood-dark); border-radius: 6px; text-align: center; }
 .farm-name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .icon { width: calc(7 * var(--px)); height: calc(7 * var(--px)); image-rendering: pixelated; flex: none; }
 
 /* scenes fill the screen; HTML sits on top */
-#farm, #stable { position: fixed; left: 0; top: 0; image-rendering: pixelated; filter: saturate(1.12) sepia(0.08) brightness(1.03); }
+#farm, #stable, /* the care gestures are one-finger strokes and drags: Safari must not pan or zoom and cancel them */
+#care-scene { touch-action: none; }
 
 /* top bar: money and day on wooden tags, sleep and menu on the right */
 .topbar {
@@ -147,10 +151,12 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .box { position: fixed; top: 0; bottom: 0; z-index: 2; pointer-events: none; }
 .box > * { pointer-events: auto; }
 .nameplate {
-  position: absolute; left: 50%; top: calc(var(--door) + 4 * var(--px)); transform: translateX(-50%);
+  /* centred without a transform: WebKit misses taps on transformed buttons over a canvas */
+  position: absolute; left: 0; right: 0; margin: 0 auto; width: max-content; top: calc(var(--door) + 4 * var(--px));
   font-size: calc(8 * var(--px)); padding: calc(1 * var(--px)) calc(6 * var(--px));
   color: var(--ink); background: var(--paper); box-shadow: 0 var(--px) 0 var(--wood-dark);
 }
+.nameplate.sick { background: #f6c1b8; color: #8a1f12; }
 .nameplate.empty { border: var(--px) solid var(--wood-dark); border-radius: calc(3 * var(--px)); opacity: 0.85; }
 .horse-hit { position: absolute; left: 0; right: 0; top: var(--top); height: calc(var(--door) - var(--top)); opacity: 0; }
 .needs {
@@ -175,6 +181,8 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .file-buttons { display: flex; gap: calc(3 * var(--px)); }
 .sheet.ask { display: grid; gap: 12px; text-align: center; font-size: 20px; min-width: min(90vw, 340px); }
 .sheet.ask p, .sheet.ask label { margin: 0; }
+.sheet.shop h3 { margin: 4px 0 0; font-size: 20px; }
+.oma { font-size: 16px; font-style: italic; color: #5a3419; }
 .sheet.ask input { font: inherit; font-size: 22px; padding: 6px 10px; border: 2px solid var(--wood-dark); border-radius: 6px; text-align: center; }
 .farm-name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -209,6 +217,19 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .horse-card .need { font-size: 16px; }
 .horse-card .need > span:not(.bar) { width: 110px; }
 .horse-card .bar { height: 12px; }
+/* care: the title and a one-line hint at the top, the tools along the bottom */
+/* the care gestures are one-finger strokes and drags: Safari must not pan or zoom and cancel them */
+#care-scene { touch-action: none; }
+.care-title { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px)); left: 0; right: 0; margin: 0; text-align: center;
+  font-size: calc(14 * var(--px)); color: var(--paper); text-shadow: var(--px) var(--px) 0 var(--wood-dark); pointer-events: none; }
+.how { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 40 * var(--px)); left: 0; right: 0; margin: 0 auto; width: max-content; max-width: 80vw;
+  font-size: calc(9 * var(--px)); background: var(--paper); border: var(--px) solid var(--wood-dark); border-radius: calc(3 * var(--px)); padding: calc(2 * var(--px)) calc(8 * var(--px)); }
+.tools { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 6 * var(--px)); display: flex; justify-content: center; gap: calc(5 * var(--px)); }
+.tool { display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--px)); }
+.tools [data-tool] { font-size: calc(9 * var(--px)); min-width: calc(62 * var(--px)); }
+.tools [data-tool] .icon { width: calc(10 * var(--px)); height: calc(10 * var(--px)); }
+.tools [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+.tools .done::after { content: '✓'; margin-left: var(--px); }
 .status { font-weight: 700; color: #3c7a2a; }
 .status.sick { color: #c0392b; }
 

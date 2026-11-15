@@ -4,10 +4,14 @@
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
-import { type Horse, NEEDS, type State } from './state';
+import { CARE, type Care, type Entry, type Horse, NEEDS, type News, type State } from './state';
+
+// every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
+const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1 };
+const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1 };
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 4;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -32,12 +36,40 @@ function isHorse(x: unknown): x is Horse {
   // ids end up in HTML attributes, so only plain characters
   return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
-    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100);
+    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.rest, 0, 30)
+    && Array.isArray(x.cared) && x.cared.length <= CARE.length && x.cared.every((c) => CARE.includes(c as Care));
 }
 
+const isEntries = (x: unknown) => Array.isArray(x) && x.length < 100 && x.every((e) => isObj(e) && oneOf(e.what, ENTRIES) && isInt(e.amount));
+
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 1 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
-    && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse);
+  return isObj(x) && x.version === 4 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+    && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
+    && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
+    && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0))
+    && isInt(x.debt, 0) && isEntries(x.today) && isEntries(x.bill);
+}
+
+/** Version 1 (before the day cycle): horses had no rest days and there was no morning news. */
+function fromVersion1(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s) || !Array.isArray(s.horses)) return x;
+  return { ...x, version: 2, state: { ...s, version: 2, night: [], horses: s.horses.map((h) => (isObj(h) ? { ...h, rest: 0 } : h)) } };
+}
+
+/** Version 2 (before care): nothing counted how often each care action was done. */
+function fromVersion2(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 3, state: { ...s, version: 3, careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 },
+    horses: Array.isArray(s.horses) ? s.horses.map((h) => (isObj(h) ? { ...h, cared: [] } : h)) : s.horses } };
+}
+
+/** Version 3 (before money): no debt, no bill. */
+function fromVersion3(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 4, state: { ...s, version: 4, debt: 0, today: [], bill: [] } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
@@ -46,7 +78,9 @@ export function parseSave(text: string): Parsed {
   try { x = JSON.parse(text); } catch { return { ok: false, reason: 'invalid' }; }
   if (!isObj(x) || x.app !== 'hufgeklapper' || !isInt(x.version, 1)) return { ok: false, reason: 'invalid' };
   if ((x.version as number) > SAVE_VERSION) return { ok: false, reason: 'newer' };
-  // older versions get migrated here once there is one; today version 1 is the only one
-  if (!isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
+  if (x.version === 1) x = fromVersion1(x);
+  if (isObj(x) && x.version === 2) x = fromVersion2(x);
+  if (isObj(x) && x.version === 3) x = fromVersion3(x);
+  if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

@@ -11,7 +11,9 @@ import { bounds } from '../scene/buildings';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
-import { canBuild, type Horse, isSick, NEEDS, stalls } from '../sim/state';
+import { DATA } from '../sim/data';
+import { startCare } from '../scene/care';
+import { CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -147,6 +149,7 @@ function topBar() {
     <header class="topbar">
       <span class="stat farm-name">${esc(game.name())}</span>
       <span class="stat" id="money"><img class="icon" src="${icon('coin')}" alt="">${t.money(game.get().money)}</span>
+      <span class="stat" id="hay"><img class="icon" src="${icon('feed')}" alt="">${t.hay(game.get().feed)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
       <button id="sleep" type="button"><img class="icon" src="${icon('moon')}" alt="">${t.sleep}</button>
@@ -159,6 +162,7 @@ function topBar() {
       </div>
     </section>
     <div id="night" class="night" hidden><p></p></div>
+    <section id="morning" class="overlay" hidden><div class="sheet ask"></div></section>
     <p id="toast" class="toast" role="status" hidden></p>`;
 }
 
@@ -170,15 +174,30 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     setTimeout(() => {
       game.dispatch({ type: 'sleep' });
       night.querySelector('p')!.textContent = t.day(game.get().day);
-      setTimeout(() => { night.hidden = true; }, 900);
+      setTimeout(() => { night.hidden = true; morning(game.get().night); }, 900);
     }, 900);
   });
+  // the morning summary: one short line per piece of news, then on with the day
+  const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
+  const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
+    : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay : '';
+  function morning(news: News[]) {
+    if (!news.length) return;
+    const lines = [...new Set(news.filter((n) => n.kind !== 'bill').map(line))]; // "no hay" comes once per horse; say it once
+    const bill = game.get().bill;
+    if (bill.length) lines.push(`<b>${t.billTitle}</b> ${bill.map((e) => `${t.billWhat[e.what]} ${t.euros(e.amount)}`).join(' · ')}`);
+    const box = $('morning');
+    box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
+    box.hidden = false;
+    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; });
+  }
   $('menu').addEventListener('click', () => { $('menu-sheet').hidden = false; });
   $('resume').addEventListener('click', () => { $('menu-sheet').hidden = true; });
   $('to-start').addEventListener('click', showStart);
   const unsubscribe = game.subscribe(() => {
     $('money').lastChild!.textContent = t.money(game.get().money);
     $('day').textContent = t.day(game.get().day);
+    $('hay').lastChild!.textContent = t.hay(game.get().feed);
     onChange();
   });
   let timer = 0;
@@ -195,17 +214,36 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
 }
 
 export function showFarm() {
-  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}`);
+  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
+    <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>`);
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
-    else if (target === 'board') bar.toast(t.board);
+    else if (target === 'board') showShop();
     else if (target === 'arena') bar.toast(t.arena);
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
-  const bar = wireTopBar($, () => {});
+  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); });
+  /** The notice board: buy hay (on credit when the money is short) and borrow from the bank. */
+  function shop() {
+    const s = game.get();
+    $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
+      <p>${t.inStore(s.feed)}${s.debt ? ` · ${t.owe(s.debt)}` : ''}</p>
+      <h3>${t.buyHay}</h3>
+      ${DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('')}
+      ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
+      ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
+      <button type="button" id="close-shop">${t.close}</button>`;
+    $('shop').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
+      game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
+      bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));
+    }));
+    $('shop').querySelector('#loan')?.addEventListener('click', () => { game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount)); });
+    $('close-shop').addEventListener('click', () => { $('shop').hidden = true; });
+  }
+  function showShop() { shop(); $('shop').hidden = false; }
   // labels on the places: [id, world x, world y]
   const board = PROPS.find(([n]) => n === 'board')!;
   const places: [string, number, number][] = [
@@ -250,7 +288,7 @@ export function showStable() {
     boxes.innerHTML = Array.from({ length: stalls(st) }, (_, i) => {
       const h = st.horses[i];
       return h
-        ? `<div class="box" data-box="${i}"><button class="nameplate" type="button" data-horse="${h.id}">${esc(h.name)}</button>
+        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
             <button class="horse-hit" type="button" data-horse="${h.id}" aria-label="${esc(h.name)}"></button>
             <div class="needs">${NEEDS.map((n) => needBar(h, n)).join('')}</div></div>`
         : `<div class="box" data-box="${i}"><span class="nameplate empty">${t.freeStall}</span></div>`;
@@ -279,12 +317,66 @@ export function showStable() {
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
-      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : t.healthy(esc(h.name))}</p>
+      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
+      ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
+      <button id="care" type="button">${t.care}</button>
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
     $('close-card').addEventListener('click', () => { card.hidden = true; });
+    $('care').addEventListener('click', () => showCare(h.id));
+    card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
   }
   render();
+  leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
+}
+
+/** Caring for one horse: a close-up with four tools; each finished gesture is a care action in the Sim. */
+export function showCare(id: string) {
+  const h = game.get().horses.find((x) => x.id === id)!;
+  const $ = screen(`<canvas id="care-scene" aria-hidden="true"></canvas>${topBar()}
+    <h2 class="care-title">${t.careTitle(esc(h.name))}</h2>
+    <p id="how" class="how"></p>
+    <nav class="tools">${CARE.map((c) => `<span class="tool">
+      <button type="button" data-tool="${c}" aria-pressed="false"><img class="icon" src="${icon(c)}" alt="">${t.tools[c]}</button>
+      <button type="button" class="small quick" data-quick="${c}" hidden>${t.quickCare}</button></span>`).join('')}
+    </nav>
+    <button id="to-stable" class="corner" type="button">${t.toStable}</button>`);
+  const bar = wireTopBar($, () => tools());
+  const scene = startCare($<HTMLCanvasElement>('care-scene'), {
+    look: h.look, dirt: (100 - h.needs.clean) / 100, cared: h.cared,
+    onDone: (what) => { game.dispatch({ type: 'care', horse: id, what }); bar.toast(t.doneCare[what](h.name)); tools(); },
+  });
+  // what this horse already had today comes from the Sim (once a day each)
+  const cared = () => game.get().horses.find((x) => x.id === id)!.cared;
+  let current: Care = 'groom';
+  function pick(what: Care) {
+    if (what === 'feed' && !canFeed(game.get())) return bar.toast(t.noHayLeft);
+    current = what;
+    scene.then((sc) => sc.setTool(what));
+    $('how').textContent = t.how[what];
+    tools();
+  }
+  function tools() {
+    const s = game.get();
+    app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => {
+      const c = b.dataset.tool as Care;
+      b.setAttribute('aria-pressed', String(c === current));
+      b.classList.toggle('done', cared().includes(c));
+    });
+    app.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach((b) => {
+      const c = b.dataset.quick as Care;
+      b.hidden = cared().includes(c) || !canQuickCare(s, c) || (c === 'feed' && !canFeed(s));
+    });
+  }
+  app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tool as Care)));
+  app.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach((b) => b.addEventListener('click', () => {
+    const what = b.dataset.quick as Care;
+    game.dispatch({ type: 'care', horse: id, what, quick: true });
+    scene.then((sc) => sc.skip(what));
+    bar.toast(t.doneCare[what](h.name)); tools();
+  }));
+  $('to-stable').addEventListener('click', showStable);
+  pick('groom');
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
 }

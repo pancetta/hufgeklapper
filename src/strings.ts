@@ -44,7 +44,6 @@ export const t = {
 
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz' } as Record<string, string>,
-  board: 'Hier kannst du bald Futter kaufen.',
   arena: 'Reiten kommt bald.',
   pasture: 'Hier grasen deine Ponys.',
   feedStore: (n: number) => `Im Lager liegen ${n} Heuballen.`,
@@ -58,4 +57,46 @@ export const t = {
   healthy: (name: string) => `${name} ist gesund.`,
   sick: (name: string) => `${name} ist krank.`,
   close: 'Schließen',
+  callVet: (cost: number) => `Tierarzt rufen (${cost} €)`,
+  vetTooExpensive: (cost: number) => `Der Tierarzt kostet ${cost} €. So viel Geld hast du nicht.`,
+  resting: (name: string) => `${name} ruht sich aus.`,
+
+  // the morning after
+  morning: 'Guten Morgen!',
+  newsSick: (name: string) => `${name} ist krank. Ruf den Tierarzt!`,
+  newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
+  newsHayLow: 'Das Heu wird knapp.',
+  newsRested: (name: string) => `${name} ist wieder fit.`,
+  morningGo: 'Los geht’s!',
+
+  // caring for a horse
+  care: 'Pflegen',
+  careTitle: (name: string) => `${name} pflegen`,
+  tools: { groom: 'Bürste', hooves: 'Hufkratzer', feed: 'Heu', muck: 'Mistgabel' },
+  how: { groom: 'Wisch mit dem Finger über das Fell.', hooves: 'Tipp auf jeden Huf.', feed: 'Zieh das Heu in die Krippe.', muck: 'Wisch den Mist weg.' },
+  doneCare: {
+    groom: (name: string) => `${name} glänzt!`, hooves: () => 'Alle Hufe sind sauber!',
+    feed: (name: string) => `${name} frisst zufrieden.`, muck: () => 'Die Box ist sauber!',
+  },
+  quickCare: 'Schnell erledigen',
+  noHayLeft: 'Kein Heu mehr im Lager.',
+  toStable: 'Zum Stall',
+
+  // the notice board: hay, the bank, and the bill
+  hay: (n: number) => `${n} Heu`,
+  shopTitle: 'Schwarzes Brett',
+  buyHay: 'Heu kaufen',
+  hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price} €`,
+  hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
+  inStore: (n: number) => `Im Lager: ${n} Heuballen`,
+  owe: (n: number) => `Du schuldest ${n} €.`,
+  omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
+  loan: (n: number) => `${n} € von der Bank leihen`,
+  omaLoan: 'Oma Hanne sagt: „Die Bank leiht dir Geld für den Tierarzt. Zurückgezahlt wird, wenn du etwas verdienst.“',
+  bought: (n: number) => `${n} Heuballen sind jetzt im Lager.`,
+  lent: (n: number) => `Du hast ${n} € geliehen.`,
+  askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
+  billTitle: 'Gestern:',
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt' },
+  euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;

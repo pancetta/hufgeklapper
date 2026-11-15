@@ -24,8 +24,13 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await expect(page.getByText('Sonnenhof')).toBeVisible();
   await expect(page.getByText(t.money(300))).toBeVisible();
   await expect(page.getByText(t.day(1))).toBeVisible();
+  // the notice board sells hay
   await page.getByRole('button', { name: t.places.board }).tap();
-  await expect(page.getByRole('status')).toHaveText(t.board);
+  await page.getByRole('button', { name: t.hayPack(5, 25) }).tap();
+  await expect(page.getByRole('status')).toHaveText(t.bought(5));
+  await expect(page.locator('#hay')).toHaveText(t.hay(15));
+  await expect(page.locator('#money')).toHaveText(t.money(275));
+  await page.getByRole('button', { name: t.close }).tap();
   // the stable: both ponies with their needs
   await page.getByRole('button', { name: t.places.stall }).tap();
   for (const name of ['Kiwi', 'Luna']) await expect(page.locator('.nameplate', { hasText: name })).toBeVisible();
@@ -41,6 +46,9 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await page.getByRole('button', { name: t.sleep }).tap();
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
   expect(Number(await page.getByRole('meter', { name: t.needs.fed }).first().getAttribute('aria-valuenow'))).toBeLessThan(before);
+  // the morning bill shows yesterday's hay
+  await expect(page.getByText(`${t.billWhat.hay} ${t.euros(-25)}`)).toBeVisible();
+  await page.getByRole('button', { name: t.morningGo }).tap();
   // back to the farm
   await page.getByRole('button', { name: t.toFarm }).tap();
   await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
@@ -82,6 +90,107 @@ test('the game saves itself, carries on after a reload, and moves as a file', as
   // and the game carries on from the save
   await slot.getByRole('button', { name: t.resumeGame }).tap();
   await expect(page.locator('#day')).toHaveText(t.day(2));
+});
+
+test('a sick pony: red name plate, the vet heals it for money; no hay shows in the morning', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Krankenhof');
+  // change the saved game: Kiwi is sick and the hay store is empty
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
+    save.state.horses[0].needs.health = 10;
+    save.state.feed = 0;
+    localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await expect(page.locator('.nameplate.sick', { hasText: 'Kiwi' })).toBeVisible();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await expect(page.getByText(t.sick('Kiwi'))).toBeVisible();
+  await page.getByRole('button', { name: t.callVet(40) }).tap();
+  await expect(page.getByText(t.resting('Kiwi'))).toBeVisible();
+  await expect(page.getByText(t.money(260))).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  // a night without hay: the morning says so
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.newsNoHay)).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: t.morningGo }).tap();
+  await expect(page.getByText(t.newsNoHay)).toBeHidden();
+});
+
+test('caring for a pony with gestures: brush, hooves, hay, manure; quick care after five times', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Pflegehof');
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.care }).tap();
+  await expect(page.getByText(t.careTitle('Kiwi'))).toBeVisible();
+  await page.waitForTimeout(600); // the scene loads
+  // the scene's layout, as the care scene computes it (logical pixels, scale S)
+  const g = await page.locator('#care-scene').evaluate((c: HTMLCanvasElement) => {
+    const r = c.getBoundingClientRect();
+    return { left: r.left, top: r.top, S: r.width / c.width, W: c.width, H: c.height };
+  });
+  const foot = Math.round(g.H * 0.72), cx = Math.round(g.W * 0.36);
+  const at = (x: number, y: number) => [g.left + x * g.S, g.top + y * g.S] as const;
+  const swipe = async (x0: number, x1: number, ys: number[]) => {
+    for (const y of ys) { await page.mouse.move(...at(x0, y)); await page.mouse.down(); await page.mouse.move(...at(x1, y), { steps: 12 }); await page.mouse.up(); }
+  };
+  const fed = page.getByText(t.doneCare.feed('Kiwi'));
+  // brush: wipe over the whole coat until it shines
+  await swipe(cx - 46, cx + 46, Array.from({ length: 16 }, (_, i) => foot - 72 + i * 4));
+  await expect(page.getByText(t.doneCare.groom('Kiwi'))).toBeVisible();
+  // hoof pick: tap along the hooves
+  await page.getByRole('button', { name: t.tools.hooves }).tap();
+  for (let x = cx - 60; x <= cx + 60; x += 3) await page.mouse.click(...at(x, foot + 1));
+  await expect(page.getByText(t.doneCare.hooves())).toBeVisible();
+  // hay: drag the bale from the corner into the manger
+  await page.getByRole('button', { name: t.tools.feed }).tap();
+  await page.mouse.move(...at(24, 40)); await page.mouse.down();
+  await page.mouse.move(...at(Math.round(g.W * 0.62) + 39, foot - 16), { steps: 15 }); await page.mouse.up();
+  await expect(fed).toBeVisible();
+  // pitchfork: swipe the straw clean
+  await page.getByRole('button', { name: t.tools.muck }).tap();
+  await swipe(cx - 54, cx + 14, Array.from({ length: Math.ceil((g.H - foot) / 4) }, (_, i) => foot + 4 + i * 4));
+  await expect(page.getByText(t.doneCare.muck())).toBeVisible();
+  await expect(page.locator('[data-tool].done')).toHaveCount(4);
+  // the stable shows the effect: Kiwi is cleaner than Luna now
+  await page.getByRole('button', { name: t.toStable }).tap();
+  const clean = page.getByRole('meter', { name: t.needs.clean });
+  expect(Number(await clean.nth(0).getAttribute('aria-valuenow'))).toBeGreaterThan(Number(await clean.nth(1).getAttribute('aria-valuenow')));
+  // five times by hand unlocks quick care (four more mucking rounds, quickly via the saved game)
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
+    save.state.careDone.muck = 5;
+    localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate', { hasText: 'Luna' }).tap();
+  await page.getByRole('button', { name: t.care }).tap();
+  await page.locator('[data-quick="muck"]').tap();
+  await expect(page.getByText(t.doneCare.muck())).toBeVisible();
+});
+
+test('with no money, hay comes on credit and the bank lends for the vet', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sparhof');
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
+    save.state.money = 0;
+    localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.omaCredit)).toBeVisible();
+  await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
+  await expect(page.locator('#hay')).toHaveText(t.hay(20));
+  await expect(page.getByText(t.owe(45))).toBeVisible();
+  await page.getByRole('button', { name: t.loan(100) }).tap();
+  await expect(page.locator('#money')).toHaveText(t.money(100));
 });
 
 test('the credits name the artists and close again', async ({ page }) => {
