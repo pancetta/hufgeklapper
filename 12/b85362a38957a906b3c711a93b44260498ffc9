@@ -1,0 +1,22 @@
+src/horses/compose.ts
+  s_7657db1b41ed88::t_fe166d843776b1 20,71
+src/horses/compose.test.ts
+  s_7657db1b41ed88::t_fe166d843776b1 4-5,14-28,30-35,54-60
+  s_7657db1b41ed88::t_769995e63a3c10 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "12b85362a38957a906b3c711a93b44260498ffc9",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
