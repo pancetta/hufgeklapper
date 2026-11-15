@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, passesBadge, type Pupil, roll, type State, stalls, takeOff } from './state';
+import { apply, badgeWaits, nextShowDay, showResult, showWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, passesBadge, type Pupil, roll, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -292,6 +292,41 @@ describe('Sim', () => {
     expect([passed.badges, badgeWaits(passed)]).toEqual([1, { why: 'passed' }]);
     expect(passed.horses[0].needs.energy).toBe(100 - DATA.jumping.energy);
     expect(passesBadge(5, B.maxFaults + 1)).toBe(false);
+  });
+
+  it('holds a show every few days once the badge is passed; the entry fee needs the money', () => {
+    const S = DATA.shows, s: State = { ...newGame(1), badges: 1, money: 100 };
+    expect(showWaits({ ...s, badges: 0 })).toBe('badge');
+    expect([nextShowDay(s), showWaits(s)]).toEqual([S.every, 'notToday']);
+    const showDay = { ...s, day: S.every };
+    expect(showWaits(showDay)).toBeNull();
+    expect(showWaits({ ...showDay, money: S.fee - 1 })).toBe('money');
+    expect(nextShowDay({ ...showDay, lastShowDay: S.every })).toBe(2 * S.every);
+  });
+
+  it('ranks the player against rivals: a clear round on a skilled horse wins, a bad one comes last; same seed, same table', () => {
+    const s = newGame(5), h = s.horses[0];
+    const best = showResult(s, { ...h, skills: { jumping: 100 } }, 0, 'Mara');
+    expect([best.rank, best.prize, best.table.length]).toEqual([1, DATA.shows.prizes[0], DATA.shows.rivalsPerShow + 1]);
+    expect(best.table[0]).toMatchObject({ rider: 'Mara', horse: h.name, you: true });
+    const worst = showResult(s, { ...h, skills: { jumping: 0 } }, DATA.jumping.jumps, 'Mara');
+    expect([worst.rank, worst.prize]).toEqual([DATA.shows.rivalsPerShow + 1, 0]);
+    expect(showResult(s, h, 1, 'Mara')).toEqual(showResult(s, h, 1, 'Mara'));
+    expect(new Set(best.table.map((r) => r.rider)).size).toBe(best.table.length); // no rival twice
+  });
+
+  it('enters a show: fee out, prize in (debt first), horse tired, one show a day; not with a sick horse', () => {
+    const S = DATA.shows, base = newGame(5), h = { ...base.horses[0], skills: { jumping: 100 } };
+    const s: State = { ...base, day: S.every, badges: 1, horses: [h] };
+    const won = apply(s, { type: 'show', horse: h.id, faults: 0 });
+    expect(won.money).toBe(s.money - S.fee + S.prizes[0]);
+    expect(won.today).toEqual([{ what: 'showFee', amount: -S.fee }, { what: 'prize', amount: S.prizes[0] }]);
+    expect(won.horses[0].needs.energy).toBe(h.needs.energy - DATA.jumping.energy);
+    expect(apply(won, { type: 'show', horse: h.id, faults: 0 })).toBe(won); // one show a day
+    const owing = apply({ ...s, debt: 100 }, { type: 'show', horse: h.id, faults: 0 });
+    expect(owing.debt).toBe(100 - Math.round(S.prizes[0] * DATA.repayShare));
+    const sick = { ...s, horses: [{ ...h, needs: { ...h.needs, health: 5 } }] };
+    expect(apply(sick, { type: 'show', horse: h.id, faults: 0 })).toBe(sick);
   });
 
   it('rolls the same numbers from the same seed', () => {

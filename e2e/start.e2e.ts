@@ -324,6 +324,43 @@ test('riding badge 1: Oma asks five questions, a jumping round, then the rosette
   await expect(page.locator('#player-card')).toContainText(passed ? t.badgeName : t.noBadges);
 });
 
+test('a jumping show: entry fee, one round, the podium with prize money; the next show in three days', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // as if the badge were passed and it is show day
+  await page.evaluate((day) => {
+    const k = 'hufgeklapper.slot.0', s = JSON.parse(localStorage.getItem(k)!);
+    Object.assign(s.state, { badges: 1, trainings: 3, day });
+    localStorage.setItem(k, JSON.stringify(s));
+  }, DATA.shows.every);
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
+  // the notice board's calendar names today
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.nextShow(DATA.shows.every))).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.show, exact: true }).tap();
+  await expect(page.getByText(t.showEnter(DATA.shows.fee))).toBeVisible();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.go }).tap();
+  await tapTakeOffs(page);
+  const end = page.locator('#jump-end');
+  await expect(end.getByRole('heading', { name: t.podium })).toBeVisible({ timeout: 15_000 });
+  await expect(end.locator('.ranking li')).toHaveCount(DATA.shows.rivalsPerShow + 1);
+  await expect(end.locator('.ranking .you')).toHaveCount(1);
+  // the money moved as the bill says: the fee out, a prize in if placed
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  const prize = s.today.find((e: { what: string }) => e.what === 'prize')?.amount ?? 0;
+  expect(s.money).toBe(300 - DATA.shows.fee + prize);
+  await expect(end).toContainText(prize ? `+${prize} € Preisgeld` : 'Beim nächsten Turnier');
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await expect(page.getByRole('button', { name: t.show, exact: true })).toBeDisabled();
+  await expect(page.getByText(t.showWaits.notToday(2 * DATA.shows.every))).toBeVisible();
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

@@ -38,6 +38,13 @@ describe('save files', () => {
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
   });
 
+  it('gives a save from version 7 (before shows) no show ridden yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { lastShowDay: _, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 7, state: { ...old, version: 7 } }));
+    expect(p.ok && p.save.state.lastShowDay).toBe(0);
+  });
+
   it('gives a save from version 6 (before the riding badge) no practice and no badge', () => {
     const now = toSave(played(), 'Hof');
     const { trainings: _a, badges: _b, badgeFailedDay: _c, ...old } = now.state;

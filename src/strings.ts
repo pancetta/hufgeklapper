@@ -150,6 +150,18 @@ export const t = {
   quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
   badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
   badgeFailed: 'Diesmal hat es nicht geklappt. Morgen kannst du es noch einmal versuchen.',
+  // jumping shows
+  show: 'Turnier',
+  showWaits: {
+    badge: 'Für Turniere brauchst du erst das Reitabzeichen.',
+    notToday: (day: number) => `Das nächste Turnier ist an Tag ${day}.`,
+    money: (fee: number) => `Das Startgeld kostet ${fee} €. So viel hast du gerade nicht.`,
+  },
+  showEnter: (fee: number) => `Heute ist Turnier! Startgeld: ${fee} €. Mit welchem Pferd reitest du?`,
+  nextShow: (day: number) => `Nächstes Turnier: Tag ${day}`,
+  podium: 'Siegerehrung',
+  points: (n: number) => `${n} Punkte`,
+  showPlace: (rank: number, prize: number) => prize ? `Du bist ${rank}. geworden! +${prize} € Preisgeld` : `Du bist ${rank}. geworden. Beim nächsten Turnier klappt es besser!`,
   // the player card
   playerCard: 'Meine Figur',
   badges: 'Abzeichen',

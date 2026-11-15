@@ -79,8 +79,8 @@ export const DATA = {
     prizes: [60, 35, 20],
     faultPoints: 20,
     skillPoints: 0.1,
-    rivalSkill: [15, 65],
-    rivalFaultChance: 0.35,
+    rivalSkill: [10, 50], // the first shows: a clear round usually reaches the podium
+    rivalFaultChance: 0.5,
     rivals: [['Lotta', 'Sternchen'], ['Jonas', 'Blitz'], ['Emil', 'Fanny'], ['Hanna', 'Moritz'], ['Ella', 'Pünktchen'], ['Ole', 'Wirbelwind']],
     rivalsPerShow: 4,
   },

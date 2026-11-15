@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, badgeWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { type Avatar, badgeWaits, nextShowDay, showResult, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -295,29 +295,35 @@ export function showFarm(intro = false) {
   const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
   /** The arena: give a lesson to the first waiting pupil, or practise jumping with a horse. */
   function arena() {
-    const sheet = $('lesson'), wait = badgeWaits(game.get());
+    const sheet = $('lesson'), s = game.get(), wait = badgeWaits(s), show = showWaits(s);
+    const showWhy = show === 'notToday' ? t.showWaits.notToday(nextShowDay(s)) : show === 'money' ? t.showWaits.money(DATA.shows.fee) : show && t.showWaits[show];
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.arena}</h2>
       <button type="button" id="give-lesson">${t.giveLesson}</button><button type="button" id="practise">${t.practiseJumping}</button>
-      <button type="button" id="badge"${wait ? ' disabled' : ''}>${t.ridingBadge}</button>
-      ${wait ? `<p class="oma">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}
+      ${wait?.why === 'passed' ? `<button type="button" id="show"${show ? ' disabled' : ''}>${t.show}</button>${showWhy ? `<p class="oma">${showWhy}</p>` : ''}`
+        : `<button type="button" id="badge"${wait ? ' disabled' : ''}>${t.ridingBadge}</button>
+      ${wait ? `<p class="oma">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}`}
       <button type="button" id="close-lesson">${t.close}</button>`;
-    $('badge').addEventListener('click', showBadge);
+    sheet.querySelector('#badge')?.addEventListener('click', showBadge);
+    sheet.querySelector('#show')?.addEventListener('click', () => pickHorse(t.showEnter(DATA.shows.fee), (id) => showJumping(id, 'show')));
     $('give-lesson').addEventListener('click', () => {
       const p = game.get().pupils[0];
       if (p) chooseHorse(p); else { sheet.hidden = true; bar.toast(t.noPupils); }
     });
-    $('practise').addEventListener('click', () => {
-      sheet.firstElementChild!.innerHTML = `<h2>${t.whichHorse}</h2>
-        ${game.get().horses.map((h) => {
-          const why = cantWork(h, DATA.jumping.energy);
-          return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
-        }).join('')}
-        <button type="button" id="close-lesson">${t.close}</button>`;
-      sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => showJumping(b.dataset.horse!)));
-      $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
-    });
+    $('practise').addEventListener('click', () => pickHorse(t.whichHorse, (id) => showJumping(id)));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
+  }
+  /** Pick a horse for a jumping round; each one too tired, resting or sick says so. */
+  function pickHorse(title: string, go: (id: string) => void) {
+    const sheet = $('lesson');
+    sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>
+      ${game.get().horses.map((h) => {
+        const why = cantWork(h, DATA.jumping.energy);
+        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
+      }).join('')}
+      <button type="button" id="close-lesson">${t.close}</button>`;
+    sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => go(b.dataset.horse!)));
+    $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
   }
   /** A pupil wants a lesson: pick a horse; each shows how well it fits, or why it can't. */
   function chooseHorse(p: Pupil) {
@@ -347,6 +353,7 @@ export function showFarm(intro = false) {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
       <p>${t.inStore(s.feed)}${s.debt ? ` · ${t.owe(s.debt)}` : ''}</p>
+      ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s))}</p>` : ''}
       <h3>${t.buyHay}</h3>
       ${DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('')}
       ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
@@ -404,7 +411,8 @@ export function showFarm(intro = false) {
 }
 
 /** Jumping practice: Oma Hanne explains, one round over the course, then what it brought. */
-function showJumping(id: string, badge?: { correct: number }) {
+/** A jumping round: practice, the badge's round (with the quiz score), or a show. */
+function showJumping(id: string, kind: 'train' | 'show' | { badge: number } = 'train') {
   const h = game.get().horses.find((x) => x.id === id)!;
   const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
@@ -418,8 +426,17 @@ function showJumping(id: string, badge?: { correct: number }) {
   $('jump-go').addEventListener('click', async () => {
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
-    if (badge) {
-      game.dispatch({ type: 'badge', horse: id, correct: badge.correct, faults });
+    if (kind === 'show') {
+      // the podium: the first three on their steps, then everyone with their points
+      const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name);
+      game.dispatch({ type: 'show', horse: id, faults });
+      const row = (r: ShowRow) => `<b>${esc(r.rider)}</b><span>${esc(r.horse)}</span>`;
+      end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
+        <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
+        <ol class="ranking">${table.map((r) => `<li${r.you ? ' class="you"' : ''}>${row(r)} · ${t.points(r.score)}</li>`).join('')}</ol>`);
+      end.querySelector('p')!.textContent = t.showPlace(rank, prize);
+    } else if (kind !== 'train') {
+      game.dispatch({ type: 'badge', horse: id, correct: kind.badge, faults });
       const passed = game.get().badges >= 1;
       // the ceremony: the rosette, and Oma Hanne's congratulations
       if (passed) end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badgeName}">`);
@@ -468,7 +485,7 @@ function showBadge() {
     buttons(game.get().horses.map((h) => {
       const why = cantWork(h, DATA.jumping.energy);
       return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
-    }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, { correct }) : showFarm()));
+    }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, { badge: correct }) : showFarm()));
   }
   say.textContent = t.badgeIntro;
   next(() => ask(0));
