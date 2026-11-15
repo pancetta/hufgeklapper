@@ -106,7 +106,7 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .icon { width: calc(7 * var(--px)); height: calc(7 * var(--px)); image-rendering: pixelated; flex: none; }
 
 /* scenes fill the screen; HTML sits on top */
-#farm, #stable { position: fixed; left: 0; top: 0; image-rendering: pixelated; filter: saturate(1.12) sepia(0.08) brightness(1.03); }
+#farm, #stable, #care-scene { position: fixed; left: 0; top: 0; image-rendering: pixelated; filter: saturate(1.12) sepia(0.08) brightness(1.03); }
 
 /* top bar: money and day on wooden tags, sleep and menu on the right */
 .topbar {
@@ -212,6 +212,18 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .horse-card .need { font-size: 16px; }
 .horse-card .need > span:not(.bar) { width: 110px; }
 .horse-card .bar { height: 12px; }
+/* care: the title and a one-line hint at the top, the tools along the bottom */
+#care-scene { position: fixed; left: 0; top: 0; image-rendering: pixelated; filter: saturate(1.12) sepia(0.08) brightness(1.03); }
+.care-title { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px)); left: 0; right: 0; margin: 0; text-align: center;
+  font-size: calc(14 * var(--px)); color: var(--paper); text-shadow: var(--px) var(--px) 0 var(--wood-dark); pointer-events: none; }
+.how { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 40 * var(--px)); left: 0; right: 0; margin: 0 auto; width: max-content; max-width: 80vw;
+  font-size: calc(9 * var(--px)); background: var(--paper); border: var(--px) solid var(--wood-dark); border-radius: calc(3 * var(--px)); padding: calc(2 * var(--px)) calc(8 * var(--px)); }
+.tools { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 6 * var(--px)); display: flex; justify-content: center; gap: calc(5 * var(--px)); }
+.tool { display: flex; flex-direction: column; align-items: center; gap: calc(2 * var(--px)); }
+.tools [data-tool] { font-size: calc(9 * var(--px)); min-width: calc(62 * var(--px)); }
+.tools [data-tool] .icon { width: calc(10 * var(--px)); height: calc(10 * var(--px)); }
+.tools [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+.tools .done::after { content: '✓'; margin-left: var(--px); }
 .status { font-weight: 700; color: #3c7a2a; }
 .status.sick { color: #c0392b; }
 

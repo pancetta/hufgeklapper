@@ -1,8 +1,8 @@
 /** Tiny pixel icons (our own drawing), turned into image URLs once. */
-import type { Need } from '../sim/state';
+import type { Care, Need } from '../sim/state';
 
 // 7×7 bitmaps; each letter is a colour from PALETTE, '.' is transparent
-const ICONS: Record<Need | 'coin' | 'moon', string[]> = {
+const ICONS: Record<Need | Care | 'coin' | 'moon', string[]> = {
   fed: ['...g...', '..gg...', '.rrrrr.', 'rrrrrwr', 'rrrrrrr', 'rrrrrrr', '.rrrrr.'], // an apple
   clean: ['...y...', '...y...', '..yyy..', 'yyywyyy', '..yyy..', '...y...', '...y...'], // a sparkle
   happy: ['.pp.pp.', 'ppwpppp', 'ppppppp', 'ppppppp', '.ppppp.', '..ppp..', '...p...'], // a heart
@@ -10,8 +10,12 @@ const ICONS: Record<Need | 'coin' | 'moon', string[]> = {
   health: ['..rrr..', '..rwr..', 'rrrwrrr', 'rwwwwwr', 'rrrwrrr', '..rwr..', '..rrr..'], // a cross
   coin: ['.yyyyy.', 'yyoooyy', 'yoyyyoy', 'yoyyyoy', 'yoyyyoy', 'yyoooyy', '.yyyyy.'],
   moon: ['..yyy..', '.yyy...', 'yyy....', 'yyy....', 'yyy....', '.yyy...', '..yyy..'],
+  groom: ['.......', 'bbbbbbb', 'bbbbbbb', 'wwwwwww', 'w.w.w.w', 'w.w.w.w', '.......'], // a brush
+  hooves: ['....nn.', '.....n.', '....n..', '...n...', '..n....', '.n.....', 'n......'], // a hoof pick
+  feed: ['.......', 'yoyyoy.', 'yyoyyoy', 'oyyoyyo', 'yyoyyoy', 'yoyyoy.', '.......'], // a hay bale
+  muck: ['n.n.n..', 'n.n.n..', 'nnnnn..', '..n....', '..n....', '..n....', '..n....'], // a pitchfork
 };
-const PALETTE: Record<string, string> = { r: '#e0483e', g: '#4c9a2a', w: '#fff6e0', y: '#f5c542', o: '#c98a1e', p: '#f06292' };
+const PALETTE: Record<string, string> = { r: '#e0483e', g: '#4c9a2a', w: '#fff6e0', y: '#f5c542', o: '#c98a1e', p: '#f06292', b: '#8a5530', n: '#9aa3ad' };
 
 const urls = new Map<string, string>();
 export function icon(name: keyof typeof ICONS) {

@@ -12,7 +12,8 @@ import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
-import { canBuild, canPayVet, type Horse, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { startCare } from '../scene/care';
+import { CARE, canBuild, canFeed, canPayVet, canQuickCare, type Care, type Horse, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -295,12 +296,66 @@ export function showStable() {
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)}</p>`}
+      <button id="care" type="button">${t.care}</button>
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
     $('close-card').addEventListener('click', () => { card.hidden = true; });
+    $('care').addEventListener('click', () => showCare(h.id));
     card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
   }
   render();
+  leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
+}
+
+/** Caring for one horse: a close-up with four tools; each finished gesture is a care action in the Sim. */
+export function showCare(id: string) {
+  const h = game.get().horses.find((x) => x.id === id)!;
+  const $ = screen(`<canvas id="care-scene" aria-hidden="true"></canvas>${topBar()}
+    <h2 class="care-title">${t.careTitle(esc(h.name))}</h2>
+    <p id="how" class="how"></p>
+    <nav class="tools">${CARE.map((c) => `<span class="tool">
+      <button type="button" data-tool="${c}" aria-pressed="false"><img class="icon" src="${icon(c)}" alt="">${t.tools[c]}</button>
+      <button type="button" class="small quick" data-quick="${c}" hidden>${t.quickCare}</button></span>`).join('')}
+    </nav>
+    <button id="to-stable" class="corner" type="button">${t.toStable}</button>`);
+  const bar = wireTopBar($, () => tools());
+  const scene = startCare($<HTMLCanvasElement>('care-scene'), {
+    look: h.look, dirt: (100 - h.needs.clean) / 100,
+    onDone: (what) => {
+      game.dispatch({ type: 'care', horse: id, what });
+      done.add(what); bar.toast(t.doneCare[what](esc(h.name))); tools();
+    },
+  });
+  const done = new Set<Care>();
+  let current: Care = 'groom';
+  function pick(what: Care) {
+    if (what === 'feed' && !canFeed(game.get())) return bar.toast(t.noHayLeft);
+    current = what;
+    scene.then((sc) => sc.setTool(what));
+    $('how').textContent = t.how[what];
+    tools();
+  }
+  function tools() {
+    const s = game.get();
+    app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => {
+      const c = b.dataset.tool as Care;
+      b.setAttribute('aria-pressed', String(c === current));
+      b.classList.toggle('done', done.has(c));
+    });
+    app.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach((b) => {
+      const c = b.dataset.quick as Care;
+      b.hidden = done.has(c) || !canQuickCare(s, c) || (c === 'feed' && !canFeed(s));
+    });
+  }
+  app.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.tool as Care)));
+  app.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach((b) => b.addEventListener('click', () => {
+    const what = b.dataset.quick as Care;
+    game.dispatch({ type: 'care', horse: id, what, quick: true });
+    scene.then((sc) => sc.skip(what));
+    done.add(what); bar.toast(t.doneCare[what](esc(h.name))); tools();
+  }));
+  $('to-stable').addEventListener('click', showStable);
+  pick('groom');
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
 }

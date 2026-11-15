@@ -69,4 +69,17 @@ export const t = {
   newsHayLow: 'Das Heu wird knapp.',
   newsRested: (name: string) => `${name} ist wieder fit.`,
   morningGo: 'Los geht’s!',
+
+  // caring for a horse
+  care: 'Pflegen',
+  careTitle: (name: string) => `${name} pflegen`,
+  tools: { groom: 'Bürste', hooves: 'Hufkratzer', feed: 'Heu', muck: 'Mistgabel' },
+  how: { groom: 'Wisch mit dem Finger über das Fell.', hooves: 'Tipp auf jeden Huf.', feed: 'Zieh das Heu in die Krippe.', muck: 'Wisch den Mist weg.' },
+  doneCare: {
+    groom: (name: string) => `${name} glänzt!`, hooves: () => 'Alle Hufe sind sauber!',
+    feed: (name: string) => `${name} frisst zufrieden.`, muck: () => 'Die Box ist sauber!',
+  },
+  quickCare: 'Schnell erledigen',
+  noHayLeft: 'Kein Heu mehr im Lager.',
+  toStable: 'Zum Stall',
 } as const;

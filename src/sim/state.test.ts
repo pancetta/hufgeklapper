@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canWork, isSick, NEEDS, newGame, type State, stalls } from './state';
+import { apply, canBuild, canQuickCare, canWork, isSick, NEEDS, newGame, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -96,5 +96,31 @@ describe('Sim', () => {
     expect(apply(s, { type: 'vet', horse: 'kiwi' })).toBe(s);
     const h = s.horses[0], poor: State = { ...s, money: DATA.vet.cost - 1, horses: [{ ...h, needs: { ...h.needs, health: 10 } }] };
     expect(apply(poor, { type: 'vet', horse: 'kiwi' })).toBe(poor);
+  });
+
+  it('fills the needs each care action is for, up to 100', () => {
+    const s = nights(newGame(1), 2), h = s.horses[0];
+    const groomed = apply(s, { type: 'care', horse: 'kiwi', what: 'groom' }).horses[0];
+    expect(groomed.needs.clean).toBe(Math.min(100, h.needs.clean + DATA.care.groom.clean));
+    const full = { ...s, horses: [{ ...h, needs: { ...h.needs, clean: 99 } }] };
+    expect(apply(full, { type: 'care', horse: 'kiwi', what: 'groom' }).horses[0].needs.clean).toBe(100);
+  });
+
+  it('takes a hay bale for feeding, and feeds nothing from an empty store', () => {
+    const s = newGame(1), fed = apply(s, { type: 'care', horse: 'luna', what: 'feed' });
+    expect(fed.feed).toBe(s.feed - 1);
+    expect(fed.horses[1].needs.fed).toBeGreaterThan(s.horses[1].needs.fed);
+    const empty = { ...s, feed: 0 };
+    expect(apply(empty, { type: 'care', horse: 'luna', what: 'feed' })).toBe(empty);
+  });
+
+  it('unlocks quick care after five times by hand, and quick care does not count', () => {
+    let s = newGame(1);
+    expect(apply(s, { type: 'care', horse: 'kiwi', what: 'muck', quick: true })).toBe(s);
+    for (let i = 0; i < DATA.quickCareAfter; i++) s = apply(s, { type: 'care', horse: 'kiwi', what: 'muck' });
+    expect(canQuickCare(s, 'muck')).toBe(true);
+    expect(canQuickCare(s, 'groom')).toBe(false);
+    const quick = apply(s, { type: 'care', horse: 'kiwi', what: 'muck', quick: true });
+    expect(quick.careDone.muck).toBe(DATA.quickCareAfter);
   });
 });

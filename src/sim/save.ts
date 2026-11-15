@@ -4,13 +4,13 @@
  */
 import { BREEDS, COATS, FACES, LEGS, type Look, MANES } from '../horses/look';
 import { DATA } from './data';
-import { type Horse, NEEDS, type News, type State } from './state';
+import { CARE, type Horse, NEEDS, type News, type State } from './state';
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1 };
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -39,9 +39,10 @@ function isHorse(x: unknown): x is Horse {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 2 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+  return isObj(x) && x.version === 3 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
-    && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)));
+    && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
+    && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0));
 }
 
 /** Version 1 (before the day cycle): horses had no rest days and there was no morning news. */
@@ -51,6 +52,13 @@ function fromVersion1(x: Obj): unknown {
   return { ...x, version: 2, state: { ...s, version: 2, night: [], horses: s.horses.map((h) => (isObj(h) ? { ...h, rest: 0 } : h)) } };
 }
 
+/** Version 2 (before care): nothing counted how often each care action was done. */
+function fromVersion2(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 3, state: { ...s, version: 3, careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 } } };
+}
+
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
 export function parseSave(text: string): Parsed {
   let x: unknown;
@@ -58,6 +66,7 @@ export function parseSave(text: string): Parsed {
   if (!isObj(x) || x.app !== 'hufgeklapper' || !isInt(x.version, 1)) return { ok: false, reason: 'invalid' };
   if ((x.version as number) > SAVE_VERSION) return { ok: false, reason: 'newer' };
   if (x.version === 1) x = fromVersion1(x);
+  if (isObj(x) && x.version === 2) x = fromVersion2(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

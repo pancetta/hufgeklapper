@@ -18,6 +18,15 @@ export const DATA = {
     /** Below this health a horse is sick. */
     sickBelow: 30,
   },
+  /** What each care action ("Pflege") fills; feeding takes one bale from the store. */
+  care: {
+    groom: { clean: 45, happy: 5 },
+    hooves: { health: 5, happy: 5 },
+    feed: { fed: 45, happy: 5 },
+    muck: { clean: 20, happy: 10 },
+  },
+  /** After this many times by hand, a care action can be done with one tap ("Schnell erledigen"). */
+  quickCareAfter: 5,
   /** Each horse eats this many hay bales from the store every night. */
   hayPerNight: 1,
   /** The morning warns when the store holds hay for fewer nights than this. */
