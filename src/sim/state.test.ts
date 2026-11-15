@@ -114,13 +114,21 @@ describe('Sim', () => {
     expect(apply(empty, { type: 'care', horse: 'luna', what: 'feed' })).toBe(empty);
   });
 
+  it('allows each care action once per horse and day', () => {
+    const s = newGame(1), once = apply(s, { type: 'care', horse: 'kiwi', what: 'hooves' });
+    expect(apply(once, { type: 'care', horse: 'kiwi', what: 'hooves' })).toBe(once);
+    expect(apply(once, { type: 'care', horse: 'luna', what: 'hooves' })).not.toBe(once);
+    expect(apply(apply(once, { type: 'sleep' }), { type: 'care', horse: 'kiwi', what: 'hooves' }).careDone.hooves).toBe(2);
+  });
+
   it('unlocks quick care after five times by hand, and quick care does not count', () => {
     let s = newGame(1);
     expect(apply(s, { type: 'care', horse: 'kiwi', what: 'muck', quick: true })).toBe(s);
-    for (let i = 0; i < DATA.quickCareAfter; i++) s = apply(s, { type: 'care', horse: 'kiwi', what: 'muck' });
+    for (let i = 0; i < DATA.quickCareAfter; i++) s = apply(apply(s, { type: 'care', horse: 'kiwi', what: 'muck' }), { type: 'sleep' });
     expect(canQuickCare(s, 'muck')).toBe(true);
     expect(canQuickCare(s, 'groom')).toBe(false);
     const quick = apply(s, { type: 'care', horse: 'kiwi', what: 'muck', quick: true });
+    expect(quick.horses[0].cared).toContain('muck');
     expect(quick.careDone.muck).toBe(DATA.quickCareAfter);
   });
 });

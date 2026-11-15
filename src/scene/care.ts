@@ -9,7 +9,7 @@ import { fitPixels } from '../pixel';
 import type { Care } from '../sim/state';
 import { blit, image, shadow } from './draw';
 
-export type CareOptions = { look: Look; dirt: number; onDone: (what: Care) => void }; // dirt: 0 clean … 1 very dirty
+export type CareOptions = { look: Look; dirt: number; cared: Care[]; onDone: (what: Care) => void }; // dirt: 0 clean … 1 very dirty
 
 const MANGER_EMPTY = [424, 608, 78, 32] as const, MANGER_FULL = [424, 528, 78, 46] as const; // decorations.png
 const HAY = [96, 704, 32, 32] as const;
@@ -54,7 +54,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
   const dirtStart = Math.max(1, dirtLeft());
   const manure = Array.from({ length: Math.max(1, Math.round(opts.dirt * 4)) }, () => ({ x: 0.15 + rnd() * 0.5, y: rnd(), gone: false }));
   const hay = { x: 0, y: 0, home: true, dragging: false, inManger: false };
-  const done = new Set<Care>();
+  const done = new Set<Care>(opts.cared);
   const sparkles: { x: number; y: number; age: number }[] = [];
   const finish = (what: Care) => {
     if (done.has(what)) return;
@@ -111,8 +111,8 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     requestAnimationFrame(frameDraw);
   }
 
-  // gestures: one finger, in logical pixels
-  let down = false;
+  // gestures: one finger (a second finger or a palm doesn't take over), in logical pixels
+  let finger: number | null = null;
   const at = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / S, (e.clientY - r.top) / S] as const; };
   function move(x: number, y: number) {
     if (tool === 'groom') {
@@ -130,20 +130,23 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     if (tool === 'feed' && hay.dragging) { hay.x = x - 16; hay.y = y - 16; }
   }
   canvas.addEventListener('pointerdown', (e) => {
+    if (finger !== null) return;
     const [x, y] = at(e);
-    down = true;
+    finger = e.pointerId;
     canvas.setPointerCapture(e.pointerId);
-    if (tool === 'hooves') {
-      const hx = L.cx - 64;
-      for (const h of hooves) if (Math.abs(hx + h.x - x) < 6 && Math.abs(L.foot + 1 - y) < 8) h.done = true;
+    if (tool === 'hooves' && Math.abs(L.foot + 1 - y) < 8) {
+      // the nearest hoof only: neighbouring hooves are less than two rings apart
+      const hx = L.cx - 64, near = hooves.reduce((a, b) => (Math.abs(hx + b.x - x) < Math.abs(hx + a.x - x) ? b : a));
+      if (Math.abs(hx + near.x - x) < 6) near.done = true;
       if (hooves.every((h) => h.done)) finish('hooves');
     }
     if (tool === 'feed' && !hay.inManger && x >= hay.x && x < hay.x + 32 && y >= hay.y && y < hay.y + 32) { hay.dragging = true; hay.home = false; }
     move(x, y);
   });
-  canvas.addEventListener('pointermove', (e) => { if (down) move(...at(e)); });
-  const up = () => {
-    down = false;
+  canvas.addEventListener('pointermove', (e) => { if (e.pointerId === finger) move(...at(e)); });
+  const up = (e: PointerEvent) => {
+    if (e.pointerId !== finger) return;
+    finger = null;
     if (hay.dragging) {
       hay.dragging = false;
       if (hay.x + 16 > L.mx && hay.x + 16 < L.mx + 78 && hay.y + 16 > L.my - 50) { hay.inManger = true; finish('feed'); }
@@ -165,15 +168,6 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       if (what === 'feed') hay.inManger = true;
       if (what === 'muck') manure.forEach((m) => { m.gone = true; });
       done.add(what);
-    },
-    /** Where things are, in CSS pixels, for tests and hints. */
-    spots() {
-      const css = (x: number, y: number) => ({ x: x * S, y: y * S });
-      return {
-        coat: css(L.cx, L.foot - 30), hooves: hooves.map((h) => css(L.cx - 64 + h.x, L.foot + 1)),
-        hay: css(hay.x + 16, hay.y + 16), manger: css(L.mx + 39, L.my - 20),
-        manure: manure.map((m) => css(L.cx - 50 + m.x * 60, L.foot + 6 + m.y * Math.max(4, H - L.foot - 12))),
-      };
     },
     stop() { running = false; removeEventListener('resize', fit); },
   };

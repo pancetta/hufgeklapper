@@ -13,6 +13,7 @@ export type Needs = Record<Need, number>;
 export type Horse = {
   id: string; name: string; breed: Breed; look: Look; needs: Needs; skills: { jumping: number };
   rest: number; // days the horse must still rest after the vet (no riding, no lessons)
+  cared: Care[]; // care actions it had today; each once a day
 };
 
 export type FarmStage = 'kleinerHof' | 'reitschule';
@@ -44,7 +45,7 @@ const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
 export function newGame(seed: number): State {
   const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
-    ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0 });
+    ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   return {
     version: 3, seed, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 },
@@ -72,7 +73,7 @@ function night(h: Horse, hay: boolean): Horse {
   const needs = Object.fromEntries(NEEDS.map((n) => [n, clamp(h.needs[n] - loss[n])])) as Needs;
   const neglected = (['fed', 'clean'] as const).filter((n) => needs[n] < N.neglectBelow).length;
   needs.health = clamp(h.needs.health + (neglected ? -neglected * N.healthLossPerNeglect : N.healthGain));
-  return { ...h, needs, rest: Math.max(0, h.rest - 1) };
+  return { ...h, needs, rest: Math.max(0, h.rest - 1), cared: [] };
 }
 
 /** Applies one action; never changes the state it was given. */
@@ -96,14 +97,15 @@ export function apply(state: State, action: Action): State {
     }
     case 'care': {
       const h = state.horses.find((x) => x.id === action.horse);
-      if (!h || (action.what === 'feed' && !canFeed(state)) || (action.quick && !canQuickCare(state, action.what))) return state;
+      // each care action once per horse and day, so care can't be repeated to heal for free or to empty the hay store
+      if (!h || h.cared.includes(action.what) || (action.what === 'feed' && !canFeed(state)) || (action.quick && !canQuickCare(state, action.what))) return state;
       const gain = DATA.care[action.what] as Partial<Needs>;
       const needs = { ...h.needs };
       for (const [n, v] of Object.entries(gain) as [Need, number][]) needs[n] = clamp(needs[n] + v);
       return {
         ...state,
         feed: state.feed - (action.what === 'feed' ? 1 : 0),
-        horses: state.horses.map((x) => (x === h ? { ...h, needs } : x)),
+        horses: state.horses.map((x) => (x === h ? { ...h, needs, cared: [...h.cared, action.what] } : x)),
         careDone: action.quick ? state.careDone : { ...state.careDone, [action.what]: state.careDone[action.what] + 1 },
       };
     }
