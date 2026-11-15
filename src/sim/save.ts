@@ -51,7 +51,7 @@ function isAvatar(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 7 && isAvatar(x.avatar) && isInt(x.trainings, 0) && isInt(x.badges, 0, 1) && isInt(x.badgeFailedDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+  return isObj(x) && x.version === 7 && isAvatar(x.avatar) && isInt(x.trainings, 0) && isInt(x.badges, 0, 1) && isInt(x.badgeFailedDay, 0) && isInt(x.badgeQuizDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
     && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
     && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0))
@@ -101,7 +101,7 @@ function fromVersion5(x: Obj): unknown {
 function fromVersion6(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
-  return { ...x, version: 7, state: { ...s, version: 7, trainings: 0, badges: 0, badgeFailedDay: 0 } };
+  return { ...x, version: 7, state: { ...s, version: 7, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0 } };
 }
 
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */

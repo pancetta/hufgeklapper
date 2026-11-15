@@ -67,7 +67,7 @@ export const DATA = {
     happy: 5,
   },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
-  badge: { trainings: 3, quizPass: 4, maxFaults: 1 },
+  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 1 },
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],

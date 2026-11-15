@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, badgeWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { type Avatar, badgeWaits, quizScore, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -298,8 +298,8 @@ export function showFarm(intro = false) {
     const sheet = $('lesson'), wait = badgeWaits(game.get());
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.arena}</h2>
       <button type="button" id="give-lesson">${t.giveLesson}</button><button type="button" id="practise">${t.practiseJumping}</button>
-      <button type="button" id="badge"${wait ? ' disabled' : ''}>${t.ridingBadge}</button>
-      ${wait ? `<p class="oma">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}
+      <button type="button" id="badge"${wait ? ' disabled aria-describedby="badge-why"' : ''}>${t.ridingBadge}</button>
+      ${wait ? `<p class="oma" id="badge-why">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}
       <button type="button" id="close-lesson">${t.close}</button>`;
     $('badge').addEventListener('click', showBadge);
     $('give-lesson').addEventListener('click', () => {
@@ -404,12 +404,12 @@ export function showFarm(intro = false) {
 }
 
 /** Jumping practice: Oma Hanne explains, one round over the course, then what it brought. */
-function showJumping(id: string, badge?: { correct: number }) {
+function showJumping(id: string, kind: 'train' | 'badge' = 'train') {
   const h = game.get().horses.find((x) => x.id === id)!;
   const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
-    <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
+    <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
     look: h.look, kid: avatarKid(game.get().avatar), jumps: DATA.jumping.jumps, window: jumpWindow(h), takeOff: (o) => takeOff(h, o), missed: (o) => missed(h, o),
   });
@@ -418,15 +418,18 @@ function showJumping(id: string, badge?: { correct: number }) {
   $('jump-go').addEventListener('click', async () => {
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
-    if (badge) {
-      game.dispatch({ type: 'badge', horse: id, correct: badge.correct, faults });
+    if (kind === 'badge') {
+      game.dispatch({ type: 'badge', horse: id, faults });
       const passed = game.get().badges >= 1;
-      // the ceremony: the rosette, and Oma Hanne's congratulations
+      // the ceremony: the big rosette over the congratulations
       if (passed) end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badgeName}">`);
       end.querySelector('p')!.textContent = passed ? t.badgePassed : t.badgeFailed;
     } else {
+      const practising = badgeWaits(game.get())?.why === 'practise';
       game.dispatch({ type: 'train', horse: id, faults });
-      end.querySelector('p')!.textContent = faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name);
+      // Oma Hanne points to the badge once the practice is enough
+      const ready = practising && !badgeWaits(game.get()) ? ` ${t.badgeReady}` : '';
+      end.querySelector('p')!.textContent = (faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name)) + ready;
     }
     end.hidden = false;
   });
@@ -445,30 +448,39 @@ function showBadge() {
       <div class="answers"></div></div></section>`);
   const farm = startFarm($<HTMLCanvasElement>('farm'), { herd: game.get().horses.map((h) => h.look), canter: false });
   leave = () => { farm.then((f) => f.stop()); };
-  const say = $('farm').nextElementSibling!.querySelector('p')!, answers = $('farm').nextElementSibling!.querySelector('.answers')!;
-  let correct = 0;
+  const say = $('farm').nextElementSibling!.querySelector('p')!, answers = $('farm').nextElementSibling!.querySelector<HTMLElement>('.answers')!;
+  const picked: number[] = [];
   const buttons = (html: string, on: (b: HTMLButtonElement) => void) => {
     answers.innerHTML = html;
     answers.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => on(b)));
+    // new buttons land where the old ones were: a quick second tap must not answer the next question unread
+    answers.inert = true;
+    setTimeout(() => { answers.inert = false; answers.querySelector('button')?.focus(); }, 400);
   };
   const next = (go: () => void) => buttons(`<button type="button">${t.next}</button>`, go);
   function ask(i: number) {
-    if (i === t.quiz.length) return chooseHorse();
+    if (i === t.quiz.length) return quizDone();
     const q = t.quiz[i], order = q.a.map((_, k) => (k + i) % q.a.length); // rotate, so the right answer moves around
     say.textContent = q.q;
     buttons(order.map((k) => `<button type="button" data-a="${k}">${q.a[k].icon ? `<img class="icon" src="${icon(q.a[k].icon!)}" alt="">` : ''}${q.a[k].text}</button>`).join(''), (b) => {
-      const right = b.dataset.a === '0';
-      if (right) correct++;
+      const right = b.dataset.a === '0'; // shown to the child; the Sim scores the answers itself
+      picked.push(Number(b.dataset.a));
       say.textContent = right ? t.quizRight : t.quizWrong(q.a[0].text);
       next(() => ask(i + 1));
     });
   }
-  function chooseHorse() {
-    say.textContent = t.quizDone(correct);
+  function quizDone() {
+    game.dispatch({ type: 'badgeQuiz', answers: picked });
+    const s = game.get(), right = quizScore(picked);
+    if (s.badgeQuizDay !== s.day) {
+      say.textContent = t.quizFailed(right);
+      return buttons(`<button type="button">${t.toFarm}</button>`, () => showFarm());
+    }
+    say.textContent = t.quizDone(right);
     buttons(game.get().horses.map((h) => {
       const why = cantWork(h, DATA.jumping.energy);
       return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
-    }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, { correct }) : showFarm()));
+    }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, 'badge') : showFarm()));
   }
   say.textContent = t.badgeIntro;
   next(() => ask(0));
