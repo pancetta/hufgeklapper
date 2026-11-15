@@ -3,8 +3,10 @@
  * chickens, sheep, a sleeping cat, a dog on the path, butterflies, cloud shadows and glints on the pond.
  * Pure animation, no game rules; a seeded random generator keeps it repeatable.
  */
-import { blit, type Rect, shadow } from './draw';
+import { horseSheet } from '../horses/compose';
+import { type Anim, COATS, type Look } from '../horses/look';
 import { canterLoop, inside, jumps, type Plot } from './buildings';
+import { blit, type Rect, shadow } from './draw';
 
 export type Drawable = { y: number; draw: (ctx: CanvasRenderingContext2D, t: number) => void };
 type Images = Record<string, CanvasImageSource>;
@@ -23,17 +25,15 @@ type Dir = 'N' | 'W' | 'S' | 'E';
 const ROW: Record<Dir, number> = { N: 0, W: 1, S: 2, E: 3 };
 const dirOf = (dx: number, dy: number): Dir => (Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'W' : 'E') : dy < 0 ? 'N' : 'S');
 
-type Look = { pony: boolean; coat: 'brown' | 'black' | 'gold' | 'gray' | 'white'; mane?: Look['coat']; socks?: boolean };
-type HorseAnim = 'idle' | 'walk' | 'gallop' | 'eat';
+type HorseAnim = Anim | 'eat';
 
-/** Sheets one horse needs, in draw order. Eating comes from the classic sheet, which has its mane painted in. */
-function horseLayers(look: Look, anim: HorseAnim) {
-  const p = look.pony ? 'horses/pony-' : 'horses/';
-  if (anim === 'eat') return [`${p}classic-${look.coat}.png`];
-  const L = [`${p}horse-${anim}-${look.coat}.png`];
-  if (look.pony || look.mane) L.push(`${p}mane-${anim}-${look.mane ?? look.coat}.png`);
-  if (look.socks) L.push(`${p}socks-${anim}-${look.coat}.png`);
-  return L;
+/**
+ * Where a horse's sheet for an animation lives in the image map. Walking, standing and galloping use the look's
+ * composed sheet; grazing comes from the classic LPC sheet, which has no layers.
+ */
+function horseKey(look: Look, anim: HorseAnim) {
+  if (anim === 'eat') return `horses/${look.build === 'pony' ? 'pony-' : ''}classic-${COATS[look.coat].sheet}.png`;
+  return `horse:${anim}:${JSON.stringify(look)}`;
 }
 
 function horseFrame(anim: HorseAnim, dir: Dir, f: number): Rect {
@@ -45,9 +45,8 @@ function horseFrame(anim: HorseAnim, dir: Dir, f: number): Rect {
 /** A horse drawn at its hooves (x, y); lift raises it for a jump while the shadow stays on the ground. */
 function drawHorse(ctx: CanvasRenderingContext2D, img: Images, look: Look, anim: HorseAnim, dir: Dir, f: number, x: number, y: number, lift = 0) {
   const side = dir === 'W' || dir === 'E';
-  shadow(ctx, x, y - 1, side ? (look.pony ? 22 : 26) : 11, 4, 0.24 - lift * 0.004);
-  const r = horseFrame(anim, dir, f);
-  for (const s of horseLayers(look, anim)) blit(ctx, img[s], r, x - 64, y - 93 - lift);
+  shadow(ctx, x, y - 1, side ? (look.build === 'pony' ? 22 : 26) : 11, 4, 0.24 - lift * 0.004);
+  blit(ctx, img[horseKey(look, anim)], horseFrame(anim, dir, f), x - 64, y - 93 - lift);
 }
 
 type Walker = { x: number; y: number; tx: number; ty: number; wait: number; dir: Dir; mode: 'walk' | 'stand' | 'eat'; phase: number };
@@ -79,21 +78,28 @@ const walker = (area: Area, rnd: () => number): Walker => {
 const YARD: Area = [180, 425, 350, 465];
 
 const HERD: Look[] = [
-  { pony: true, coat: 'gold', mane: 'white' }, // Haflinger-style pony
-  { pony: false, coat: 'brown' },
-  { pony: false, coat: 'gray' },
-  { pony: true, coat: 'black', socks: true },
+  { build: 'pony', coat: 'isabell' },
+  { build: 'horse', coat: 'brauner' },
+  { build: 'horse', coat: 'falbe' },
+  { build: 'pony', coat: 'rappe', face: 'stern', legs: 'socken' },
 ];
-/** Grazing uses the classic sheet, which has no layers: only plain horses can graze without changing their looks. */
-const grazes = (look: Look) => !look.pony && !look.mane && !look.socks;
-const RIDER_PONY: Look = { pony: true, coat: 'white', mane: 'gold' };
+const RIDER_PONY: Look = { build: 'pony', coat: 'schimmel', mane: 'blond', blanket: '#d94f3d' };
+/**
+ * Grazing uses the classic sheet, which has no layers and a black mane painted in: only plain horses whose coat
+ * has a black mane can graze without changing their looks.
+ */
+const grazes = (l: Look) => l.build === 'horse' && !l.mane && !l.face && !l.legs && !l.saddle && !l.blanket && COATS[l.coat].mane === 'schwarz';
 
-/** Every sheet the farm's life draws from (for preloading). */
+/** Every plain image the farm's life draws from (for preloading). */
 export function lifeSheets() {
-  const s = new Set(['animals/chicken-walk.png', 'animals/chicken-eat.png', 'animals/sheep-walk.png', 'animals/sheep-eat.png', 'animals/cat.png', 'animals/dog.png']);
-  for (const look of HERD) for (const a of ['idle', 'walk', ...(grazes(look) ? ['eat'] : [])] as HorseAnim[]) horseLayers(look, a).forEach((x) => s.add(x));
-  horseLayers(RIDER_PONY, 'gallop').forEach((x) => s.add(x));
-  return [...s];
+  return ['animals/chicken-walk.png', 'animals/chicken-eat.png', 'animals/sheep-walk.png', 'animals/sheep-eat.png', 'animals/cat.png', 'animals/dog.png',
+    ...HERD.filter(grazes).map((l) => horseKey(l, 'eat'))];
+}
+
+/** Composes the herd's and the rider pony's sheets into the image map. */
+export async function loadHorses(img: Images) {
+  const wanted: [Look, Anim][] = [...HERD.flatMap((l) => [[l, 'idle'], [l, 'walk']] as [Look, Anim][]), [RIDER_PONY, 'gallop']];
+  await Promise.all(wanted.map(async ([l, a]) => { img[horseKey(l, a)] = await horseSheet(l, a); }));
 }
 
 /** A cloud's shadow: a few overlapping puffs in stepped pixel rows, drawn once. */
@@ -133,7 +139,7 @@ export function createLife(seed: number, plots: Plot[]) {
 
   function update(dt: number) {
     const crowd = [...herd.map((h) => h.w), ...sheep];
-    for (const h of herd) wander(h.w, PASTURE, h.look.pony ? 13 : 16, dt, rnd, grazes(h.look), crowd);
+    for (const h of herd) wander(h.w, PASTURE, h.look.build === 'pony' ? 13 : 16, dt, rnd, grazes(h.look), crowd);
     for (const s of sheep) wander(s, PASTURE, 8, dt, rnd, true, crowd);
     for (const c of chickens) wander(c, YARD, 14, dt, rnd);
     if (dog.wait > 0) dog.wait -= dt;

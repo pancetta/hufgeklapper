@@ -50,13 +50,16 @@ Any horse or pony on the farm. Code says `horse` for both; the UI says *Pony* or
 The body type with its own animation set: pony, big horse; later Shetland pony, draft horse, foal.
 
 **Coat** ("Fellfarbe"):
-A palette applied to a **Build**: Fuchs, Brauner, Rappe, Schimmel, Falbe, …
+The colour of a horse with the mane colour that belongs to it: Fuchs, Brauner, Rappe, Schimmel, Grauschimmel, Falbe, Isabell.
 
 **Markings** ("Abzeichen"):
-White patches drawn as overlays: Stern, Blesse, Socken.
+White patches drawn as overlays: on the face Stern, Blesse, Strich, Flocke; on the legs Socken, Stiefel.
 
 **Breed** ("Rasse"):
-Data only: a **Build** plus the **Coats** and **Markings** it allows.
+Data only: a **Build** plus the **Coats** it allows (and its own mane colour, e.g. the Haflinger's blond).
+
+**Tack** ("Zubehör"):
+Saddle ("Sattel") and saddle pad ("Satteldecke"); the pad can take any colour.
 
 **Needs** ("Bedürfnisse"):
 Hunger, Sauberkeit, Laune, Energie, Gesundheit, each 0–100. They fall over **Days** and through work; **Care actions** refill them.

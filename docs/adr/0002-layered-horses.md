@@ -15,6 +15,10 @@ A **Breed** is data only: a build plus the coats and markings it allows (a Hafli
 - **One fixed sprite per horse**: simplest code, but every new colour is a new drawing and breeding can't produce new looks.
 - **Recolouring one base sprite**: no distinction between ponies and horses.
 
+## As built (#4)
+
+The LPC horse comes in five coat sheets with shading drawn by hand, so instead of recolouring one grey base we map each **Coat** to an LPC sheet plus a mane colour (a Fuchs is the brown sheet with a red mane, a Brauner the same sheet with a black one): seven coats from five sheets, without losing the hand-drawn shading. White leg markings always use the white sheet's version, which reads as white on every coat. The saddle pad is tinted to any colour. A halter has no LPC art yet. `src/horses/look.ts` holds the data, `src/horses/compose.ts` the pure compositor; `?debug=pferde` shows the looks side by side.
+
 ## Consequences
 
 - The compositor is a pure function from a horse's look to an image; a test pins that the same look always gives the same pixels.
