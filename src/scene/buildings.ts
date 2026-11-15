@@ -27,6 +27,18 @@ export function canterLoop(p: Plot): [number, number][] {
   return [[b.x0 + 50, b.y0 + 44], [b.x1 - 54, b.y0 + 44], [b.x1 - 54, b.y1 - 24], [b.x0 + 50, b.y1 - 24]];
 }
 
+/** Where pupils wait for their lesson: side by side along the arena's top fence, at its right end. */
+export function waitingSpots(p: Plot): [number, number][] {
+  const b = bounds(p);
+  return [0, 1, 2].map((i) => [b.x1 - 76 + i * 22, b.y0 - 4]);
+}
+
+/** A lesson walks a quiet round between the jumps, never through one (see `jumps`). */
+export function track(p: Plot): [number, number][] {
+  const b = bounds(p);
+  return [[b.x0 + 40, b.y0 + 70], [b.x1 - 40, b.y0 + 70], [b.x1 - 40, b.y1 - 12], [b.x0 + 40, b.y1 - 12]];
+}
+
 /** Show jumps sit on the canter lanes, a third and two thirds along the arena. */
 export function jumps(p: Plot): { x: number; y: number; colour: string }[] {
   const [a, b, c] = canterLoop(p), w = b[0] - a[0];

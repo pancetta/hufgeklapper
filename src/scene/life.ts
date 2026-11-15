@@ -5,8 +5,9 @@
  */
 import { horseSheet } from '../horses/compose';
 import { type Anim, COATS, type Look } from '../horses/look';
-import { canterLoop, inside, jumps, type Plot } from './buildings';
+import { canterLoop, inside, jumps, type Plot, track, waitingSpots } from './buildings';
 import { blit, type Rect, shadow } from './draw';
+import { drawKid, drawRider, type Kid } from './kids';
 
 export type Drawable = { y: number; draw: (ctx: CanvasRenderingContext2D, t: number) => void };
 type Images = Record<string, CanvasImageSource>;
@@ -47,6 +48,24 @@ function drawHorse(ctx: CanvasRenderingContext2D, img: Images, look: Look, anim:
   const side = dir === 'W' || dir === 'E';
   shadow(ctx, x, y - 1, side ? (look.build === 'pony' ? 22 : 26) : 11, 4, 0.24 - lift * 0.004);
   blit(ctx, img[horseKey(look, anim)], horseFrame(anim, dir, f), x - 64, y - 93 - lift);
+}
+
+/** The point `d` pixels along a closed loop, and which way it heads there. */
+function along(loop: [number, number][], d: number) {
+  for (let i = 0; ; i = (i + 1) % loop.length) {
+    const a = loop[i], b = loop[(i + 1) % loop.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (d <= len) return { x: a[0] + ((b[0] - a[0]) * d) / len, y: a[1] + ((b[1] - a[1]) * d) / len, dir: dirOf(b[0] - a[0], b[1] - a[1]) };
+    d -= len;
+  }
+}
+const loopLength = (loop: [number, number][]) => loop.reduce((n, a, i) => { const b = loop[(i + 1) % loop.length]; return n + Math.hypot(b[0] - a[0], b[1] - a[1]); }, 0);
+
+/** Where a rider sits, from the horse's hooves (measured on the LPC frames): seen from the side, just behind the withers. */
+function seat(build: Look['build'], dir: Dir) {
+  const pony = build === 'pony', side = dir === 'W' || dir === 'E';
+  // coming towards us the child shows above the horse's head, so it sits higher in the picture
+  const dy = side ? (pony ? -33 : -40) : dir === 'S' ? (pony ? -44 : -48) : pony ? -30 : -34;
+  return { dx: side ? (pony ? 4 : 7) * (dir === 'W' ? -1 : 1) : 0, dy };
 }
 
 type Walker = { x: number; y: number; tx: number; ty: number; wait: number; dir: Dir; mode: 'walk' | 'stand' | 'eat'; phase: number };
@@ -129,7 +148,9 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   const sheep = [walker(PASTURE, rnd)];
   const chickens = [0, 1, 2, 3, 4].map(() => walker(YARD, rnd));
   const dog = { x: 420, dir: 1, wait: 0 };
-  const ride = { leg: 0, t: 0 };
+  const TRACK = track(arena), LAP = loopLength(LOOP), TRACK_LAP = loopLength(TRACK), SPOTS = waitingSpots(arena);
+  let ride = 0, waiting: Kid[] = [];
+  let lesson: { horse: number; kid: Kid; d: number; done: () => void } | null = null;
   const butterflies = ['#ffe066', '#ffffff', '#ff9f43', '#7ec8ff', '#ff8fc7'].map((color, i) => ({
     color, hx: [250, 430, 600, 300, 820][i], hy: [528, 520, 536, 120, 150][i], phase: rnd() * 10, speed: 0.6 + rnd() * 0.5,
   }));
@@ -148,13 +169,9 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
       dog.x += dog.dir * 22 * dt;
       if (dog.x > 690 || dog.x < 300) { dog.dir *= -1; dog.wait = 1.5 + rnd() * 2; }
     }
-    // the canter pony moves along the loop at a steady speed
-    let step = canter ? 60 * dt : 0;
-    while (step > 0) {
-      const a = LOOP[ride.leg], b = LOOP[(ride.leg + 1) % 4];
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]), left = len * (1 - ride.t);
-      if (step < left) { ride.t += step / len; step = 0; } else { step -= left; ride.t = 0; ride.leg = (ride.leg + 1) % 4; }
-    }
+    // the canter pony moves along the loop at a steady speed; a lesson walks it once round
+    if (canter) ride = (ride + 60 * dt) % LAP;
+    if (lesson && (lesson.d += 55 * dt) >= TRACK_LAP) { lesson.done(); lesson = null; }
     for (const c of clouds) { c.x += 7 * dt; if (c.x > 1100) c.x = -300; }
     for (const r of ripples) {
       r.age += dt;
@@ -165,10 +182,29 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
 
   function drawables(t: number, img: Images): Drawable[] {
     const out: Drawable[] = [];
-    for (const { look, w } of horses) {
+    horses.forEach(({ look, w }, i) => {
+      if (i === lesson?.horse) return;
       const anim: HorseAnim = w.mode === 'walk' ? 'walk' : w.mode === 'eat' ? 'eat' : 'idle';
       const f = Math.floor((t + w.phase) * (anim === 'eat' ? 3 : 7));
       out.push({ y: w.y, draw: (ctx) => drawHorse(ctx, img, look, anim, w.dir, f, w.x, w.y) });
+    });
+    // pupils wait by the arena; one rides in it
+    waiting.slice(0, SPOTS.length).forEach((kid, i) => {
+      const [x, y] = SPOTS[i];
+      out.push({ y, draw: (ctx) => drawKid(ctx, kid, x, y, Math.sin(t * 0.7 + i * 2) > 0.8 ? 'W' : 'S') });
+    });
+    if (lesson) {
+      const { kid } = lesson, look = horses[lesson.horse].look, p = along(TRACK, lesson.d), s = seat(look.build, p.dir), f = Math.floor(t * 8);
+      out.push({ y: p.y, draw: (ctx) => {
+        drawHorse(ctx, img, look, 'walk', p.dir, f, p.x, p.y);
+        drawRider(ctx, kid, p.x + s.dx, p.y + s.dy, p.dir);
+        if (p.dir !== 'S') return;
+        // coming towards us, the horse's head and neck are in front of the child: draw them again over it
+        ctx.save();
+        ctx.beginPath(); ctx.rect(p.x - 64, p.y - 93, 128, 93 + s.dy - 2); ctx.clip();
+        blit(ctx, img[horseKey(look, 'walk')], horseFrame('walk', 'S', f), p.x - 64, p.y - 93);
+        ctx.restore();
+      } });
     }
     for (const s of sheep) {
       const sheet = s.mode === 'walk' ? 'animals/sheep-walk.png' : 'animals/sheep-eat.png';
@@ -187,8 +223,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
     out.push({ y: 466, draw: (ctx) => { shadow(ctx, dog.x, 465, 8, 2); blit(ctx, img['animals/dog.png'], [df * 32, (dog.dir > 0 ? 0 : 3) * 32, 32, 32], dog.x - 16, 466 - 28); } });
     // the pony in the arena: gallop, lifting over a jump as it passes
     if (canter) {
-      const a = LOOP[ride.leg], b = LOOP[(ride.leg + 1) % 4];
-      const px = a[0] + (b[0] - a[0]) * ride.t, py = a[1] + (b[1] - a[1]) * ride.t, dir = dirOf(b[0] - a[0], b[1] - a[1]);
+      const { x: px, y: py, dir } = along(LOOP, ride);
       let lift = 0;
       for (const { x: jx, y: jy } of JUMPS) if (Math.abs(py - jy) < 20 && Math.abs(px - jx) < 26) lift = Math.max(lift, 14 * Math.cos(((px - jx) / 26) * (Math.PI / 2)));
       out.push({ y: py, draw: (ctx) => drawHorse(ctx, img, RIDER_PONY, 'gallop', dir, Math.floor(t * 11), px, py, Math.round(lift)) });
@@ -235,5 +270,14 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
     ctx.globalAlpha = 1;
   }
 
-  return { update, drawables, overlay };
+  return {
+    update, drawables, overlay,
+    /** The pupils waiting by the arena. */
+    setWaiting(kids: Kid[]) { waiting = kids; },
+    /** Herd horse `horse` walks one lap of the arena with `kid` on its back; resolves when it is back. */
+    lesson(horse: number, kid: Kid) {
+      lesson?.done();
+      return new Promise<void>((done) => { lesson = { horse, kid, d: 0, done }; });
+    },
+  };
 }

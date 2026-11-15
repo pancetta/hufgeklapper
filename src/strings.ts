@@ -44,7 +44,6 @@ export const t = {
 
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz' } as Record<string, string>,
-  arena: 'Reiten kommt bald.',
   pasture: 'Hier grasen deine Ponys.',
   feedStore: (n: number) => `Im Lager liegen ${n} Heuballen.`,
   freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist.',
@@ -97,6 +96,16 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde' },
+
+  // riding lessons
+  pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
+  pupilKind: (small: boolean, advanced: boolean) => `${small ? 'Kleines' : 'Großes'} Kind · ${advanced ? 'kann schon reiten' : 'reitet zum ersten Mal'}`,
+  fits: { right: 'passt gut', smallOnHorse: 'etwas groß', bigOnPony: 'zu klein' },
+  cantTeach: { sick: 'ist krank', resting: 'ruht sich aus', tired: 'ist zu müde' },
+  lessonRuns: (pupil: string, horse: string) => `${pupil} reitet auf ${horse}.`,
+  lessonDone: (pupil: string, happy: number, pay: number) =>
+    `${pupil} war ${happy >= 80 ? 'begeistert' : happy >= 55 ? 'zufrieden' : 'nicht so glücklich'}! +${pay} €`,
+  noPupils: 'Heute möchte niemand mehr reiten. Morgen kommen neue Reitschüler.',
   euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,
 } as const;

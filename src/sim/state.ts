@@ -1,6 +1,6 @@
 /**
  * The Sim: the game rules as a pure module (ADR-0001). State in, action in, new state out; no pixels, no DOM.
- * Randomness will come from the seed kept in the state, so the same game plays the same way.
+ * Randomness comes from the seed kept in the state, so the same game plays the same way.
  */
 import type { Breed, Look } from '../horses/look';
 import { breedLook } from '../horses/look';
@@ -19,8 +19,8 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 4;
-  seed: number; // the game's random seed (the first rule with chance adds a generator that uses it)
+  version: 5;
+  seed: number; // the random generator's state, moved on by each roll
   day: number;
   money: number;
   feed: number; // hay bales in store
@@ -32,13 +32,20 @@ export type State = {
   careDone: Record<Care, number>;
   /** Money owed: hay bought on credit ("angeschrieben") and bank loans. */
   debt: number;
+  /** Pupils waiting for a lesson today; the farm's reputation (0–100) brings more. */
+  pupils: Pupil[];
+  reputation: number;
+  lessonsGiven: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
   bill: Entry[];
 };
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
-export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay'; amount: number };
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson'; amount: number };
+
+/** A pupil ("Reitschüler"): a small or big child, a beginner or advanced rider. */
+export type Pupil = { id: string; name: string; size: 'small' | 'big'; level: 'beginner' | 'advanced'; look: number };
 
 export type Care = 'groom' | 'hooves' | 'feed' | 'muck';
 export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
@@ -47,17 +54,41 @@ export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; horse?: string };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
-  | { type: 'buyHay'; pack: number } | { type: 'loan' };
+  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+
+/** The game's random generator (mulberry32): a value in [0, 1) and the next seed. */
+export function roll(seed: number): [value: number, next: number] {
+  const next = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(next ^ (next >>> 15), 1 | next);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return [((t ^ (t >>> 14)) >>> 0) / 4294967296, next];
+}
+
+/** This morning's pupils: one, plus more the better the farm's reputation. */
+function pupilsFor(day: number, reputation: number, seed: number): [Pupil[], number] {
+  const n = 1 + DATA.lessons.morePupilsAt.filter((r) => reputation >= r).length, pupils: Pupil[] = [];
+  for (let i = 0; i < n; i++) {
+    let a: number, b: number, c: number, d: number;
+    [a, seed] = roll(seed); [b, seed] = roll(seed); [c, seed] = roll(seed); [d, seed] = roll(seed);
+    pupils.push({
+      id: `d${day}-${i}`, name: DATA.pupilNames[Math.floor(a * DATA.pupilNames.length)],
+      size: b < 0.6 ? 'small' : 'big', level: c < 0.65 ? 'beginner' : 'advanced', look: Math.floor(d * 1000),
+    });
+  }
+  return [pupils, seed];
+}
 
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
 export function newGame(seed: number): State {
   const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
+  const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 4, seed, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 5, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
+    pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
       horse('kiwi', 'Kiwi', 'haflinger', breedLook('haflinger')),
       horse('luna', 'Luna', 'islaender', breedLook('islaender', 'rappe', { face: 'stern' })),
@@ -74,6 +105,24 @@ export const canFeed = (s: State) => s.feed >= 1;
 /** Hay can always be had: paid if the money is there, else on credit, so the horses never go hungry for lack of it. */
 export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
+
+/** Why a horse can't give a lesson now, or null if it can. */
+export function cantTeach(h: Horse): 'sick' | 'resting' | 'tired' | null {
+  return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < DATA.lessons.energy ? 'tired' : null;
+}
+
+/** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
+export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
+  const pony = h.look.build === 'pony';
+  return p.size === 'small' ? (pony ? 'right' : 'smallOnHorse') : pony ? 'bigOnPony' : 'right';
+}
+
+/** What a lesson would bring: how happy the pupil is (0–100) and the pay. A well kept, fitting horse makes it best. */
+export function lessonOutcome(p: Pupil, h: Horse) {
+  const L = DATA.lessons, kept = (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
+  const happy = Math.round(100 * L.fit[fit(p, h)] * (0.5 + 0.5 * kept));
+  return { happy, pay: Math.round(L.pay[p.level] * (0.6 + 0.4 * (happy / 100))) };
+}
 
 /** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
 export function earn(s: State, amount: number): State {
@@ -113,7 +162,8 @@ export function apply(state: State, action: Action): State {
       });
       if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
       if (state.today.length) news.push({ kind: 'bill' });
-      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [] };
+      const [pupils, seed] = pupilsFor(state.day + 1, state.reputation, state.seed);
+      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, seed };
     }
     case 'care': {
       const h = state.horses.find((x) => x.id === action.horse);
@@ -144,6 +194,17 @@ export function apply(state: State, action: Action): State {
         ...state, feed: state.feed + p.bales,
         money: credit ? state.money : state.money - p.price, debt: credit ? state.debt + p.price : state.debt,
         today: [...state.today, { what: credit ? 'hayOnCredit' : 'hay', amount: -p.price }],
+      };
+    }
+    case 'lesson': {
+      const p = state.pupils.find((x) => x.id === action.pupil), h = state.horses.find((x) => x.id === action.horse);
+      if (!p || !h || cantTeach(h)) return state;
+      const { happy, pay } = lessonOutcome(p, h);
+      const worked = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.lessons.energy) } };
+      const after = earn({ ...state, today: [...state.today, { what: 'lesson', amount: pay }] }, pay);
+      return {
+        ...after, horses: state.horses.map((x) => (x === h ? worked : x)), pupils: state.pupils.filter((x) => x !== p),
+        reputation: clamp(state.reputation + (happy - DATA.lessons.happyAt) / 5), lessonsGiven: state.lessonsGiven + 1,
       };
     }
     case 'loan': {

@@ -243,3 +243,4 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 @media (prefers-reduced-motion: reduce) {
   button:active { transform: none; }
 }
+.label.pupil { font-size: calc(6 * var(--px)); padding: calc(1 * var(--px)) calc(3 * var(--px)); }

@@ -193,6 +193,26 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   await expect(page.locator('#money')).toHaveText(t.money(100));
 });
 
+test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // one pupil waits on the first day; tapping the name asks for a horse
+  const pupil = page.locator('.label.pupil');
+  await expect(pupil).toHaveCount(1);
+  const name = (await pupil.textContent())!;
+  await pupil.tap();
+  await expect(page.getByRole('heading', { name: t.pupilWants(name) })).toBeVisible();
+  await page.locator('#lesson [data-horse="kiwi"]').tap();
+  await expect(page.getByRole('status')).toHaveText(t.lessonRuns(name, 'Kiwi'));
+  await expect(page.locator('#money')).not.toHaveText(t.money(300));
+  await expect(pupil).toHaveCount(0);
+  // the round ends with how the pupil liked it
+  await expect(page.getByRole('status')).toContainText(`${name} war`, { timeout: 20_000 });
+  // nobody else today: the arena says so
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await expect(page.getByRole('status')).toHaveText(t.noPupils);
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

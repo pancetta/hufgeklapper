@@ -8,10 +8,12 @@ import { CARE, type Care, type Entry, type Horse, NEEDS, type News, type State }
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1 };
-const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1 };
+const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1 };
+const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-9-]{1,40}$/.test(p.id) && isText(p.name, 30)
+  && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -43,11 +45,12 @@ function isHorse(x: unknown): x is Horse {
 const isEntries = (x: unknown) => Array.isArray(x) && x.length < 100 && x.every((e) => isObj(e) && oneOf(e.what, ENTRIES) && isInt(e.amount));
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 4 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+  return isObj(x) && x.version === 5 && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
     && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
     && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0))
-    && isInt(x.debt, 0) && isEntries(x.today) && isEntries(x.bill);
+    && isInt(x.debt, 0) && isEntries(x.today) && isEntries(x.bill)
+    && Array.isArray(x.pupils) && x.pupils.length <= 10 && x.pupils.every(isPupil) && isInt(x.reputation, 0, 100) && isInt(x.lessonsGiven, 0);
 }
 
 /** Version 1 (before the day cycle): horses had no rest days and there was no morning news. */
@@ -72,6 +75,13 @@ function fromVersion3(x: Obj): unknown {
   return { ...x, version: 4, state: { ...s, version: 4, debt: 0, today: [], bill: [] } };
 }
 
+/** Version 4 (before lessons): no pupils, no reputation. */
+function fromVersion4(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 5, state: { ...s, version: 5, pupils: [], reputation: DATA.lessons.startReputation, lessonsGiven: 0 } };
+}
+
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
 export function parseSave(text: string): Parsed {
   let x: unknown;
@@ -81,6 +91,7 @@ export function parseSave(text: string): Parsed {
   if (x.version === 1) x = fromVersion1(x);
   if (isObj(x) && x.version === 2) x = fromVersion2(x);
   if (isObj(x) && x.version === 3) x = fromVersion3(x);
+  if (isObj(x) && x.version === 4) x = fromVersion4(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }
