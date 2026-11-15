@@ -351,10 +351,10 @@ describe('Sim', () => {
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
     const s = newGame(1);
     expect(goals(s).map((g) => [g.id, g.have, g.done])).toEqual([['groom', 0, false], ['lessons', 0, false], ['badge', 0, false], ['savings', 300, false], ['reputation', 30, false]]);
-    const rich = apply({ ...s, money: 500 }, { type: 'buyHay', pack: 0 });
+    const rich = apply({ ...s, money: 600 }, { type: 'buyHay', pack: 0 });
     expect(rich.goalsDone).toEqual(['savings']);
     const poor = apply({ ...rich, money: 30 }, { type: 'buyHay', pack: 0 });
-    expect(goals(poor).find((g) => g.id === 'savings')).toMatchObject({ done: true, have: 400 });
+    expect(goals(poor).find((g) => g.id === 'savings')).toMatchObject({ done: true, have: 500 });
     expect(goals({ ...s, debt: 50, money: 999 }).find((g) => g.id === 'savings')!.have).toBe(0); // saved means without debts
     expect(allGoalsDone({ ...s, goalsDone: ['groom', 'lessons', 'badge', 'savings', 'reputation'] })).toBe(true);
   });
