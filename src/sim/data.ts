@@ -9,5 +9,11 @@ export const DATA = {
     nightlyLoss: { fed: 35, clean: 20, happy: 15, energy: -40, health: 0 },
     /** Where new horses start. */
     start: { fed: 80, clean: 70, happy: 80, energy: 90, health: 100 },
+    /** Below this health a horse is sick. */
+    sickBelow: 30,
   },
+  /** Stalls ("Boxen") in the stable, per farm stage. */
+  stalls: { kleinerHof: 2, reitschule: 4 },
+  /** The farm stage that unlocks building on a free plot. */
+  freePlotsFrom: 'reitschule',
 } as const;

@@ -67,6 +67,7 @@ export const SPRITES = {
   pitchfork: deco([288, 576, 32, 64]),
   hayShed: deco([352, 700, 64, 62]),
   well: deco([448, 416, 64, 96], 92),
+  board: deco([224, 160, 32, 32], 30),
 };
 export type SpriteName = keyof typeof SPRITES;
 
@@ -80,7 +81,7 @@ export const PROPS: [SpriteName, number, number][] = [
   ['haystack', 120, 418], ['hayBales', 360, 440], ['wheelbarrow', 125, 470], ['pitchfork', 398, 412],
   ['bucket', 300, 432], ['lavender', 160, 420],
   // the middle: well, blossoming trees, flowers
-  ['well', 384, 268], ['blossom', 600, 312], ['bushSmall2', 452, 330], ['clusterYellow', 470, 346], ['roses', 365, 300],
+  ['well', 384, 268], ['board', 462, 420], ['blossom', 600, 312], ['bushSmall2', 452, 330], ['clusterYellow', 470, 346], ['roses', 365, 300],
   // along the bottom edge, so the scene feels framed
   ['bushy', 560, 640], ['round', 380, 640], ['blossom', 470, 600],
   // flower beds by the path and the meadow patches

@@ -26,6 +26,9 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | Career | Two tracks: **Farm stage** (Kleiner Hof → Reitschule → Pensionsstall → Zuchthof → Reitsportzentrum), each ended by a **Farm inspection** (goals plus a short quiz), and **Riding badges** (quiz plus minigame) that open harder sports. |
 | First income | **Lessons**: pupils show up, the player assigns a horse, the lesson runs by itself; pay and satisfaction depend on the horse's needs and on the fit (small child → pony). |
 | Building | Fixed **Plots** on a drawn farm map: tap a plot, choose a building, upgrade it later. Each building places itself on its plot (ground, fence, parts); a free plot shows stakes and a sign. |
+| Farm map | The same living farm, now the player's: their horses on the pasture, labels on the places (stable, feed store, pasture, arena, notice board, free plot). Tapping a place or its label opens it or says in one short line what comes there. |
+| Stable | A close-up of the aisle from the side (twice the farm's pixel size): each horse looks out over its half door; under each door its needs as icons with bars. Tapping a horse opens its card (name, breed, coat, needs, jumping, healthy or sick). |
+| Top bar | Money, day, *Schlafen gehen* (the screen says good night, then the new day) and the menu. |
 | Start screen | The living farm behind the title: herd and sheep on the pasture, a pony cantering over the jumps, chickens, a sleeping cat, a dog, butterflies, birds, cloud shadows, ripples on the pond; warm colours. |
 | Difficulty | One level. Empty money box is no game over: feed on credit (*anschreiben*) and a small bank loan, with a friendly hint. More levels only once the balance holds. |
 | Free play | Comes once there is more than one career stage worth unlocking (after the MVP). |

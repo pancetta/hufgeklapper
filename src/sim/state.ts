@@ -1,6 +1,6 @@
 /**
  * The Sim: the game rules as a pure module (ADR-0001). State in, action in, new state out; no pixels, no DOM.
- * Randomness comes from a seed kept in the state, so the same game plays the same way.
+ * Randomness will come from the seed kept in the state, so the same game plays the same way.
  */
 import type { Breed, Look } from '../horses/look';
 import { breedLook } from '../horses/look';
@@ -16,7 +16,7 @@ export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
   version: 1;
-  seed: number; // the random generator's state
+  seed: number; // the game's random seed (the first rule with chance adds a generator that uses it)
   day: number;
   money: number;
   feed: number; // hay bales in store
@@ -25,14 +25,6 @@ export type State = {
 };
 
 export type Action = { type: 'sleep' };
-
-/** The game's random generator (mulberry32): a value in [0, 1) and the next seed. */
-export function roll(seed: number): [value: number, next: number] {
-  const next = (seed + 0x6d2b79f5) | 0;
-  let t = Math.imul(next ^ (next >>> 15), 1 | next);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return [((t ^ (t >>> 14)) >>> 0) / 4294967296, next];
-}
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -48,6 +40,10 @@ export function newGame(seed: number): State {
     ],
   };
 }
+
+export const isSick = (h: Horse) => h.needs.health < DATA.needs.sickBelow;
+export const stalls = (s: State) => DATA.stalls[s.stage];
+export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
 
 /** Applies one action; never changes the state it was given. */
 export function apply(state: State, action: Action): State {
