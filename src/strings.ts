@@ -112,7 +112,7 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld Turnier', prize: 'Preisgeld' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,

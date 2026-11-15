@@ -20,7 +20,7 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 7;
+  version: 8;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -43,13 +43,15 @@ export type State = {
   trainings: number;
   badges: number;
   badgeFailedDay: number;
+  /** The day of the last show the player rode in (0: none yet). */
+  lastShowDay: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
   bill: Entry[];
 };
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
-export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson'; amount: number };
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize'; amount: number };
 
 /** The player's figure ("Avatar"): a name and a rider's look (indices into the palettes in riders/look.ts). */
 export type Avatar = { name: string; skin: number; hair: HairStyle; hairColor: number; jacket: number };
@@ -66,7 +68,8 @@ export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; hors
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
   | { type: 'train'; horse: string; faults: number }
-  | { type: 'badge'; horse: string; correct: number; faults: number };
+  | { type: 'badge'; horse: string; correct: number; faults: number }
+  | { type: 'show'; horse: string; faults: number };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -98,7 +101,7 @@ export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 7, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 8, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, lastShowDay: 0, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -137,6 +140,41 @@ export function badgeWaits(s: State): { why: 'passed' } | { why: 'practise'; rou
   if (s.trainings < DATA.badge.trainings) return { why: 'practise', rounds: DATA.badge.trainings - s.trainings };
   return s.badgeFailedDay === s.day ? { why: 'tomorrow' } : null;
 }
+/** The next show day: today if a show is on and not ridden yet. */
+export function nextShowDay(s: State) {
+  const every = DATA.shows.every, on = Math.ceil(s.day / every) * every;
+  return on === s.lastShowDay ? on + every : on;
+}
+/** Why the player can't ride in a show today, or null if they can (the horse still has to be fit). */
+export function showWaits(s: State): 'badge' | 'notToday' | 'money' | null {
+  return s.badges < 1 ? 'badge' : nextShowDay(s) !== s.day ? 'notToday' : s.money < DATA.shows.fee ? 'money' : null;
+}
+const showScore = (faults: number, skill: number) => 100 - DATA.shows.faultPoints * faults + Math.round(skill * DATA.shows.skillPoints);
+
+export type ShowRow = { rider: string; horse: string; score: number; you?: true };
+/**
+ * A show's results for the player's round with horse `h`: the rivals ride with chance from the game's seed. The table
+ * is best first; the player wins a tie. Returns the rank (1 = first), the prize and the moved seed.
+ */
+export function showResult(s: State, h: Horse, faults: number, rider: string) {
+  const S = DATA.shows, J = DATA.jumping, rows: ShowRow[] = [];
+  let seed = s.seed, r: number;
+  const pool = [...S.rivals];
+  for (let i = 0; i < S.rivalsPerShow; i++) {
+    [r, seed] = roll(seed);
+    const [name, horse] = pool.splice(Math.floor(r * pool.length), 1)[0];
+    [r, seed] = roll(seed);
+    const skill = S.rivalSkill[0] + r * (S.rivalSkill[1] - S.rivalSkill[0]);
+    let down = 0;
+    for (let j = 0; j < J.jumps; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
+    rows.push({ rider: name, horse, score: showScore(down, skill) });
+  }
+  const you: ShowRow = { rider, horse: h.name, score: showScore(faults, h.skills.jumping), you: true };
+  const table = [you, ...rows].sort((a, b) => b.score - a.score || (a.you ? -1 : b.you ? 1 : 0));
+  const rank = table.indexOf(you) + 1;
+  return { table, rank, prize: S.prizes[rank - 1] ?? 0, seed };
+}
+
 /** The badge needs most quiz answers right and a jumping round with few knocked poles. */
 export const passesBadge = (correct: number, faults: number) => correct >= DATA.badge.quizPass && faults <= DATA.badge.maxFaults;
 
@@ -237,6 +275,16 @@ export function apply(state: State, action: Action): State {
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
       };
       return { ...state, trainings: state.trainings + 1, horses: state.horses.map((x) => (x === h ? trained : x)) };
+    }
+    case 'show': {
+      // the entry fee, the round (the horse tires like practice), the prize for the first three; one show a day
+      const h = state.horses.find((x) => x.id === action.horse), S = DATA.shows;
+      if (!h || showWaits(state) || cantWork(h, DATA.jumping.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      const { prize, seed } = showResult(state, h, action.faults, state.avatar.name);
+      const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.jumping.energy) } };
+      const paid: State = { ...state, seed, lastShowDay: state.day, money: state.money - S.fee, horses: state.horses.map((x) => (x === h ? ridden : x)),
+        today: [...state.today, { what: 'showFee', amount: -S.fee }, ...(prize ? [{ what: 'prize' as const, amount: prize }] : [])] };
+      return prize ? earn(paid, prize) : paid;
     }
     case 'badge': {
       // the badge's jumping round tires the horse like practice; passing opens shows, failing waits for tomorrow
