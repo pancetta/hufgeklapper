@@ -18,4 +18,15 @@ every part, ships next to the art under `public/assets/credits/`.
 | [LPC] Cats and Dogs | bluecarrot16 | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | https://opengameart.org/content/lpc-cats-and-dogs | `public/assets/animals/cat.png`, `public/assets/animals/dog.png` |
 | Pixelify Sans | The Pixelify Sans Project Authors (Stefie Justprince) | [OFL 1.1](https://openfontlicense.org/) | https://github.com/eifetx/Pixelify-Sans | `public/assets/fonts/PixelifySans.ttf`, `public/assets/credits/pixelify-sans.txt` |
 
-Our own drawings (show jumps, butterflies, cloud shadows) are drawn in code in `src/`.
+## Our own drawings
+
+Made for Hufgeklapper and drawn in code, in the LPC style (32 px grid, dark outlines), under the game's own terms:
+
+- Riders: the pupils and the player's avatar with riding helmet, jacket, breeches, boots and four hair styles (`src/scene/kids.ts`)
+- Portraits: Oma Hanne and Frau Berger, the inspector (`src/scene/oma.ts`)
+- The farm: the windmill's tower (`src/scene/windmill.ts`; its blades are from [LPC] Farm), the open shelter, the Reitschule's pennants, flower boxes, the free plot's stakes and sign, the arena's show jumps (`src/scene/buildings.ts`)
+- The jumping course: sand lane, fences, upright, cross pole and oxer, knocked poles (`src/scene/jumping.ts`)
+- Butterflies, birds, cloud shadows, ripples on the pond (`src/scene/life.ts`)
+- Icons for needs, care tools, money, hay, the riding helmet and the riding badge's rosette (`src/ui/icons.ts`)
+- The home-screen icon, a golden horseshoe (`scripts/icon.ts` → `public/icons/`)
+- Derived from LPC files, so they keep the source's attribution above: the ponies (`scripts/pony.ts`) and the eye glints (`scripts/eyes.ts`)

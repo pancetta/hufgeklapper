@@ -205,6 +205,17 @@ every part, ships next to the art under \`public/assets/credits/\`.
 |---|---|---|---|---|
 ${credits.map((c) => `| ${c.title} | ${c.authors} | [${c.license}](${c.licenseUrl}) | ${c.page} | ${c.files.map((f) => `\`${f}\``).join(', ')}${c.note ? ` (${c.note})` : ''} |`).join('\n')}
 
-Our own drawings (show jumps, butterflies, cloud shadows) are drawn in code in \`src/\`.
+## Our own drawings
+
+Made for Hufgeklapper and drawn in code, in the LPC style (32 px grid, dark outlines), under the game's own terms:
+
+- Riders: the pupils and the player's avatar with riding helmet, jacket, breeches, boots and four hair styles (\`src/scene/kids.ts\`)
+- Portraits: Oma Hanne and Frau Berger, the inspector (\`src/scene/oma.ts\`)
+- The farm: the windmill's tower (\`src/scene/windmill.ts\`; its blades are from [LPC] Farm), the open shelter, the Reitschule's pennants, flower boxes, the free plot's stakes and sign, the arena's show jumps (\`src/scene/buildings.ts\`)
+- The jumping course: sand lane, fences, upright, cross pole and oxer, knocked poles (\`src/scene/jumping.ts\`)
+- Butterflies, birds, cloud shadows, ripples on the pond (\`src/scene/life.ts\`)
+- Icons for needs, care tools, money, hay, the riding helmet and the riding badge's rosette (\`src/ui/icons.ts\`)
+- The home-screen icon, a golden horseshoe (\`scripts/icon.ts\` → \`public/icons/\`)
+- Derived from LPC files, so they keep the source's attribution above: the ponies (\`scripts/pony.ts\`) and the eye glints (\`scripts/eyes.ts\`)
 `);
 console.log(`wrote ${credits.reduce((n, c) => n + c.files.length, 0)} files from ${credits.length} packs`);
