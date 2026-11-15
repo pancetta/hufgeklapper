@@ -88,7 +88,7 @@ function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number, fallen: boo
       ctx.fillStyle = Math.floor(i / 6) % 2 ? j.colour : '#ffffff'; ctx.fillRect(px, py, 3, 2);
     }
   } else if (j.kind === 'cross') {
-    pole(ctx, x - 5, x + 5, j.colour); pole(ctx, x + 5, x - 5, j.colour);
+    pole(ctx, x - 9, x + 9, j.colour); pole(ctx, x + 9, x - 9, j.colour);
   } else pole(ctx, x, x, j.colour);
   if (j.kind === 'oxer' && !fallen) pole(ctx, x + 12, x + 12, j.colour);
   standards(ctx, x, j.colour);
