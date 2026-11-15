@@ -184,8 +184,8 @@ export const t = {
   inspectionQuiz: [
     { q: 'Wann braucht ein Pferd frisches Wasser?', a: [{ text: 'Immer, den ganzen Tag' }, { text: 'Einmal in der Woche' }, { text: 'Nur im Sommer' }] },
     { q: 'Warum mistest du den Stall aus?', a: [{ text: 'Damit das Pferd sauber und gesund bleibt', icon: 'muck' }, { text: 'Damit es mehr Platz zum Rennen hat' }, { text: 'Das muss man nicht' }] },
-    { q: 'Was braucht ein Pferd jeden Tag?', a: [{ text: 'Futter, Bewegung und andere Pferde' }, { text: 'Nur einen warmen Stall' }, { text: 'Einen Fernseher' }] },
-    { q: 'Wie oft kommt der Hufschmied?', a: [{ text: 'Alle paar Wochen', icon: 'hooves' }, { text: 'Nie' }, { text: 'Nur an Weihnachten' }] },
+    { q: 'Was braucht ein Pferd jeden Tag?', a: [{ text: 'Futter und Bewegung' }, { text: 'Nur einen warmen Stall' }, { text: 'Einen Fernseher' }] },
+    { q: 'Wie oft kommt der Hufschmied?', a: [{ text: 'Alle paar Wochen' }, { text: 'Nie' }, { text: 'Nur an Weihnachten' }] },
     { q: 'Wie lebt ein Pferd am liebsten?', a: [{ text: 'Mit anderen Pferden zusammen' }, { text: 'Ganz allein' }, { text: 'Im Haus' }] },
   ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
   inspectionPassed: 'Herzlichen Glückwunsch! Dein Hof ist jetzt eine Reitschule. Du kannst Pferde kaufen und bauen!',
@@ -193,13 +193,15 @@ export const t = {
   // the Reitschule: market and building
   market: 'Pferdemarkt',
   marketEmpty: 'Heute gibt es keine Pferde mehr. Morgen kommen neue.',
-  offer: (name: string, breed: string, price: number) => `${name} · ${breed} · ${price} €`,
-  noStall: 'Kein Stallplatz frei. Bau erst neue Stallplätze!',
+  offer: (name: string, pony: boolean, breed: string, coat: string, price: number) => `${name} · ${pony ? 'Pony' : 'Pferd'} · ${breed}, ${coat} · ${price} €`,
+  noStall: 'Kein Stallplatz frei. Bau neue Stallplätze auf dem Bauplatz!',
+  stallsFull: 'Alle Stallplätze sind voll.',
   tooExpensive: 'zu teuer',
   boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
   shelter: 'Offenstall',
   buildStalls: (cost: number) => `Stallplätze bauen (${cost} €)`,
   upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost} €)`,
+  brings: { stalls: 'Ein Offenstall mit zwei Plätzen für neue Pferde.', arena: 'Ein schönerer Reitplatz: Jeden Tag kommt ein Reitschüler mehr.' },
   buildWaits: { stage: 'Bauen kannst du erst als Reitschule.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
   builtStalls: 'Der Offenstall ist fertig. Jetzt passen zwei Pferde mehr hinein.',
   builtArena: 'Der Reitplatz ist schöner geworden. Jetzt kommt jeden Tag ein Reitschüler mehr.',

@@ -388,6 +388,9 @@ describe('Sim', () => {
     // the Reitschule has new goals
     expect(goals(passed).map((g) => g.id)).toEqual(DATA.goals.reitschule.map((g) => g.id));
     expect(goals(passed).filter((g) => g.done)).toEqual([]); // the Kleiner Hof's reached goals don't carry over
+    // the lesson goal counts from the stage's start, even after many lessons before
+    const busy = apply({ ...done, lessonsGiven: 40 }, { type: 'inspection', answers: right });
+    expect(goals(busy).find((g) => g.id === 'lessons')).toMatchObject({ have: 0, done: false });
   });
 
   it('sells horses at the Reitschule: fresh offers each morning, only with money and a free stall place', () => {
@@ -398,6 +401,8 @@ describe('Sim', () => {
       expect(o.price).toBeGreaterThanOrEqual(lo); expect(o.price).toBeLessThanOrEqual(hi);
     }
     expect(marketFor(4, 42)[0]).toEqual(offers);
+    expect(new Set(offers.map((o) => o.name)).size).toBe(offers.length);
+    expect(marketFor(4, 42, offers.map((o) => o.name))[0].map((o) => o.name).filter((n) => offers.some((o) => o.name === n))).toEqual([]); // not a name already on the farm
     const s: State = { ...newGame(1), stage: 'reitschule', market: offers, money: 2000 };
     expect(apply(s, { type: 'buyHorse', offer: offers[0].id })).toBe(s); // both stall places taken
     const roomy = apply(s, { type: 'build', what: 'stalls' });

@@ -38,6 +38,16 @@ describe('save files', () => {
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
   });
 
+  it('reads back a Reitschule with its market, a bought horse and the buildings', () => {
+    let s = { ...played(), goalsDone: ['groom', 'lessons', 'badge', 'savings', 'reputation'], money: 3000 } as ReturnType<typeof played>;
+    s = apply(s, { type: 'inspection', answers: [0, 0, 0, 0, 0] });
+    s = apply(apply(s, { type: 'build', what: 'stalls' }), { type: 'build', what: 'arena' });
+    s = apply(apply(s, { type: 'buyHorse', offer: s.market[0].id }), { type: 'sleep' });
+    expect(s.stage).toBe('reitschule');
+    const save = toSave(s, 'Hof');
+    expect(parseSave(text(save))).toEqual({ ok: true, save });
+  });
+
   it('gives a save from version 9 (before the inspection) no market and nothing built', () => {
     const now = toSave(played(), 'Hof');
     const { inspectionFailedDay: _a, market: _b, built: _c, ...old } = now.state;

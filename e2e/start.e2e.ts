@@ -439,6 +439,12 @@ test('the farm inspection makes a Reitschule: build stall places, buy a horse at
   await page.getByRole('button', { name: t.gotIt }).tap();
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
   expect(state.horses.map((h: { name: string }) => h.name)).toEqual(['Kiwi', 'Luna', name]);
+  // the stable now has four places: three horses and one free
+  await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
+  await expect(page.locator('.nameplate:not(.empty)')).toHaveCount(3);
+  await expect(page.locator('.nameplate.empty')).toHaveCount(1);
+  await page.screenshot({ path: test.info().outputPath('stable-four.png') });
+  await page.getByRole('button', { name: t.toFarm }).tap();
   // the arena upgrade
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.upgradeArena(DATA.build.arena.cost) }).tap();
