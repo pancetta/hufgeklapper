@@ -338,7 +338,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
   // the notice board's calendar names today
   await page.getByRole('button', { name: t.places.board }).tap();
-  await expect(page.getByText(t.nextShow(DATA.shows.every))).toBeVisible();
+  await expect(page.getByText(t.nextShow(DATA.shows.every, true))).toBeVisible();
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.show, exact: true }).tap();

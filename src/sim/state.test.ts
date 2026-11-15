@@ -341,8 +341,11 @@ describe('Sim', () => {
     expect(apply(won, { type: 'show', horse: h.id, faults: 0 })).toBe(won); // one show a day
     const owing = apply({ ...s, debt: 100 }, { type: 'show', horse: h.id, faults: 0 });
     expect(owing.debt).toBe(100 - Math.round(S.prizes[0] * DATA.repayShare));
-    const sick = { ...s, horses: [{ ...h, needs: { ...h.needs, health: 5 } }] };
-    expect(apply(sick, { type: 'show', horse: h.id, faults: 0 })).toBe(sick);
+    for (const bad of [{ ...h, needs: { ...h.needs, health: 5 } }, { ...h, needs: { ...h.needs, energy: DATA.jumping.energy - 1 } }]) {
+      const st = { ...s, horses: [bad] }; // sick, or too tired
+      expect(apply(st, { type: 'show', horse: h.id, faults: 0 })).toBe(st);
+    }
+    expect(showResult(s, h, 0, 'Lotta').table.filter((r) => r.rider === 'Lotta')).toHaveLength(1);
   });
 
   it('rolls the same numbers from the same seed', () => {

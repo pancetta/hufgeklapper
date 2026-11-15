@@ -293,7 +293,7 @@ export function showFarm(intro = false) {
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
   const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
-  /** The arena: give a lesson to the first waiting pupil, or practise jumping with a horse. */
+  /** The arena: a lesson for the first waiting pupil, jumping practice, and the riding badge or, once passed, the show. */
   function arena() {
     const sheet = $('lesson'), s = game.get(), wait = badgeWaits(s), show = showWaits(s);
     const showWhy = show === 'notToday' ? t.showWaits.notToday(nextShowDay(s)) : show === 'money' ? t.showWaits.money(DATA.shows.fee) : show && t.showWaits[show];
@@ -353,7 +353,7 @@ export function showFarm(intro = false) {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
       <p>${t.inStore(s.feed)}${s.debt ? ` · ${t.owe(s.debt)}` : ''}</p>
-      ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s))}</p>` : ''}
+      ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
       <h3>${t.buyHay}</h3>
       ${DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('')}
       ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
@@ -410,11 +410,10 @@ export function showFarm(intro = false) {
   leave = () => { bar.unsubscribe(); farm.then((f) => f.stop()); };
 }
 
-/** Jumping practice: Oma Hanne explains, one round over the course, then what it brought. */
 /** A jumping round: practice, the badge's round (after its quiz), or a show. */
 function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train') {
   const h = game.get().horses.find((x) => x.id === id)!;
-  const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
+  const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.show : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
@@ -430,6 +429,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train') {
       // the podium: the first three on their steps, then everyone with their points
       const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name);
       game.dispatch({ type: 'show', horse: id, faults });
+      if (game.get().lastShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
       const row = (r: ShowRow) => `<b>${esc(r.rider)}</b><span>${esc(r.horse)}</span>`;
       end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
         <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
