@@ -110,7 +110,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
 }
 
 export function showFarm() {
-  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels"></div>${topBar()}`);
+  const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}`);
   const tap = (target: string) => {
     const s = game.get();
     if (target === 'stall') showStable();
@@ -135,11 +135,14 @@ export function showFarm() {
   labels.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => tap(b.dataset.place!)));
   const farm = startFarm($<HTMLCanvasElement>('farm'), {
     herd: game.get().horses.map((h) => h.look), canter: false, onTap: tap,
-    onLayout: () => farm.then((f) => places.forEach(([id, x, y]) => {
-      const el = labels.querySelector<HTMLElement>(`[data-place="${id}"]`)!, p = f.toScreen(x, y);
-      // centred on the place (set here, not with a CSS transform: WebKit then misses taps on it)
-      el.style.left = `${p.left - el.offsetWidth / 2}px`; el.style.top = `${p.top - el.offsetHeight / 2}px`;
-    })),
+    onLayout: () => farm.then((f) => {
+      labels.hidden = false; // shown once placed, not stacked in a corner while the farm loads
+      places.forEach(([id, x, y]) => {
+        const el = labels.querySelector<HTMLElement>(`[data-place="${id}"]`)!, p = f.toScreen(x, y);
+        // centred on the place (set here, not with a CSS transform: WebKit then misses taps on it)
+        el.style.left = `${p.left - el.offsetWidth / 2}px`; el.style.top = `${p.top - el.offsetHeight / 2}px`;
+      });
+    }),
   });
   leave = () => { bar.unsubscribe(); farm.then((f) => f.stop()); };
 }
@@ -153,7 +156,7 @@ const needBar = (h: Horse, n: (typeof NEEDS)[number], withLabel = false) => {
 
 export function showStable() {
   const s = game.get();
-  const $ = screen(`<canvas id="stable" aria-hidden="true"></canvas><div id="boxes"></div>${topBar()}
+  const $ = screen(`<canvas id="stable" aria-hidden="true"></canvas><div id="boxes" hidden></div>${topBar()}
     <button id="to-farm" class="corner" type="button">${t.toFarm}</button>
     <section id="card" class="overlay" hidden></section>`);
   const boxes = $('boxes');
@@ -174,11 +177,14 @@ export function showStable() {
   $('to-farm').addEventListener('click', showFarm);
   const scene = startStable($<HTMLCanvasElement>('stable'), { horses: s.horses.map((h) => h.look), stalls: stalls(s), onLayout: () => place() });
   function place() {
-    scene.then((sc) => boxes.querySelectorAll<HTMLElement>('.box').forEach((el, i) => {
-      const b = sc.box(i);
-      el.style.left = `${b.left}px`; el.style.width = `${b.width}px`;
-      el.style.setProperty('--door', `${b.doorTop}px`); el.style.setProperty('--below', `${b.below}px`); el.style.setProperty('--top', `${b.horseTop}px`);
-    }));
+    scene.then((sc) => {
+      boxes.querySelectorAll<HTMLElement>('.box').forEach((el, i) => {
+        const b = sc.box(i);
+        el.style.left = `${b.left}px`; el.style.width = `${b.width}px`;
+        el.style.setProperty('--door', `${b.doorTop}px`); el.style.setProperty('--below', `${b.below}px`); el.style.setProperty('--top', `${b.horseTop}px`);
+      });
+      boxes.hidden = false; // shown once placed, not stacked in a corner while the scene loads
+    });
   }
   function showCard(id: string) {
     const h = game.get().horses.find((x) => x.id === id)!, card = $('card');
@@ -188,7 +194,7 @@ export function showStable() {
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
-      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(h.name) : t.healthy(h.name)}</p>
+      <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : t.healthy(esc(h.name))}</p>
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));

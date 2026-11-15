@@ -38,6 +38,17 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
 });
 
+test('tapping the barn itself opens the stable, and nothing in it', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: t.start }).tap();
+  const label = (await page.getByRole('button', { name: t.places.stall }).boundingBox())!;
+  // the barn's doors, above its label: a tap on the canvas, where the stable's horse buttons will appear
+  await page.touchscreen.tap(label.x + label.width / 2, label.y - 60);
+  await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
+  await page.waitForTimeout(400);
+  await expect(page.locator('#card')).toBeHidden();
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

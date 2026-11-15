@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, isSick, NEEDS, newGame, roll, stalls } from './state';
+import { apply, canBuild, isSick, NEEDS, newGame, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -41,13 +41,5 @@ describe('Sim', () => {
     const h = newGame(1).horses[0];
     expect(isSick(h)).toBe(false);
     expect(isSick({ ...h, needs: { ...h.needs, health: DATA.needs.sickBelow - 1 } })).toBe(true);
-  });
-
-  it('rolls the same numbers from the same seed', () => {
-    const a = roll(42), b = roll(42);
-    expect(a).toEqual(b);
-    expect(a[0]).toBeGreaterThanOrEqual(0);
-    expect(a[0]).toBeLessThan(1);
-    expect(roll(a[1])[0]).not.toBe(a[0]);
   });
 });

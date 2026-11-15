@@ -84,17 +84,19 @@ export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {
     requestAnimationFrame(frame);
   }
 
-  const tap = (e: PointerEvent) => {
+  const tap = (e: MouseEvent) => {
     const r = canvas.getBoundingClientRect(), target = hit((e.clientX - r.left) / S - ox, (e.clientY - r.top) / S - oy);
     if (target) opts.onTap?.(target);
   };
-  if (opts.onTap) canvas.addEventListener('pointerup', tap);
+  // 'click', not 'pointerup': WebKit sends the click after pointerup to whatever is under the finger, which would be
+  // the next screen if the tap already swapped it
+  if (opts.onTap) canvas.addEventListener('click', tap);
   fit();
   addEventListener('resize', fit);
   requestAnimationFrame(frame);
   return {
     /** CSS pixel position of a world point, for HTML labels over the map. */
     toScreen: (x: number, y: number) => ({ left: (x + ox) * S, top: (y + oy) * S }),
-    stop() { running = false; removeEventListener('resize', fit); canvas.removeEventListener('pointerup', tap); },
+    stop() { running = false; removeEventListener('resize', fit); canvas.removeEventListener('click', tap); },
   };
 }
