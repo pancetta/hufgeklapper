@@ -78,13 +78,13 @@ function askNewGame(): Promise<{ farmName: string; avatar: Avatar } | null> {
     <div class="editor-body">
       <canvas class="preview" width="40" height="32" aria-hidden="true"></canvas>
       <div class="editor-fields">
-        <label>${t.yourName} <input id="player-name" maxlength="20" autocomplete="off" value="${DATA.avatar.name}"></label>
+        <label>${t.yourName} <input id="player-name" maxlength="20" autocomplete="off" placeholder="${DATA.avatar.name}" enterkeyhint="done"></label>
         <div class="choice" role="group" aria-label="${t.looks.skin}"><span>${t.looks.skin}</span>${swatches('skin', SKIN)}</div>
         <div class="choice" role="group" aria-label="${t.looks.hair}"><span>${t.looks.hair}</span>${HAIR_STYLES.map((h) =>
           `<button type="button" class="style" data-k="hair" data-v="${h}">${t.hairStyles[h]}</button>`).join('')}</div>
         <div class="choice" role="group" aria-label="${t.looks.hairColor}"><span>${t.looks.hairColor}</span>${swatches('hairColor', HAIR)}</div>
         <div class="choice" role="group" aria-label="${t.looks.jacket}"><span>${t.looks.jacket}</span>${swatches('jacket', JACKET)}</div>
-        <label>${t.farmName} <input id="farm-name" maxlength="20" autocomplete="off" value="${t.farmNameDefault}"></label>
+        <label>${t.farmName} <input id="farm-name" maxlength="20" autocomplete="off" placeholder="${t.farmNameDefault}" enterkeyhint="done"></label>
       </div>
     </div>
     <div class="editor-buttons"><button type="button" data-a="no">${t.back}</button><button type="submit">${t.start}</button></div></form>`;
@@ -103,7 +103,10 @@ function askNewGame(): Promise<{ farmName: string; avatar: Avatar } | null> {
     show();
   }));
   show();
-  const field = (id: string) => box.querySelector<HTMLInputElement>(`#${id}`)!.value.trim();
+  // the save allows 20 UTF-16 units; WebKit's maxlength counts emoji as one
+  const field = (id: string) => box.querySelector<HTMLInputElement>(`#${id}`)!.value.trim().slice(0, 20);
+  // Return on the iPad keyboard only closes it: the game starts with the Start button, after the figure is made
+  box.querySelectorAll('input').forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }));
   return new Promise((ok) => {
     box.querySelector('form')!.addEventListener('submit', (e) => {
       e.preventDefault(); box.remove();
@@ -254,7 +257,7 @@ export function showFarm(intro = false) {
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
     <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>
     <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>
-    <section id="intro" class="overlay talk" hidden><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p></p>
+    <section id="intro" class="overlay talk" hidden><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p>
       <button type="button" id="intro-next">${t.next}</button></div></section>`);
   if (intro) {
     const s = game.get(), lines = t.intro(s.avatar.name, s.horses.map((h) => h.name));
