@@ -271,6 +271,53 @@ test('jumping practice: the avatar rides a round, taps take off, the pony trains
   await expect(page.getByRole('button', { name: t.places.arena })).toBeVisible();
 });
 
+test('riding badge 1: Oma asks five questions, a jumping round, then the rosette or another try tomorrow', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // not open before practice
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await expect(page.getByRole('button', { name: t.ridingBadge })).toBeDisabled();
+  await expect(page.getByText(t.badgeWaits.practise(DATA.badge.trainings))).toBeVisible();
+  // as if practised enough: the save says so, and the game carries on from it
+  await page.evaluate(() => {
+    const k = 'hufgeklapper.slot.0', s = JSON.parse(localStorage.getItem(k)!);
+    s.state.trainings = 3;
+    localStorage.setItem(k, JSON.stringify(s));
+  });
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.ridingBadge }).tap();
+  await expect(page.getByText(t.badgeIntro)).toBeVisible();
+  await page.getByRole('button', { name: t.next }).tap();
+  for (const q of t.quiz) {
+    await expect(page.getByText(q.q)).toBeVisible();
+    await page.getByRole('button', { name: q.a[0].text }).tap();
+    await expect(page.getByText(t.quizRight)).toBeVisible();
+    await page.getByRole('button', { name: t.next }).tap();
+  }
+  await expect(page.getByText(t.quizDone(5))).toBeVisible();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.go }).tap();
+  const canvas = page.locator('#jumping'), end = page.locator('#jump-end');
+  for (let i = 0; i < 60 && (await end.isHidden()); i++) {
+    await canvas.tap({ position: { x: 300, y: 300 } });
+    await page.waitForTimeout(300);
+  }
+  // passed or not, the result and the save agree
+  await expect(end).toBeVisible();
+  const passed = (await end.textContent())!.includes(t.badgePassed);
+  if (!passed) await expect(end).toContainText(t.badgeFailed);
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  expect(state.badges).toBe(passed ? 1 : 0);
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  // the player card shows the figure's name and the badge, if earned
+  await page.getByRole('button', { name: t.menu }).tap();
+  await page.getByRole('button', { name: t.playerCard }).tap();
+  await expect(page.locator('#player-card')).toContainText(passed ? t.badgeName : t.noBadges);
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

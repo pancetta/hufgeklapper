@@ -130,6 +130,31 @@ export const t = {
   go: 'Los!',
   jumpClear: (horse: string) => `Fehlerfrei! ${horse} springt jetzt besser.`,
   jumpFaults: (n: number, horse: string) => `${n} ${n === 1 ? 'Stange ist' : 'Stangen sind'} gefallen. ${horse} hat trotzdem geübt.`,
+  // riding badge 1
+  ridingBadge: 'Reitabzeichen',
+  badgeWaits: {
+    practise: (n: number) => `Übe erst noch ${n}× Springen.`,
+    tomorrow: 'Morgen kannst du es noch einmal versuchen.',
+    passed: 'Das hast du schon geschafft!',
+  },
+  badgeIntro: 'Zuerst stelle ich dir fünf Fragen zur Pferdepflege. Dann reitest du eine Springrunde.',
+  quiz: [
+    { q: 'Was frisst ein Pony am meisten?', a: [{ text: 'Heu', icon: 'feed' }, { text: 'Schokolade' }, { text: 'Brötchen' }] },
+    { q: 'Womit machst du die Hufe sauber?', a: [{ text: 'Mit dem Hufkratzer', icon: 'hooves' }, { text: 'Mit einem Kamm' }, { text: 'Mit einer Zahnbürste' }] },
+    { q: 'Wie gehst du zu einem Pferd?', a: [{ text: 'Von vorne an die Schulter, und ich spreche mit ihm' }, { text: 'Leise von hinten' }, { text: 'Schnell rennend' }] },
+    { q: 'Was trägst du beim Reiten immer?', a: [{ text: 'Einen Reithelm', icon: 'helmet' }, { text: 'Eine Mütze' }, { text: 'Eine Sonnenbrille' }] },
+    { q: 'Dein Pony humpelt und hat ein dickes Bein. Was tust du?', a: [{ text: 'Den Tierarzt rufen', icon: 'health' }, { text: 'Trotzdem reiten' }, { text: 'Nichts, das geht vorbei' }] },
+  ] as { q: string; a: { text: string; icon?: 'feed' | 'hooves' | 'helmet' | 'health' }[] }[], // the first answer is the right one
+  quizRight: 'Richtig!',
+  quizWrong: (right: string) => `Leider falsch. Richtig ist: ${right}.`,
+  quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
+  badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
+  badgeFailed: 'Diesmal hat es nicht geklappt. Morgen kannst du es noch einmal versuchen.',
+  // the player card
+  playerCard: 'Meine Figur',
+  badges: 'Abzeichen',
+  noBadges: 'Noch keine Abzeichen.',
+  badgeName: 'Reitabzeichen 1',
   noPupils: 'Heute möchte niemand mehr reiten. Morgen kommen neue Reitschüler.',
   newVersion: 'Das Spiel ist noch besser geworden! Beim nächsten Start ist es da.',
   euros: (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} €`,

@@ -20,7 +20,7 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 6;
+  version: 7;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -39,6 +39,10 @@ export type State = {
   pupils: Pupil[];
   reputation: number;
   lessonsGiven: number;
+  /** Jumping rounds practised; riding badges passed; the day a badge attempt last failed (0: never). */
+  trainings: number;
+  badges: number;
+  badgeFailedDay: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
   bill: Entry[];
@@ -61,7 +65,8 @@ export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; hors
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
-  | { type: 'train'; horse: string; faults: number };
+  | { type: 'train'; horse: string; faults: number }
+  | { type: 'badge'; horse: string; correct: number; faults: number };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -93,7 +98,7 @@ export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 6, avatar, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 7, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -125,6 +130,15 @@ export function jumpWindow(h: Horse) {
   return J.window.base + J.window.skill * (h.skills.jumping / 100) + J.window.kept * kept;
 }
 export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
+
+/** Why the riding badge can't be tried now: passed already, more practice first, or tomorrow after a failed try. */
+export function badgeWaits(s: State): { why: 'passed' } | { why: 'practise'; rounds: number } | { why: 'tomorrow' } | null {
+  if (s.badges >= 1) return { why: 'passed' };
+  if (s.trainings < DATA.badge.trainings) return { why: 'practise', rounds: DATA.badge.trainings - s.trainings };
+  return s.badgeFailedDay === s.day ? { why: 'tomorrow' } : null;
+}
+/** The badge needs most quiz answers right and a jumping round with few knocked poles. */
+export const passesBadge = (correct: number, faults: number) => correct >= DATA.badge.quizPass && faults <= DATA.badge.maxFaults;
 
 /** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
 export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
@@ -222,7 +236,15 @@ export function apply(state: State, action: Action): State {
         ...h, skills: { ...h.skills, jumping: clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)) },
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
       };
-      return { ...state, horses: state.horses.map((x) => (x === h ? trained : x)) };
+      return { ...state, trainings: state.trainings + 1, horses: state.horses.map((x) => (x === h ? trained : x)) };
+    }
+    case 'badge': {
+      // the badge's jumping round tires the horse like practice; passing opens shows, failing waits for tomorrow
+      const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
+      if (!h || badgeWaits(state) || cantWork(h, J.energy)) return state;
+      const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy) } };
+      const passed = passesBadge(action.correct, action.faults);
+      return { ...state, horses: state.horses.map((x) => (x === h ? ridden : x)), badges: passed ? 1 : state.badges, badgeFailedDay: passed ? 0 : state.day };
     }
     case 'lesson': {
       const p = state.pupils.find((x) => x.id === action.pupil), h = state.horses.find((x) => x.id === action.horse);

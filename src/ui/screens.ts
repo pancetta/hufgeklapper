@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, CARE, canBuild, cantWork, clears, fit, jumpWindow, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { type Avatar, CARE, canBuild, badgeWaits, cantWork, clears, fit, jumpWindow, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -198,9 +198,11 @@ function topBar() {
     <section id="menu-sheet" class="overlay" hidden>
       <div class="sheet menu">
         <button id="resume" type="button">${t.resume}</button>
+        <button id="player" type="button">${t.playerCard}</button>
         <button id="to-start" type="button">${t.toStart}</button>
       </div>
     </section>
+    <section id="player-card" class="overlay" hidden><div class="sheet ask player-card"></div></section>
     <div id="night" class="night" hidden><p></p></div>
     <section id="morning" class="overlay" hidden><div class="sheet ask"></div></section>
     <p id="toast" class="toast" role="status" hidden></p>`;
@@ -234,6 +236,19 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   $('menu').addEventListener('click', () => { $('menu-sheet').hidden = false; });
   $('resume').addEventListener('click', () => { $('menu-sheet').hidden = true; });
   $('to-start').addEventListener('click', showStart);
+  // the player card: the figure, its name and the badges earned
+  $('player').addEventListener('click', () => {
+    const s = game.get(), card = $('player-card');
+    card.firstElementChild!.innerHTML = `<h2>${t.playerCard}</h2><canvas class="preview" width="40" height="32" aria-hidden="true"></canvas>
+      <p class="player-name"></p><h3>${t.badges}</h3>
+      ${s.badges ? `<p class="badge"><img class="rosette" src="${icon('rosette')}" alt="">${t.badgeName}</p>` : `<p>${t.noBadges}</p>`}
+      <button type="button" id="close-card">${t.close}</button>`;
+    card.querySelector('.player-name')!.textContent = s.avatar.name;
+    const g = card.querySelector('canvas')!.getContext('2d')!;
+    drawKid(g, avatarKid(s.avatar), 11, 30, 'S'); drawKid(g, avatarKid(s.avatar), 29, 30, 'E');
+    $('menu-sheet').hidden = true; card.hidden = false;
+    $('close-card').addEventListener('click', () => { card.hidden = true; });
+  });
   const unsubscribe = game.subscribe(() => {
     $('money').lastChild!.textContent = t.money(game.get().money);
     $('day').textContent = t.day(game.get().day);
@@ -280,10 +295,13 @@ export function showFarm(intro = false) {
   const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
   /** The arena: give a lesson to the first waiting pupil, or practise jumping with a horse. */
   function arena() {
-    const sheet = $('lesson');
+    const sheet = $('lesson'), wait = badgeWaits(game.get());
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.arena}</h2>
       <button type="button" id="give-lesson">${t.giveLesson}</button><button type="button" id="practise">${t.practiseJumping}</button>
+      <button type="button" id="badge"${wait ? ' disabled' : ''}>${t.ridingBadge}</button>
+      ${wait ? `<p class="oma">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}
       <button type="button" id="close-lesson">${t.close}</button>`;
+    $('badge').addEventListener('click', showBadge);
     $('give-lesson').addEventListener('click', () => {
       const p = game.get().pupils[0];
       if (p) chooseHorse(p); else { sheet.hidden = true; bar.toast(t.noPupils); }
@@ -386,7 +404,7 @@ export function showFarm(intro = false) {
 }
 
 /** Jumping practice: Oma Hanne explains, one round over the course, then what it brought. */
-function showJumping(id: string) {
+function showJumping(id: string, badge?: { correct: number }) {
   const h = game.get().horses.find((x) => x.id === id)!;
   const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow}</p>
@@ -399,13 +417,60 @@ function showJumping(id: string) {
   $('jumping').addEventListener('pointerdown', () => round.then((r) => r.tap()));
   $('jump-go').addEventListener('click', async () => {
     $('jump-start').hidden = true;
-    const faults = await (await round).run();
-    game.dispatch({ type: 'train', horse: id, faults });
-    $('jump-end').querySelector('p')!.textContent = faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name);
-    $('jump-end').hidden = false;
+    const faults = await (await round).run(), end = $('jump-end');
+    if (badge) {
+      game.dispatch({ type: 'badge', horse: id, correct: badge.correct, faults });
+      const passed = game.get().badges >= 1;
+      // the ceremony: the rosette, and Oma Hanne's congratulations
+      if (passed) end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badgeName}">`);
+      end.querySelector('p')!.textContent = passed ? t.badgePassed : t.badgeFailed;
+    } else {
+      game.dispatch({ type: 'train', horse: id, faults });
+      end.querySelector('p')!.textContent = faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name);
+    }
+    end.hidden = false;
   });
   $('jump-back').addEventListener('click', () => showFarm());
   leave = () => { round.then((r) => r.stop()); };
+}
+
+/**
+ * Riding badge 1: Oma Hanne asks five care questions (the answers in turn order, the right one not always first),
+ * then the player picks a horse for the jumping round.
+ */
+function showBadge() {
+  const $ = screen(`<canvas id="farm" aria-hidden="true"></canvas>
+    <section class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p aria-live="polite"></p>
+      <div class="answers"></div></div></section>`);
+  const farm = startFarm($<HTMLCanvasElement>('farm'), { herd: game.get().horses.map((h) => h.look), canter: false });
+  leave = () => { farm.then((f) => f.stop()); };
+  const say = $('farm').nextElementSibling!.querySelector('p')!, answers = $('farm').nextElementSibling!.querySelector('.answers')!;
+  let correct = 0;
+  const buttons = (html: string, on: (b: HTMLButtonElement) => void) => {
+    answers.innerHTML = html;
+    answers.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.addEventListener('click', () => on(b)));
+  };
+  const next = (go: () => void) => buttons(`<button type="button">${t.next}</button>`, go);
+  function ask(i: number) {
+    if (i === t.quiz.length) return chooseHorse();
+    const q = t.quiz[i], order = q.a.map((_, k) => (k + i) % q.a.length); // rotate, so the right answer moves around
+    say.textContent = q.q;
+    buttons(order.map((k) => `<button type="button" data-a="${k}">${q.a[k].icon ? `<img class="icon" src="${icon(q.a[k].icon!)}" alt="">` : ''}${q.a[k].text}</button>`).join(''), (b) => {
+      const right = b.dataset.a === '0';
+      if (right) correct++;
+      say.textContent = right ? t.quizRight : t.quizWrong(q.a[0].text);
+      next(() => ask(i + 1));
+    });
+  }
+  function chooseHorse() {
+    say.textContent = t.quizDone(correct);
+    buttons(game.get().horses.map((h) => {
+      const why = cantWork(h, DATA.jumping.energy);
+      return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
+    }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, { correct }) : showFarm()));
+  }
+  say.textContent = t.badgeIntro;
+  next(() => ask(0));
 }
 
 /** One need as icon + bar; the bar is green, yellow or red by how full it is. */

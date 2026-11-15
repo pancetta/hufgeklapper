@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, mood, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
+import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, mood, passesBadge, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -269,6 +269,23 @@ describe('Sim', () => {
       expect(apply(st, { type: 'train', horse: h.id, faults: 0 })).toBe(st);
     }
     expect(apply(s, { type: 'train', horse: h.id, faults: -1 })).toBe(s);
+  });
+
+  it('opens the riding badge after practice; a pass opens shows, a fail waits for tomorrow', () => {
+    let s = newGame(1);
+    const kiwi = s.horses[0].id, B = DATA.badge, fresh = (st: State) => ({ ...st, horses: st.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) });
+    expect(badgeWaits(s)).toEqual({ why: 'practise', rounds: B.trainings });
+    for (let i = 0; i < B.trainings; i++) s = apply(fresh(s), { type: 'train', horse: kiwi, faults: 1 });
+    expect(badgeWaits(s)).toBeNull();
+    const failed = apply(fresh(s), { type: 'badge', horse: kiwi, correct: B.quizPass - 1, faults: 0 });
+    expect([failed.badges, badgeWaits(failed)]).toEqual([0, { why: 'tomorrow' }]);
+    expect(apply(fresh(failed), { type: 'badge', horse: kiwi, correct: 5, faults: 0 }).badges).toBe(0); // not again today
+    const tomorrow = apply(failed, { type: 'sleep' });
+    expect(badgeWaits(tomorrow)).toBeNull();
+    const passed = apply(fresh(tomorrow), { type: 'badge', horse: kiwi, correct: B.quizPass, faults: B.maxFaults });
+    expect([passed.badges, badgeWaits(passed)]).toEqual([1, { why: 'passed' }]);
+    expect(passed.horses[0].needs.energy).toBe(100 - DATA.jumping.energy);
+    expect(passesBadge(5, B.maxFaults + 1)).toBe(false);
   });
 
   it('rolls the same numbers from the same seed', () => {
