@@ -125,6 +125,13 @@ export function jumpWindow(h: Horse) {
   return J.window.base + J.window.skill * (h.skills.jumping / 100) + J.window.kept * kept;
 }
 export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
+/**
+ * What a tap `offset` seconds from the perfect take-off does: too early to count yet, a clear jump, or a knocked pole.
+ * Without a tap, the pole falls once `missed`.
+ */
+export const takeOff = (h: Horse, offset: number): 'early' | 'clear' | 'fault' =>
+  offset < -DATA.jumping.early ? 'early' : clears(h, offset) ? 'clear' : 'fault';
+export const missed = (h: Horse, offset: number) => offset > jumpWindow(h) / 2 + DATA.jumping.late;
 
 /** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
 export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
