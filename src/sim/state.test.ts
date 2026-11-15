@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { apply, canBuild, canLoan, canQuickCare, cantTeach, earn, fit, isSick, lessonOutcome, mood, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
+import { apply, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, takeOff, mood, NEEDS, newGame, type Pupil, roll, type State, stalls } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -60,7 +60,7 @@ describe('Sim', () => {
     expect(sickOn).toBeGreaterThan(2);
     expect(sickOn).toBeLessThan(10);
     expect(s.night).toContainEqual({ kind: 'sick', horse: 'kiwi' });
-    expect(cantTeach(s.horses[0])).toBe('sick');
+    expect(cantWork(s.horses[0], DATA.lessons.energy)).toBe('sick');
     // the news comes once, not every morning while it stays sick
     expect(apply(s, { type: 'sleep' }).night).not.toContainEqual({ kind: 'sick', horse: 'kiwi' });
   });
@@ -77,9 +77,9 @@ describe('Sim', () => {
     const treated = apply(sick, { type: 'vet', horse: 'kiwi' });
     expect(treated.money).toBe(sick.money - DATA.vet.cost);
     expect(isSick(treated.horses[0])).toBe(false);
-    expect(cantTeach(treated.horses[0])).toBe('resting');
+    expect(cantWork(treated.horses[0], DATA.lessons.energy)).toBe('resting');
     const rested = nights({ ...treated, horses: [{ ...treated.horses[0], needs: { ...treated.horses[0].needs, fed: 100, clean: 100 } }] }, DATA.vet.restDays);
-    expect(['sick', 'resting']).not.toContain(cantTeach(rested.horses[0]));
+    expect(['sick', 'resting']).not.toContain(cantWork(rested.horses[0], DATA.lessons.energy));
     expect(rested.night).toContainEqual({ kind: 'rested', horse: 'kiwi' });
   });
 
@@ -229,7 +229,7 @@ describe('Sim', () => {
   it('refuses a sick, resting or tired horse, with the reason', () => {
     const s = withPupils(small), h = s.horses[0];
     for (const [bad, why] of [[{ ...h, needs: { ...h.needs, health: 5 } }, 'sick'], [{ ...h, rest: 1 }, 'resting'], [{ ...h, needs: { ...h.needs, energy: 10 } }, 'tired']] as const) {
-      expect(cantTeach(bad)).toBe(why);
+      expect(cantWork(bad, DATA.lessons.energy)).toBe(why);
       const st = { ...s, horses: [bad, ...s.horses.slice(1)] };
       expect(apply(st, { type: 'lesson', pupil: 'p1', horse: h.id })).toBe(st);
     }
@@ -244,6 +244,37 @@ describe('Sim', () => {
       s = apply(s, { type: 'sleep' });
     }
     expect(s.reputation).toBeGreaterThan(DATA.lessons.startReputation);
+  });
+
+  it('widens the take-off window for a skilled, well kept horse; a tap inside half of it clears the jump', () => {
+    const h = newGame(1).horses[0], J = DATA.jumping;
+    const poor = { ...h, skills: { jumping: 0 }, needs: { ...h.needs, fed: 0, clean: 0, happy: 0 } };
+    const best = { ...h, skills: { jumping: 100 }, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } };
+    expect(jumpWindow(poor)).toBeCloseTo(J.window.base);
+    expect(jumpWindow(best)).toBeCloseTo(J.window.base + J.window.skill + J.window.kept);
+    expect(jumpWindow(h)).toBeGreaterThan(jumpWindow(poor));
+    expect(clears(poor, J.window.base / 2)).toBe(true);
+    expect(clears(poor, -J.window.base / 2 - 0.01)).toBe(false);
+    expect(clears(best, 0.2)).toBe(true);
+    // a tap long before the jump does not count yet; one a bit early knocks the pole; no tap at all knocks it later
+    expect(takeOff(h, -J.early - 0.01)).toBe('early');
+    expect(takeOff(h, -J.early + 0.01)).toBe('fault');
+    expect(takeOff(h, 0)).toBe('clear');
+    expect(missed(h, jumpWindow(h) / 2 + J.late - 0.01)).toBe(false);
+    expect(missed(h, jumpWindow(h) / 2 + J.late + 0.01)).toBe(true);
+  });
+
+  it('trains jumping: skill grows (more for a clear round), energy goes; a sick or tired horse cannot', () => {
+    const s = newGame(1), h = s.horses[0], J = DATA.jumping;
+    const clear = apply(s, { type: 'train', horse: h.id, faults: 0 }).horses[0];
+    expect(clear.skills.jumping).toBe(h.skills.jumping + J.gain.clear);
+    expect(clear.needs.energy).toBe(h.needs.energy - J.energy);
+    expect(apply(s, { type: 'train', horse: h.id, faults: 2 }).horses[0].skills.jumping).toBe(h.skills.jumping + J.gain.faults);
+    for (const bad of [{ ...h, needs: { ...h.needs, health: 5 } }, { ...h, needs: { ...h.needs, energy: J.energy - 1 } }]) {
+      const st = { ...s, horses: [bad] };
+      expect(apply(st, { type: 'train', horse: h.id, faults: 0 })).toBe(st);
+    }
+    expect(apply(s, { type: 'train', horse: h.id, faults: -1 })).toBe(s);
   });
 
   it('rolls the same numbers from the same seed', () => {

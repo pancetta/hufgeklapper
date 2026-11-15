@@ -10,13 +10,14 @@ import { startFarm } from '../scene';
 import { bounds, waitingSpots } from '../scene/buildings';
 import { avatarKid, HAIR, HAIR_STYLES, JACKET, pupilKid, SKIN } from '../riders/look';
 import { drawKid } from '../scene/kids';
+import { startJumping } from '../scene/jumping';
 import { omaPortrait } from '../scene/oma';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { type Avatar, CARE, canBuild, cantTeach, fit, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
+import { type Avatar, CARE, canBuild, cantWork, fit, jumpWindow, missed, takeOff, lessonOutcome, mood, type Pupil, canFeed, canLoan, canPayVet, canQuickCare, type Care, type Horse, hayOnCredit, isSick, NEEDS, type News, stalls } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -271,20 +272,43 @@ export function showFarm(intro = false) {
     const s = game.get();
     if (target === 'stall') showStable();
     else if (target === 'board') showShop();
-    else if (target === 'arena') { if (s.pupils.length) chooseHorse(s.pupils[0]); else bar.toast(t.noPupils); }
+    else if (target === 'arena') arena();
     else if (target === 'pasture') bar.toast(t.pasture);
     else if (target === 'feed') bar.toast(t.feedStore(s.feed));
     else if (!canBuild(s)) bar.toast(t.freePlot);
   };
   const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); });
+  /** The arena: give a lesson to the first waiting pupil, or practise jumping with a horse. */
+  function arena() {
+    const sheet = $('lesson');
+    sheet.firstElementChild!.innerHTML = `<h2>${t.places.arena}</h2>
+      <button type="button" id="give-lesson">${t.giveLesson}</button><button type="button" id="practise">${t.practiseJumping}</button>
+      <button type="button" id="close-lesson">${t.close}</button>`;
+    $('give-lesson').addEventListener('click', () => {
+      const p = game.get().pupils[0];
+      if (p) chooseHorse(p); else { sheet.hidden = true; bar.toast(t.noPupils); }
+    });
+    $('practise').addEventListener('click', () => {
+      sheet.firstElementChild!.innerHTML = `<h2>${t.whichHorse}</h2>
+        ${game.get().horses.map((h) => {
+          const why = cantWork(h, DATA.jumping.energy);
+          return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
+        }).join('')}
+        <button type="button" id="close-lesson">${t.close}</button>`;
+      sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => showJumping(b.dataset.horse!)));
+      $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
+    });
+    $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
+    sheet.hidden = false;
+  }
   /** A pupil wants a lesson: pick a horse; each shows how well it fits, or why it can't. */
   function chooseHorse(p: Pupil) {
     const s = game.get(), sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
       <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
       ${s.horses.map((h) => {
-        const why = cantTeach(h);
-        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)} · ${why ? t.cantTeach[why] : t.fits[fit(p, h)]}</button>`;
+        const why = cantWork(h, DATA.lessons.energy);
+        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)} · ${why ? t.cantWork[why] : t.fits[fit(p, h)]}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {
@@ -359,6 +383,30 @@ export function showFarm(intro = false) {
   });
   pupils();
   leave = () => { bar.unsubscribe(); farm.then((f) => f.stop()); };
+}
+
+/** Jumping practice: Oma Hanne explains, one round over the course, then what it brought. */
+function showJumping(id: string) {
+  const h = game.get().horses.find((x) => x.id === id)!;
+  const $ = screen(`<canvas id="jumping" aria-label="${t.practiseJumping}"></canvas>
+    <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
+      <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
+    <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
+  const round = startJumping($<HTMLCanvasElement>('jumping'), {
+    look: h.look, kid: avatarKid(game.get().avatar), jumps: DATA.jumping.jumps, window: jumpWindow(h), takeOff: (o) => takeOff(h, o), missed: (o) => missed(h, o),
+  });
+  // pointerdown, not click: the take-off timing should not wait for the finger to lift
+  $('jumping').addEventListener('pointerdown', () => round.then((r) => r.tap()));
+  $('jump-go').addEventListener('click', async () => {
+    $('jump-start').hidden = true;
+    const faults = await (await round).run();
+    game.dispatch({ type: 'train', horse: id, faults });
+    $('jump-end').querySelector('p')!.textContent = faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name);
+    $('jump-end').hidden = false;
+  });
+  $('jump-back').addEventListener('click', () => showFarm());
+  $('jump-leave').addEventListener('click', () => showFarm());
+  leave = () => { round.then((r) => r.stop()); };
 }
 
 /** One need as icon + bar; the bar is green, yellow or red by how full it is. */

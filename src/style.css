@@ -108,7 +108,7 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .icon { width: calc(7 * var(--px)); height: calc(7 * var(--px)); image-rendering: pixelated; flex: none; }
 
 /* scenes fill the screen; HTML sits on top */
-#farm, #stable, /* the care gestures are one-finger strokes and drags: Safari must not pan or zoom and cancel them */
+#farm, #stable, #jumping, /* the care gestures and the jump taps are one-finger strokes and drags: Safari must not pan or zoom and cancel them */
 #care-scene { touch-action: none; }
 
 /* top bar: money and day on wooden tags, sleep and menu on the right */

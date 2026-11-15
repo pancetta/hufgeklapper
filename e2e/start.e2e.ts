@@ -1,5 +1,17 @@
 import { expect, type Page, test } from '@playwright/test';
+import { COURSE } from '../src/scene/jumping';
+import { DATA } from '../src/sim/data';
 import { t } from '../src/strings';
+
+/** Taps the jumping course at each perfect take-off, timed from now (the round has just started). */
+async function tapTakeOffs(page: Page) {
+  const start = Date.now(), { speed, takeoff, first, spacing } = COURSE;
+  for (let i = 0; i < DATA.jumping.jumps; i++) {
+    const at = start + ((first - takeoff + i * spacing) / speed) * 1000;
+    await page.waitForTimeout(Math.max(0, at - Date.now()));
+    await page.touchscreen.tap(300, 300); // not locator.tap: it would wait if the result covered the canvas
+  }
+}
 
 /** Starts a new game in the first slot under the given farm name, with the default figure, and listens to Oma Hanne. */
 async function newGame(page: Page, name: string) {
@@ -240,7 +252,32 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.getByRole('status')).toContainText(`${name} war`, { timeout: 20_000 });
   // nobody else today: the arena says so
   await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.giveLesson }).tap();
   await expect(page.getByRole('status')).toHaveText(t.noPupils);
+});
+
+test('jumping practice: the avatar rides a round, taps take off, the pony trains', async ({ page }) => {
+  test.setTimeout(60_000); // the round runs in real time (about 12 s), slower on a busy runner
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  const kiwi = () => page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.horses[0]);
+  const before = await kiwi();
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.practiseJumping }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await expect(page.getByText(t.jumpHow(true))).toBeVisible();
+  await page.getByRole('button', { name: t.go }).tap();
+  // taps at the right moments: at least one jump must be cleared (without taps, all five poles fall)
+  const end = page.locator('#jump-end');
+  await tapTakeOffs(page);
+  await expect(end).toBeVisible({ timeout: 15_000 });
+  await expect(end).not.toContainText(t.jumpFaults(DATA.jumping.jumps, 'Kiwi'));
+  await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|gefallen\. Kiwi hat trotzdem geübt\./);
+  const after = await kiwi();
+  expect(after.skills.jumping).toBeGreaterThan(before.skills.jumping);
+  expect(after.needs.energy).toBe(before.needs.energy - DATA.jumping.energy);
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await expect(page.getByRole('button', { name: t.places.arena })).toBeVisible();
 });
 
 test('the credits name the artists and close again', async ({ page }) => {
