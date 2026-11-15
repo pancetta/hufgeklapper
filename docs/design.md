@@ -20,7 +20,9 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | Neglect | Low needs make the horse **sick**: the vet costs money and the horse rests for a few days. Horses never die. |
 | Care | Touch gestures: brush by swiping over the coat, tap each hoof, and so on. After the same **Care action** has been done 5 times, *Schnell erledigen* unlocks for it. Later, staff take care over. |
 | Sport | A short skill **Minigame**; the horse's needs and skills widen or narrow the timing window. |
+| Horse views | Side view, large, in the stable and for care; top-down (walking in 4 directions) on the farm map and the course. Both come from the same LPC sheets. |
 | Jumping view | Top-down: the course scrolls, the player taps at take-off, the horse grows and its shadow stays on the ground during the jump. |
+| Living farm | The farm map is animated: horses and ponies wander and stand on the pasture, the windmill turns. |
 | Career | Two tracks: **Farm stage** (Kleiner Hof → Reitschule → Pensionsstall → Zuchthof → Reitsportzentrum), each ended by a **Farm inspection** (goals plus a short quiz), and **Riding badges** (quiz plus minigame) that open harder sports. |
 | First income | **Lessons**: pupils show up, the player assigns a horse, the lesson runs by itself; pay and satisfaction depend on the horse's needs and on the fit (small child → pony). |
 | Building | Fixed **Plots** on a drawn farm map: tap a plot, choose a building, upgrade it later. |
@@ -65,7 +67,7 @@ Money is in euros, whole numbers only. Every price, rate and need curve lives in
 
 ## Art
 
-Top-down pixel art in a 16-bit RPG style, 32px grid, from the LPC collection plus our own drawings in the same style ([ADR-0003](adr/0003-lpc-art.md)). Every third-party file is listed in `CREDITS.md` and on the in-game credits screen.
+Top-down pixel art in a 16-bit RPG style, 32px grid, from the LPC collection plus our own drawings in the same style; ponies are derived from the LPC horse by a script ([ADR-0003](adr/0003-lpc-art.md)). There is no budget for an artist. Every third-party file is listed in `CREDITS.md` and on the in-game credits screen.
 
 ## Ideas for later
 

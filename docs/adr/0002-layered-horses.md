@@ -19,4 +19,4 @@ A **Breed** is data only: a build plus the coats and markings it allows (a Hafli
 
 - The compositor is a pure function from a horse's look to an image; a test pins that the same look always gives the same pixels.
 - Breeding later only has to combine the parents' look values; nothing new needs to be drawn.
-- Each new build costs one full animation set, so builds are added sparingly.
+- Each new build costs one full animation set, so builds are added sparingly. Where a build can be derived from another by moving pixels (the pony from the horse, see ADR-0003), the derivation runs over every layer, so the layers stay aligned.
