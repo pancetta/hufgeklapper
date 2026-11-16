@@ -81,7 +81,8 @@ export function tryStep(done: readonly StepId[], thing: Thing, at: Spot): { step
   if (!next) return { why: 'done' };
   if (next.after.every((a) => done.includes(a as StepId))) return { step: next.id };
   // the same thing again on the same place, right after it was used there: already done, not the later step
-  if (same.indexOf(next) > 0) return { why: 'done' };
+  const i = same.indexOf(next);
+  if (i > 0 && done.at(-1) === same[i - 1].id) return { why: 'done' };
   return { why: next.id, first: firstFor(done, next.id) };
 }
 

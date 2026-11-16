@@ -31,7 +31,8 @@ describe('the care course', () => {
     expect(tryStep([...ready, 'halterNeck'], 'bridle', 'head')).toEqual({ why: 'bridleOn', first: 'reins' });
     // buckled and the girth tightened: now the rope comes off the ring; before that, tightening is next
     expect(tryStep(upTo('untie'), 'rope', 'ring')).toEqual({ step: 'untie' });
-    expect(tryStep(upTo('tighten'), 'rope', 'ring')).toEqual({ why: 'done' }); // the rope was just used there: a second tap
+    expect(tryStep(upTo('tighten'), 'rope', 'ring')).toEqual({ why: 'untie', first: 'tighten' }); // long after tying: what comes first
+    expect(tryStep(upTo('kit'), 'rope', 'ring')).toEqual({ why: 'done' }); // right after tying: a second tap
     // no saddle before grooming: the first brush that is missing; the brushes in any order once the kit is there
     expect(tryStep(upTo('kardaetsche'), 'saddle', 'tack')).toEqual({ why: 'saddleGet', first: 'kardaetsche' });
     expect(tryStep(upTo('kardaetsche'), 'face', 'head')).toEqual({ step: 'face' });

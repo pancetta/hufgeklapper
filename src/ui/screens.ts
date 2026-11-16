@@ -905,9 +905,10 @@ function showRoutine(id: string, pupil?: Pupil) {
   }
   async function tap(at: Spot) {
     const r = tryStep(done, thing, at);
+    // a pat with the hand is never wrong
+    if (thing === 'hand' && HORSE.includes(at) && ('first' in r || ('why' in r && r.why === 'none'))) return say(t.routinePet(h.name));
     if ('first' in r) {
-      // a pat with the hand is never wrong; anything else out of turn is: Oma says what comes first, and why
-      if (thing === 'hand' && HORSE.includes(at)) return say(t.routinePet(h.name));
+      // anything else out of turn is: Oma says what comes first, and why
       wrong++;
       const why = t.routineWhy[r.why];
       return say(`${why ? `${why} ` : ''}${t.routineFirst(t.steps[r.first])}`);
@@ -916,7 +917,8 @@ function showRoutine(id: string, pupil?: Pupil) {
     const kind = GESTURE[r.step];
     if (kind) {
       say(kind === 'brush' ? t.routineBrush(t.steps[r.step]) : t.routineTaps(t.steps[r.step]));
-      if (!(await (await scene).gesture(kind, at))) return say('');
+      // brushing counts over the step's whole part, wherever it began (the neck is body too)
+      if (!(await (await scene).gesture(kind, kind === 'brush' ? STEPS.find((x) => x.id === r.step)!.at : at))) return say('');
     }
     complete(r.step);
   }
