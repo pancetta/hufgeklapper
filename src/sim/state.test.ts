@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -375,6 +375,19 @@ describe('Sim', () => {
     expect(apply(s, { type: 'show', horse: h.id, faults: 0, showClass: 'toString' as 'E' })).toBe(s); // not a class
   });
 
+  it('lists the horses for a lesson: why one cannot, how each fits, the best one marked', () => {
+    const s = newGame(1), [kiwi, luna] = s.horses, big: Pupil = { id: 'p', name: 'Ben', size: 'big', level: 'beginner', look: 1 };
+    const tired = { ...luna, needs: { ...luna.needs, energy: 0 } }, dirty = { ...kiwi, needs: { ...kiwi.needs, fed: 10, clean: 10, happy: 10 } };
+    const [a, b] = lessonChoices(big, [dirty, tired]);
+    expect([a.why, a.fit, a.unkempt, a.mood, a.best]).toEqual([null, 'bigOnPony', true, 'unhappy', false]); // never "best" for an unhappy pupil
+    expect(lessonChoices(big, [kiwi])[0].best).toBe(false); // a big child on a well-kept pony: still not happy
+    expect([fitsNone(big, s.horses), fitsNone({ ...big, size: 'small' }, s.horses), fitsNone({ ...big, size: 'small' }, [tired])]).toEqual([true, false, true]);
+    expect([b.why, b.best]).toEqual(['tired', false]);
+    const small: Pupil = { ...big, size: 'small' }, horse = { ...kiwi, id: 'h', look: { ...kiwi.look, build: 'horse' as const } };
+    expect(lessonChoices(small, [horse, kiwi]).map((c) => [c.fit, c.best])).toEqual([['smallOnHorse', false], ['right', true]]);
+    expect(lessonChoices(small, [tired]).some((c) => c.best)).toBe(false);
+  });
+
   it('renames a horse: trimmed, 1–16 characters, not a name another horse already has', () => {
     const s = newGame(1), [kiwi, luna] = s.horses;
     expect(apply(s, { type: 'rename', horse: kiwi.id, name: '  Sternchen ' }).horses[0].name).toBe('Sternchen');
@@ -443,7 +456,10 @@ describe('Sim', () => {
     expect(new Set(offers.map((o) => o.name)).size).toBe(offers.length);
     expect(marketFor(4, 42, offers.map((o) => o.name))[0].map((o) => o.name).filter((n) => offers.some((o) => o.name === n))).toEqual([]); // not a name already on the farm
     const s: State = { ...newGame(1), stage: 'reitschule', market: offers, money: 2000 };
-    expect(apply(s, { type: 'buyHorse', offer: offers[0].id })).toBe(s); // both stall places taken
+    // the Reitschule has a free stall at once: one horse fits, then every place is taken
+    const first = apply(s, { type: 'buyHorse', offer: offers[1].id });
+    expect([first.horses.length, stalls(first)]).toEqual([3, DATA.stalls.reitschule]);
+    expect(apply(first, { type: 'buyHorse', offer: offers[2].id })).toBe(first);
     const roomy = apply(s, { type: 'build', what: 'stalls' });
     expect([stalls(roomy), roomy.money]).toEqual([DATA.stalls.reitschule + DATA.build.stalls.places, 2000 - DATA.build.stalls.cost]);
     const bought = apply(roomy, { type: 'buyHorse', offer: offers[0].id });

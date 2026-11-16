@@ -54,6 +54,8 @@ export const DATA = {
     /** Pupils waiting each morning: one, plus one more at each of these reputations. */
     morePupilsAt: [40, 70],
     startReputation: 30,
+    /** Below this share of full needs (fed, clean, happy), a horse is said to need care before a lesson. */
+    keptWell: 0.6,
   },
   /** The jumping minigame ("Springen"): course, take-off window (seconds) and what training does. */
   jumping: {
@@ -122,7 +124,7 @@ export const DATA = {
     classes: {
       E: { minSkill: 0, fee: 15, prizes: [60, 35, 20], rivalSkill: [10, 50] }, // the first shows: a clear round usually reaches the podium
       A: { minSkill: 40, fee: 30, prizes: [160, 95, 55], rivalSkill: [35, 70] },
-      L: { minSkill: 70, fee: 50, prizes: [240, 145, 80], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
+      L: { minSkill: 70, fee: 50, prizes: [220, 130, 75], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
     },
   },
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
@@ -133,14 +135,14 @@ export const DATA = {
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
   /** What Oma Hanne explains the first time the player opens it. */
-  features: ['stable', 'care', 'board', 'arena'] as const,
+  features: ['stable', 'care', 'board', 'arena', 'fit'] as const,
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   /** A horse's own name: at most this many characters, so it fits on the nameplate. */
   horseName: { max: 16 },
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],
   /** Stalls ("Boxen") in the stable, per farm stage. */
-  stalls: { kleinerHof: 2, reitschule: 2 },
+  stalls: { kleinerHof: 2, reitschule: 3 }, // the Reitschule has room for a horse from the market at once
   /**
    * The farm inspection ("Hof-Prüfung") after all goals of the Kleiner Hof: a quiz with the inspector. At the
    * Reitschule: a horse market with fresh offers each morning, stall places to build on the free plot, the arena
