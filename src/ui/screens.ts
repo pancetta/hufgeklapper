@@ -20,7 +20,7 @@ import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -131,7 +131,7 @@ export function showStart() {
       <div class="slots">${slots.map((slot, i) => `
         <section class="slot ${slot.kind}" aria-label="${t.slot(i + 1)}">
           <h2>${slotTitle(slot)}</h2>
-          <p>${slot.kind === 'save' ? t.slotInfo(slot.save.state.day, slot.save.state.money) : '&nbsp;'}</p>
+          <p>${slot.kind === 'save' ? (gameOver(slot.save.state) ? t.lostFarm : t.slotInfo(slot.save.state.day, slot.save.state.money)) : '&nbsp;'}</p>
           ${slot.kind === 'save' ? `<button type="button" data-do="resume" data-slot="${i}">${t.resumeGame}</button>` : ''}
           <button type="button" data-do="new" data-slot="${i}" class="${slot.kind === 'save' ? 'small' : ''}">${t.newGame}</button>
           <span class="file-buttons">
@@ -243,9 +243,10 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
     : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay
-    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid : n.kind === 'omaHelped' ? t.newsOmaHelped
+    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid : n.kind === 'omaHelped' ? t.newsOmaHelped : n.kind === 'lastWarning' ? t.newsLastWarning(n.count ?? 0)
     : n.kind === 'boarderLeft' ? t.newsBoarderLeft(esc(n.owner ?? ''), esc(n.horse ?? '')) : '';
   function morning(news: News[]) {
+    if (gameOver(game.get())) return showGameOver(); // the farm is lost: no morning any more
     if (!news.length) return;
     const lines = [...new Set(news.map(line).filter(Boolean))]; // "no hay" comes once per horse; say it once; the money was in the diary
     if (!lines.length) return;
@@ -311,7 +312,18 @@ let goalsOpen = true; // the goal list is open until the child folds it away
 let hintAway = ''; // the hint the child closed; it stays away until another one is due
 
 /** The farm map; with `intro`, Oma Hanne first hands the farm over in a few speech bubbles. */
+/** The farm is lost (a second dead end lasted too long): Oma Hanne says so over the farm; then to the start. */
+function showGameOver() {
+  const $ = screen(`<canvas id="farm" aria-hidden="true"></canvas>
+    <section class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}">
+      <h2>${t.gameOverTitle}</h2><p>${t.gameOverText}</p><div class="answers"><button type="button" id="lost-start">${t.toStart}</button></div></div></section>`);
+  const farm = startFarm($<HTMLCanvasElement>('farm'), { herd: [], canter: false, plots: farmPlots(game.get()) });
+  $('lost-start').addEventListener('click', showStart);
+  leave = () => { farm.then((f) => f.stop()); };
+}
+
 export function showFarm(intro = false) {
+  if (gameOver(game.get())) return showGameOver();
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}
     <section id="shop" class="overlay" hidden><div class="sheet ask shop"></div></section>
     <section id="lesson" class="overlay" hidden><div class="sheet ask"></div></section>

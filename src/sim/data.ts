@@ -40,10 +40,12 @@ export const DATA = {
   /** The vet ("Tierarzt"): what a visit costs, the health it gives back, and the days the horse must rest. */
   vet: { cost: 40, health: 70, restDays: 2 },
   /**
-   * Oma Hanne's help when nothing else works (#66): every horse of your own sick, no money for the vet and no more
-   * loans. In the night she pays the vet for them and brings `hay` bales; at most once every `every` days.
+   * Oma Hanne's help when nothing else works (#66, #68): every horse of your own sick, no money for the vet and no
+   * more loans. The first time, she pays the vet for them in the night and brings `hay` bales. She helps only once:
+   * in a second dead end she warns each morning, and after `grace` mornings in a row the farm is lost (game over),
+   * unless good care makes a horse healthy again first.
    */
-  rescue: { every: 10, hay: 6 },
+  rescue: { hay: 6, grace: 5 },
   /** Riding lessons ("Reitstunden"). */
   lessons: {
     /** What a lesson pays at best, by the pupil's level. */

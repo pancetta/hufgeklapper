@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck, gameOver,
   showWaits, stalls,
 } from './state';
 
@@ -18,14 +18,14 @@ export type Report = {
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number;
   deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
-  stuck: boolean; // a dead end longer than Oma Hanne takes to help
+  lostDay: number | null; // the day the farm was lost (game over), if it was
 };
 
 const ALL_RIGHT = Array(DATA.badge.questions).fill(0);
 
 /** Plays `days` days with `strategy` from a new game on `seed`. */
 export function play(strategy: Strategy, seed: number, days: number): Report {
-  let s = newGame(seed), luck = seed ^ 0x5eed, streak = 0, longest = 0, shows = 0, sickDays = 0, maxDebt = 0, badgeDay: number | null = null, inspectionDay: number | null = null, pensionDay: number | null = null;
+  let s = newGame(seed), luck = seed ^ 0x5eed, streak = 0, longest = 0, lostDay: number | null = null, shows = 0, sickDays = 0, maxDebt = 0, badgeDay: number | null = null, inspectionDay: number | null = null, pensionDay: number | null = null;
   const money: number[] = [];
   const act = (a: Action) => { s = apply(s, a); };
   /**
@@ -47,7 +47,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
     sickDays += s.horses.filter(isSick).length; // counted in the morning, before the vet comes
-    streak = stuck(s) ? streak + 1 : 0; longest = Math.max(longest, streak); // mornings in a dead end, waiting for Oma Hanne's next help
+    streak = stuck(s) ? streak + 1 : 0; longest = Math.max(longest, streak); // mornings in a dead end in a row
+    if (gameOver(s)) { lostDay = s.day; break; }
     // the vet for a sick horse, with a loan if the money is short
     for (const h of s.horses.filter(isSick)) { if (s.money < DATA.vet.cost) act({ type: 'loan' }); act({ type: 'vet', horse: h.id }); }
     // hay: the careful keep a few nights in store, the careless buy when it's gone
@@ -107,13 +108,12 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     money.push(s.money);
     act({ type: 'sleep' });
   }
-  // stuck: a dead end (every horse sick, no money for the vet, no more loans) longer than Oma Hanne takes to help
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, stuck: longest > DATA.rescue.every };
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay };
 }
 
 /** One line per run, for docs/economy.md and the console. */
 export function summary(r: Report) {
   const at = (d: number) => r.money[Math.min(d, r.money.length) - 1];
-  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.stuck ? 'ja' : 'nein'} |`;
+  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.lostDay ?? '–'} |`;
 }
-export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|';
+export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|';

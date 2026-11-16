@@ -48,9 +48,16 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives a save from version 12 no dead end counted yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { deadEnd: _a, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 12, state: { ...old, version: 12 } }));
+    expect(p.ok && p.save.state.deadEnd).toBe(0);
+  });
+
   it('gives a save from version 11 (before Oma Hanne\'s help) no day of help yet', () => {
     const now = toSave(played(), 'Hof');
-    const { rescueDay: _a, ...old } = now.state;
+    const { rescueDay: _a, deadEnd: _b, ...old } = now.state;
     const p = parseSave(text({ ...now, version: 11, state: { ...old, version: 11 } }));
     expect(p.ok && p.save.state.rescueDay).toBe(0);
   });

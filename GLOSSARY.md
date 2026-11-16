@@ -43,7 +43,11 @@ Someone who rides one of your horses each day for a fee; it costs the horse ener
 
 **Oma's help** ("Oma Hanne hilft"):
 The safety net's last step: in a dead end (every horse of your own sick, no money for the vet, no more loans) Oma
-Hanne pays the vet in the night and brings some hay; at most every few days.
+Hanne pays the vet in the night and brings some hay. She does this once per game; in a second dead end she only
+warns each morning, and after a few mornings without a healed horse comes **Game over**.
+
+**Game over** ("Der Hof ist verloren"):
+The end of a game after a second dead end that lasts too long. The slot keeps the lost farm; the player starts anew.
 
 **Groom** ("Pferdepfleger"):
 Staff from the **Pensionsstall** on: for a wage each day, they care for a few horses every morning.
@@ -167,4 +171,4 @@ concentrate feed ("Kraftfutter").
 A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.
 
 **Safety net**:
-With no money, feed comes on credit ("anschreiben") and the bank gives a small loan ("Kredit"); there is no game over.
+With no money, feed comes on credit ("anschreiben") and the bank gives a small loan ("Kredit"); an empty money box alone is never game over.

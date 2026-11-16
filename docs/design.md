@@ -30,7 +30,7 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | Stable | A close-up of the aisle from the side (twice the farm's pixel size): each horse looks out over its half door; under each door its needs as icons with bars. Tapping a horse opens its card (name, breed, coat, needs, jumping, healthy or sick). |
 | Top bar | Money, day, *Schlafen gehen* (the screen says good night, then the new day) and the menu. |
 | Start screen | The living farm behind the title: herd and sheep on the pasture, a pony cantering over the jumps, chickens, a sleeping cat, a dog, butterflies, birds, cloud shadows, ripples on the pond; warm colours. |
-| Difficulty | One level. Empty money box is no game over: feed on credit (*anschreiben*) and a small bank loan, with a friendly hint. More levels only once the balance holds. |
+| Difficulty | One level. Empty money box is no game over: feed on credit (*anschreiben*) and a small bank loan, with a friendly hint. Oma Hanne pulls the player out of one dead end (all own horses sick, no money, no loan); a second one that lasts 5 mornings loses the farm. More levels only once the balance holds. |
 | Free play | Comes once there is more than one career stage worth unlocking (after the MVP). |
 | Saves | 3 named **Save slots**, autosave, export and import as a file. |
 | iPad app | Home-screen web app: full screen, landscape, works offline. |
@@ -54,7 +54,7 @@ Still later (rough order): more farm stages (Zuchthof with breeding), dressage, 
 
 ## Economy
 
-Money is in euros, whole numbers only. Every price, rate and need curve lives in one data table, so balancing is editing numbers. A headless **economy run** (a script that plays many days with simple strategies on fixed seeds, like truck-sim's) checks the curves: a careful player must be able to afford the first inspection in roughly 10–15 days, and a careless one must still never get stuck.
+Money is in euros, whole numbers only. Every price, rate and need curve lives in one data table, so balancing is editing numbers. A headless **economy run** (a script that plays many days with simple strategies on fixed seeds, like truck-sim's) checks the curves: a careful player must be able to afford the first inspection in roughly 10–15 days, and a careless one must get a long chance before the farm is lost.
 
 ## Architecture
 
