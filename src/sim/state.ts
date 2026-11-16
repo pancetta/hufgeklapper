@@ -286,6 +286,8 @@ export function earn(s: State, amount: number): State {
 }
 export const stalls = (s: State) => DATA.stalls[s.stage] + s.built.stalls * DATA.build.stalls.places;
 export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
+/** How many nights the hay in store feeds every horse. */
+export const hayNights = (s: State) => Math.floor(s.feed / Math.max(1, s.horses.length * DATA.hayPerNight));
 
 /** One night for one horse: it eats from the hay store if there is any, gets hungry, dirty and rested, and its
  *  health follows how well it is kept. */
@@ -323,7 +325,7 @@ export function hint(s: State): { kind: 'sick' | 'hungry' | 'dirty'; horse: stri
     const h = s.horses.find(test);
     if (h) return { kind, horse: h.id };
   }
-  return s.feed < s.horses.length * DATA.hints.hayNights ? { kind: 'hay' } : null;
+  return hayNights(s) < DATA.hints.hayNights ? { kind: 'hay' } : null;
 }
 
 /** Applies one action (never changing the state it was given); afterwards every goal just reached is noted as done. */

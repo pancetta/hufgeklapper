@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -398,6 +398,11 @@ describe('Sim', () => {
     const market: State = { ...s, market: marketFor(5, 9)[0] }; // a name for sale is taken too
     expect(apply(market, { type: 'rename', horse: kiwi.id, name: market.market[0].name.toLowerCase() })).toBe(market);
     expect(marketFor(5, 9, [market.market[0].name.toLowerCase()])[0].map((o) => o.name)).not.toContain(market.market[0].name);
+  });
+
+  it('says how many nights the hay lasts: one bale per horse a night', () => {
+    const s = newGame(1); // two ponies
+    expect([hayNights({ ...s, feed: 10 }), hayNights({ ...s, feed: 5 }), hayNights({ ...s, feed: 1 }), hayNights({ ...s, feed: 0 })]).toEqual([5, 2, 0, 0]);
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {

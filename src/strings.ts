@@ -61,7 +61,6 @@ export const t = {
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz' } as Record<string, string>,
   pasture: 'Hier grasen deine Ponys.',
-  feedStore: (n: number) => `Im Lager liegen ${n} Heuballen.`,
   freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist.',
 
   // the stable and the horse card
@@ -94,16 +93,17 @@ export const t = {
     feed: (name: string) => `${name} frisst zufrieden.`, muck: () => 'Die Box ist sauber!',
   },
   quickCare: 'Schnell erledigen',
-  noHayLeft: 'Kein Heu mehr im Lager.',
+  noHayLeft: 'Kein Heu mehr im Lager. Kauf im Futterlager neues!',
   toStable: 'Zum Stall',
 
-  // the notice board: hay, the bank, and the bill
+  // the feed store and the notice board: hay, the bank, and the bill
   hay: (n: number) => `${n} Heu`,
   shopTitle: 'Schwarzes Brett',
   buyHay: 'Heu kaufen',
   hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price} €`,
   hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
-  inStore: (n: number) => `Im Lager: ${n} Heuballen`,
+  stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
+  boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
   owe: (n: number) => `Du schuldest ${n} €.`,
   omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
   loan: (n: number) => `${n} € von der Bank leihen`,
@@ -227,12 +227,13 @@ export const t = {
     sick: (name: string) => `${name} ist krank. Ruf im Stall den Tierarzt!`,
     hungry: (name: string) => `${name} hat Hunger. Gib im Stall Heu!`,
     dirty: (name: string) => `${name} ist schmutzig. Putz es im Stall!`,
-    hay: 'Das Heu wird knapp. Kauf am Schwarzen Brett neues!',
+    hay: 'Das Heu wird knapp. Kauf im Futterlager neues!',
   },
   explain: {
     stable: 'Im Stall siehst du, wie es deinen Ponys geht. Tippe ein Pony an, dann kannst du es pflegen.',
     care: 'Wähle unten ein Werkzeug. Jedes geht anders: Der Satz oben sagt dir, was du tun musst.',
-    board: 'Am Schwarzen Brett kaufst du Heu. Wenn das Geld knapp ist, hilft dir die Bank.',
+    board: 'Am Schwarzen Brett stehen die Turniere. Wenn das Geld knapp ist, hilft dir die Bank.',
+    store: 'Im Futterlager liegt dein Heu. Jedes Pferd frisst einen Ballen pro Nacht. Hier kaufst du neues Heu.',
     arena: 'Auf dem Reitplatz gibst du Reitstunden und übst Springen.',
     fit: 'Kleine Kinder reiten am besten auf Ponys, große Kinder auf Pferden. Ein Pferd, das ausgeruht und gut gepflegt ist, macht am meisten Spaß. Neue Pferde kauft man auf dem Pferdemarkt der Reitschule.',
   },
