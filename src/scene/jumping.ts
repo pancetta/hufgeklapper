@@ -217,7 +217,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
       const before = r;
       // momentum held until past the take-off: the horse jumps late (a knocked pole) rather than refusing
       const late = takeOffOffset(r, c);
-      if (o.hold && touch && !touch.drawing && late !== null && late > o.window / 2 + 0.05) takeoff(0, (performance.now() - touch.at) / 1000);
+      if (o.hold && touch && !touch.drawing && r.v && late !== null && late > o.window / 2 + 0.05) takeoff(0, (performance.now() - touch.at) / 1000); // (a standing horse: a new way, not a jump)
       // the horse sets off once the first way is drawn and the finger lifts: there is time to draw it
       const f = go ? follow(r, path) : { target: null, path };
       path = f.path;
@@ -241,7 +241,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const takeoff = (lag: number, held = Infinity) => {
     if (!running) return;
     const off = takeOffOffset(r, c), next = hopp(r, c, (x) => o.judge(x, held), lag);
-    if (next.air?.down && !r.air && off !== null) o.onKnock?.(off - lag, held);
+    if (next.air?.down && !r.air && off !== null) o.onKnock?.(off - (lag * Math.max(r.v, 1)) / R.speed, held); // as hopp judges it
     judged(next);
   };
   canvas.addEventListener('pointerdown', (e) => {
@@ -254,6 +254,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== touch?.id) return;
     if (!touch.drawing && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px) return;
+    // held for momentum near a jump: a finger that drifts a little stays a hold, it doesn't start a new way
+    const near = takeOffOffset(r, c);
+    if (o.hold && !touch.drawing && near !== null && near > -o.hold - o.window - 0.3) return;
     const p = toArena(e);
     if (!touch.drawing || !path.length) { touch.drawing = true; path = [{ x: r.x, y: r.y }]; } // a new stroke, or after a refusal
     const last = path[path.length - 1];
@@ -279,7 +282,8 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     /** Starts the canter; resolves with the faults once the horse is through the finish. */
     run() { running = true; last = performance.now(); acc = 0; return result; },
     /** "Hopp!": take off, if the horse is lined up for the next jump. */
-    hopp() { takeoff(0); },
+    /** "Hopp!" from the keyboard: the space bar, held `held` seconds (its momentum, like a finger). */
+    hopp(held = Infinity) { takeoff(0, held); },
     stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }

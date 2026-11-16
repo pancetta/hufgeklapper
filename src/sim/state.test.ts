@@ -282,13 +282,15 @@ describe('Sim', () => {
     expect(holdNeed(pro, A)).toBeLessThan(holdNeed(h, A));
     const need = holdNeed(h, A);
     expect([takeOff(h, 0, need, need), takeOff(h, 0, need * 0.5, need), takeOff(h, 0)]).toEqual(['clear', 'fault', 'clear']);
-    expect([faultWhy(h, 0), faultWhy(h, -0.4), faultWhy(h, 0.4)]).toEqual(['power', 'soon', 'late']);
+    expect([faultWhy(h, 0, need * 0.5, need), faultWhy(h, -0.4, need, need), faultWhy(h, 0.4)]).toEqual(['power', 'soon', 'late']);
   });
 
   it('practice raises a horse only up to what its breed can', () => {
     const s = newGame(1), kiwi = { ...s.horses[0], skills: { jumping: scope(s.horses[0]) - 1 } }, st: State = { ...s, horses: [kiwi] };
     const once = apply(st, { type: 'train', horse: kiwi.id, faults: 0 }), twice = apply({ ...once, horses: once.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) }, { type: 'train', horse: kiwi.id, faults: 0 });
     expect([once.horses[0].skills.jumping, twice.horses[0].skills.jumping]).toEqual([scope(kiwi), scope(kiwi)]);
+    const veteran = { ...kiwi, skills: { jumping: 90 } }; // from a save before the breed limit: practice never lowers it
+    expect(apply({ ...s, horses: [veteran] }, { type: 'train', horse: kiwi.id, faults: 0 }).horses[0].skills.jumping).toBe(90);
   });
 
   it('opens the riding badge after practice; the Sim scores the quiz; a pass opens shows, a fail waits for tomorrow', () => {

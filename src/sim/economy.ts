@@ -55,7 +55,10 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     const sport = () => {
       if (s.trainings < DATA.badge.trainings || (strategy === 'sport' && s.badges)) {
         // the sport player trains their best jumper, so one horse grows into the higher classes
-        const h = strategy === 'sport' ? best(fresh(DATA.jumping.energy)) : fresh(DATA.jumping.energy)[0];
+        // (the one that can still get better, the best jumper by breed first: class L needs one)
+        const h = strategy === 'sport'
+          ? fresh(DATA.jumping.energy).filter((x) => x.skills.jumping < scope(x)).sort((a, b) => scope(b) - scope(a) || b.skills.jumping - a.skills.jumping)[0]
+          : fresh(DATA.jumping.energy)[0];
         if (h && (strategy === 'sport' || s.trainings < DATA.badge.trainings)) act({ type: 'train', horse: h.id, faults: faults(h) });
       }
       if (!badgeWaits(s)) {

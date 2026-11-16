@@ -464,6 +464,8 @@ test('show classes: a trained horse opens class A; the untrained one may not sta
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await rideCourse(page);
+  // held for momentum and let go on time: the rider clears (nearly) every higher jump
+  expect(Number((await page.locator('#jump-hud').textContent())!.match(/Fehler (\d+)/)![1])).toBeLessThanOrEqual(1);
   await expect(page.locator('#jump-end').getByRole('heading', { name: t.podium })).toBeVisible({ timeout: 15_000 });
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
   expect(s.today[0]).toEqual({ what: 'showFee', amount: -A.fee });

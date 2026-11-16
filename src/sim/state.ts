@@ -189,9 +189,9 @@ export const takeOff = (h: Horse, offset: number, held = Infinity, need = 0): 'e
  * take-off. A well-trained horse needs less of it. 0: a tap is enough (class E).
  */
 export const holdNeed = (h: Horse, hold: number) => hold * (1 - DATA.jumping.holdSkill * (h.skills.jumping / 100));
-/** Why a take-off knocked the pole: too soon or too late; with the timing right, not enough momentum (held too briefly). */
-export const faultWhy = (h: Horse, offset: number): 'soon' | 'late' | 'power' =>
-  clears(h, offset) ? 'power' : offset < 0 ? 'soon' : 'late';
+/** Why a take-off knocked the pole: not enough momentum (held too briefly) with the timing right, else too soon or late. */
+export const faultWhy = (h: Horse, offset: number, held = Infinity, need = 0): 'soon' | 'late' | 'power' =>
+  clears(h, offset) && held < need ? 'power' : offset < 0 ? 'soon' : 'late';
 
 /**
  * Why the riding badge can't be tried now: passed already, more practice first, tomorrow after a failed try, or every
@@ -438,7 +438,7 @@ function step(state: State, action: Action): State {
       const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
       if (!h || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
       const trained: Horse = {
-        ...h, skills: { ...h.skills, jumping: Math.min(scope(h), clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear))) }, // up to the breed's limit
+        ...h, skills: { ...h.skills, jumping: Math.max(h.skills.jumping, Math.min(scope(h), clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)))) }, // up to the breed's limit, never down
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
       };
       return { ...state, trainings: state.trainings + 1, horses: state.horses.map((x) => (x === h ? trained : x)) };

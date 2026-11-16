@@ -519,31 +519,38 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   const hud = (r: Round) => { $('jump-hud').textContent = t.jumpHud(Math.min(r.next + 1, course.jumps.length), course.jumps.length, r.faults, Math.floor(r.t), allowed); };
   // higher classes need momentum: how long this horse needs the finger held before letting go (0: a tap)
   const need = holdNeed(h, course.hold ?? 0), tip = $('jump-tip');
-  if (need) $('jump-start').querySelector('p')!.textContent += ` ${t.jumpHowHold}`; // Oma explains the momentum too
+  if (need) $('jump-start').querySelector('p')!.textContent = t.jumpHow(h.look.build === 'pony', true); // Oma explains the momentum instead of the tap
   let waitTip = '', knockTimer = 0;
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
     look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), hold: need, judge: (o, held) => takeOff(h, o, held, need), onChange: hud,
     onWaiting: (w) => { waitTip = w ? t.drawTip(w, h.look.build === 'pony') : ''; if (!knockTimer) { tip.hidden = !w; tip.textContent = waitTip; } },
     // a knocked pole: say why for a moment (too soon, too late, not enough momentum), then back to any waiting tip
-    onKnock: (o) => {
-      tip.textContent = t.knock[faultWhy(h, o)]; tip.hidden = false;
+    onKnock: (o, held) => {
+      tip.textContent = t.knock[faultWhy(h, o, held, need)]; tip.hidden = false;
       clearTimeout(knockTimer);
       knockTimer = window.setTimeout(() => { knockTimer = 0; tip.textContent = waitTip; tip.hidden = !waitTip; }, 1800);
     },
   });
   hud(newRound(course));
   // on the arena a tap is "Hopp!" (the scene); on a keyboard the space bar is too, unless a button has the focus
+  // held down for momentum like a finger: the take-off when it is let go
+  let spaceAt = 0;
   const key = (e: KeyboardEvent) => {
     if (e.code !== 'Space' || e.target instanceof HTMLButtonElement) return;
-    e.preventDefault(); round.then((r) => r.hopp());
+    e.preventDefault();
+    if (e.type === 'keydown') { if (!e.repeat) spaceAt = performance.now(); return; }
+    const held = (performance.now() - spaceAt) / 1000;
+    round.then((r) => r.hopp(held));
   };
   addEventListener('keydown', key);
+  addEventListener('keyup', key);
   // two fingers on the arena must not zoom the page (iPadOS pinches even over touch-action: none)
   const noZoom = (e: Event) => e.preventDefault();
   document.addEventListener('gesturestart', noZoom);
   $('jump-go').addEventListener('click', async () => { // once: a second click (or the space bar) must not ride it again
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
+    clearTimeout(knockTimer); tip.hidden = true; // no tip over the result
     if (kind === 'show') {
       // the podium: the first three on their steps, then everyone with their points
       const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name, showClass);
@@ -571,7 +578,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   }, { once: true });
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
-  leave = () => { removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
+  leave = () => { removeEventListener('keydown', key); removeEventListener('keyup', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
 }
 
 /**

@@ -19,7 +19,7 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.91× careful's after 40 days and 1.12× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.89× careful's after 40 days and 1.15× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 
 ## Current numbers
 
@@ -38,7 +38,7 @@ Sick days are counted in the morning, before the vet comes.
 | careless | 4 | 524 € | 402 € | 202 € | 202 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
 | careless | 5 | 514 € | 498 € | 563 € | 563 € | 4 | 21 | 49 | 9 | 14 | 0 € | nein |
 | sport | 1 | 435 € | 476 € | 442 € | 1252 € | 3 | 25 | 64 | 13 | 0 | 0 € | nein |
-| sport | 2 | 502 € | 534 € | 253 € | 1523 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
+| sport | 2 | 502 € | 534 € | 215 € | 1485 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
 | sport | 3 | 429 € | 468 € | 367 € | 1297 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
 | sport | 4 | 426 € | 618 € | 469 € | 1719 € | 5 | 25 | 69 | 12 | 0 | 0 € | nein |
 | sport | 5 | 421 € | 650 € | 275 € | 1435 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
@@ -59,7 +59,9 @@ Sick days are counted in the morning, before the vet comes.
   a horse from the market comes earlier, which helps sport most: L stays at 220 €.
 
 - Since #58 a breed limits jumping (Haflinger and Isländer up to class A): the sport player buys the best jumper
-  the market offers at the Reitschule, the careful one the cheapest horse.
+  the market offers at the Reitschule and practises the horse that can still get better, best jumper first; it rides
+  class L from about day 47–65. The careful player buys the cheapest horse. The run doesn't model the momentum of
+  A and L, so real rounds there are a little harder.
 
 ## Open points
 
