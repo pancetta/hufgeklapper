@@ -207,6 +207,14 @@ export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
 /** Why horse `h` can't start in class `c` today: not skilled enough, or the entry fee is too much; null if it can. */
 export const classWaits = (s: State, h: Horse, c: ShowClass): 'skill' | 'money' | null =>
   h.skills.jumping < DATA.shows.classes[c].minSkill ? 'skill' : s.money < DATA.shows.classes[c].fee ? 'money' : null;
+/**
+ * Why class `c` is shut today for every horse, the nearest reason first (the fee, then a skilled horse that can't
+ * work today, then no horse skilled enough); null if some horse can start there.
+ */
+export function classShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | null {
+  const w = s.horses.map((h) => classWaits(s, h, c) ?? (cantWork(h, DATA.jumping.energy) ? 'tired' : null));
+  return w.includes(null) ? null : (['money', 'tired', 'skill'] as const).find((r) => w.includes(r)) ?? 'skill';
+}
 const showScore = (faults: number, skill: number) => 100 - DATA.shows.faultPoints * faults + Math.round(skill * DATA.shows.skillPoints);
 
 export type ShowRow = { rider: string; horse: string; score: number; you?: true };

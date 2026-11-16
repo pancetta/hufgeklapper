@@ -167,7 +167,7 @@ export const t = {
   classesLater: 'Übe viel Springen! Dann darf dein Pferd bald in Klasse A starten. Dort gibt es mehr Preisgeld.',
   showClass: (c: string, fee: number, prize: number) => `Klasse ${c} · Startgeld ${fee} € · Sieg ${prize} €`,
   showClassName: (c: string) => `Turnier, Klasse ${c}`,
-  classWaits: { skill: 'kein Pferd springt schon so gut', money: 'zu wenig Geld' },
+  classWaits: { skill: 'noch kein Pferd springt gut genug', tired: 'dein Springpferd kann heute nicht', money: 'zu wenig Geld' },
   notSkilled: 'springt noch nicht gut genug',
   nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',

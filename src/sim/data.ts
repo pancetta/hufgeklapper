@@ -87,7 +87,7 @@ export const DATA = {
     classes: {
       E: { minSkill: 0, fee: 15, prizes: [60, 35, 20], rivalSkill: [10, 50] }, // the first shows: a clear round usually reaches the podium
       A: { minSkill: 40, fee: 30, prizes: [150, 90, 50], rivalSkill: [35, 70] },
-      L: { minSkill: 70, fee: 50, prizes: [300, 180, 100], rivalSkill: [60, 90] },
+      L: { minSkill: 70, fee: 50, prizes: [220, 130, 70], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
     },
   },
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */

@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -367,13 +367,11 @@ export function showFarm(intro = false) {
   function enterShow() {
     const s = game.get(), C = DATA.shows.classes, ride = (c: ShowClass, title: string, note?: string) =>
       pickHorse(title, (id) => showJumping(id, 'show', c), (h) => (classWaits(s, h, c) === 'skill' ? t.notSkilled : null), note);
-    // why a class is shut: no horse skilled enough, or (with a skilled horse) not enough money
-    const why = (c: ShowClass) => { const w = s.horses.map((h) => classWaits(s, h, c)); return w.includes(null) ? null : w.includes('money') ? 'money' : 'skill'; };
-    if (SHOW_CLASSES.slice(1).every((c) => why(c) === 'skill')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
+    if (SHOW_CLASSES.slice(1).every((c) => classShut(s, c) === 'skill')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${t.whichClass}</h2><p class="oma">${t.classesHow}</p>
       ${SHOW_CLASSES.map((c) => {
-        const w = why(c);
+        const w = classShut(s, c);
         return `<button type="button" data-class="${c}"${w ? ' disabled' : ''}>${t.showClass(c, C[c].fee, C[c].prizes[0])}${w ? ` · ${t.classWaits[w]}` : ''}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;

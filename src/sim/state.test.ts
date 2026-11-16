@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -329,6 +329,11 @@ describe('Sim', () => {
     expect(classWaits({ ...s, money: C.A.fee - 1 }, trained, 'A')).toBe('money');
     // each class up pays more for a win
     expect(C.E.prizes[0] < C.A.prizes[0] && C.A.prizes[0] < C.L.prizes[0]).toBe(true);
+    // a class is shut for the whole farm: open with the trained horse, 'tired' when only that horse could and it can't
+    const farm: State = { ...s, horses: [trained, s.horses[1]] };
+    expect(SHOW_CLASSES.map((c) => classShut(farm, c))).toEqual([null, null, 'skill']);
+    expect(classShut({ ...farm, horses: [{ ...trained, needs: { ...trained.needs, energy: 0 } }, s.horses[1]] }, 'A')).toBe('tired');
+    expect(classShut({ ...farm, money: C.A.fee - 1 }, 'A')).toBe('money');
   });
 
   it('ranks the player against rivals: a clear round on a skilled horse wins, a bad one comes last; same seed, same table', () => {
