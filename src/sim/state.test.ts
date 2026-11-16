@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -512,6 +512,18 @@ describe('Sim', () => {
     // good care in time heals a horse: no dead end any more, the countdown starts afresh
     const healed = apply({ ...s, horses: s.horses.map((h, i) => (i ? h : { ...h, needs: { ...h.needs, health: 60 } })) }, { type: 'sleep' });
     expect([healed.deadEnd, gameOver(healed)]).toEqual([0, false]);
+  });
+
+  it('a second dead end at its worst (every need at 0): doing all Oma says each day saves the farm in time', () => {
+    const zero = Object.fromEntries(NEEDS.map((n) => [n, 0])) as State['horses'][number]['needs'];
+    let s: State = { ...newGame(1), rescueDay: 1, day: 20, deadEnd: 1, money: 0, debt: DATA.loan.debtLimit, feed: 0,
+      horses: newGame(1).horses.map((h) => ({ ...h, needs: zero })) };
+    for (let day = 1; s.deadEnd && day < DATA.rescue.grace; day++) {
+      s = apply(s, { type: 'buyHay', pack: 0 });
+      for (const h of s.horses) for (const what of CARE) s = apply(s, { type: 'care', horse: h.id, what });
+      s = apply(s, { type: 'sleep' });
+    }
+    expect([gameOver(s), s.deadEnd]).toEqual([false, 0]);
   });
 
   describe('the Pensionsstall', () => {

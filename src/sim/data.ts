@@ -45,7 +45,7 @@ export const DATA = {
    * in a second dead end she warns each morning, and after `grace` mornings in a row the farm is lost (game over),
    * unless good care makes a horse healthy again first.
    */
-  rescue: { hay: 6, grace: 5 },
+  rescue: { hay: 6, grace: 7 },
   /** Riding lessons ("Reitstunden"). */
   lessons: {
     /** What a lesson pays at best, by the pupil's level. */

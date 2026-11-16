@@ -132,7 +132,7 @@ export function showStart() {
         <section class="slot ${slot.kind}" aria-label="${t.slot(i + 1)}">
           <h2>${slotTitle(slot)}</h2>
           <p>${slot.kind === 'save' ? (gameOver(slot.save.state) ? t.lostFarm : t.slotInfo(slot.save.state.day, slot.save.state.money)) : '&nbsp;'}</p>
-          ${slot.kind === 'save' ? `<button type="button" data-do="resume" data-slot="${i}">${t.resumeGame}</button>` : ''}
+          ${slot.kind === 'save' && !gameOver(slot.save.state) ? `<button type="button" data-do="resume" data-slot="${i}">${t.resumeGame}</button>` : ''}
           <button type="button" data-do="new" data-slot="${i}" class="${slot.kind === 'save' ? 'small' : ''}">${t.newGame}</button>
           <span class="file-buttons">
             ${slot.kind === 'save' ? `<button type="button" class="small" data-do="export" data-slot="${i}">${t.exportSave}</button>` : ''}
@@ -311,7 +311,6 @@ async function explain(what: Feature) {
 let goalsOpen = true; // the goal list is open until the child folds it away
 let hintAway = ''; // the hint the child closed; it stays away until another one is due
 
-/** The farm map; with `intro`, Oma Hanne first hands the farm over in a few speech bubbles. */
 /** The farm is lost (a second dead end lasted too long): Oma Hanne says so over the farm; then to the start. */
 function showGameOver() {
   const $ = screen(`<canvas id="farm" aria-hidden="true"></canvas>
@@ -322,6 +321,7 @@ function showGameOver() {
   leave = () => { farm.then((f) => f.stop()); };
 }
 
+/** The farm map; with `intro`, Oma Hanne first hands the farm over in a few speech bubbles. */
 export function showFarm(intro = false) {
   if (gameOver(game.get())) return showGameOver();
   const $ = screen(`<canvas id="farm" aria-label="${t.title}"></canvas><div id="labels" class="labels" hidden></div>${topBar()}

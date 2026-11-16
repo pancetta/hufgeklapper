@@ -355,6 +355,7 @@ test('a second dead end lasting too long: Oma warns, then the farm is lost; the 
   await expect(page.getByRole('heading', { name: t.gameOverTitle })).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: t.toStart }).tap();
   await expect(page.getByRole('region', { name: t.slot(1) })).toContainText(t.lostFarm);
+  await expect(page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame })).toHaveCount(0);
 });
 
 test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {
