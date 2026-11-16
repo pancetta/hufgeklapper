@@ -15,10 +15,11 @@ import { courseFor, newRound, type Round, timeAllowed } from '../sim/round';
 import { omaPortrait, portrait } from '../scene/oma';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
+import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -313,7 +314,7 @@ export function showFarm(intro = false) {
     else if (target === 'board') explain('board').then(showShop);
     else if (target === 'arena') explain('arena').then(arena);
     else if (target === 'pasture') bar.toast(t.pasture);
-    else if (target === 'feed') bar.toast(t.feedStore(s.feed));
+    else if (target === 'feed') explain('store').then(showStore);
     else if (!canBuild(s)) bar.toast(t.freePlot);
     else if (s.built.stalls) showStable(); // the Offenstall is part of the stable
     else build('stalls', t.buildStalls(DATA.build.stalls.cost), t.builtStalls);
@@ -421,11 +422,8 @@ export function showFarm(intro = false) {
   function shop() {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
-      <p>${t.inStore(s.feed)}${s.debt ? ` · ${t.owe(s.debt)}` : ''}</p>
+      ${s.debt ? `<p>${t.owe(s.debt)}</p>` : ''}
       ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
-      <h3>${t.buyHay}</h3>
-      ${DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('')}
-      ${DATA.hayPacks.some((_, i) => hayOnCredit(s, i)) ? `<p class="oma">${t.omaCredit}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${s.stage === 'reitschule' ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
         const full = s.horses.length >= stalls(s), poor = s.money < o.price;
@@ -437,10 +435,6 @@ export function showFarm(intro = false) {
       if (!o) return;
       game.dispatch({ type: 'buyHorse', offer: o.id });
       if (game.get().horses.some((h) => h.id === o.id)) { showFarm(); omaSays(t.boughtHorse(o.name)); } // the new horse joins the herd on the map
-    }));
-    $('shop').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
-      game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
-      bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));
     }));
     $('shop').querySelector('#loan')?.addEventListener('click', () => { game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount)); });
     $('close-shop').addEventListener('click', () => { $('shop').hidden = true; });
@@ -703,6 +697,29 @@ export function showStable() {
       });
     });
   }
+  render();
+  leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
+}
+
+/** The feed store: the bales in stock as a stack, how long they last, and buying hay (on credit when money is short). */
+export function showStore() {
+  const $ = screen(`<canvas id="store" aria-hidden="true"></canvas>${topBar()}
+    <aside class="sheet store-panel"><h2>${t.places.feed}</h2><p id="stock" role="status"></p><h3>${t.buyHay}</h3><div id="packs" class="answers"></div>
+      <p class="oma" id="credit" hidden>${t.omaCredit}</p><button type="button" id="to-farm">${t.toFarm}</button></aside>`);
+  const scene = startStore($<HTMLCanvasElement>('store'), { bales: game.get().feed });
+  const render = () => {
+    const s = game.get();
+    $('stock').textContent = t.stock(s.feed, hayNights(s));
+    $('packs').innerHTML = DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('');
+    $('credit').hidden = !DATA.hayPacks.some((_, i) => hayOnCredit(s, i));
+    $('packs').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
+      game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
+      bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));
+    }));
+    scene.then((sc) => sc.set(s.feed)); // the bales just bought drop onto the stack
+  };
+  const bar = wireTopBar($, render);
+  $('to-farm').addEventListener('click', () => showFarm());
   render();
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
 }

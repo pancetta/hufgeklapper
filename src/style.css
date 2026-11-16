@@ -300,3 +300,16 @@ canvas { image-rendering: pixelated; }
   position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); top: 12px; margin: 0; max-width: 340px; text-align: right;
   font-size: calc(var(--fs) * 16px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px;
 }
+
+/* the feed store: the stack on the left, the panel with stock and buying on the right */
+.store-panel {
+  position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); top: 0; bottom: 0; margin: auto 0; height: fit-content; z-index: 3; /* no transform: WebKit misses taps on transformed buttons over a canvas */
+  display: grid; gap: 10px; width: min(40vw, 360px); text-align: center;
+  background: var(--paper); border: var(--px) solid var(--wood-dark); border-radius: calc(4 * var(--px)); padding: 16px 20px;
+}
+.store-panel h2, .store-panel h3, .store-panel p { margin: 0; }
+.store-panel h2 { font-size: calc(var(--fs) * 28px); }
+.store-panel h3 { font-size: calc(var(--fs) * 20px); }
+.store-panel #stock { font-size: calc(var(--fs) * 18px); }
+.store-panel button { font-size: calc(var(--fs) * 18px); }
+.store-panel .answers { display: grid; gap: 8px; }

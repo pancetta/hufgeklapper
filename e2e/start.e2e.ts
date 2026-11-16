@@ -37,7 +37,7 @@ async function newGame(page: Page, name: string, explain = false) {
   await page.getByRole('button', { name: t.start }).tap();
   for (let i = 0; i < t.intro('', []).length; i++) await page.getByRole('button', { name: t.next }).tap();
   await expect(page.getByRole('button', { name: t.next })).toBeHidden();
-  if (!explain) await changeSave(page, (s) => { s.explained = ['stable', 'care', 'board', 'arena']; });
+  if (!explain) await changeSave(page, (s) => { s.explained = [...DATA.features]; });
 }
 
 /** Changes the game in slot 1 as saved, then reloads and carries on with it. */
@@ -106,13 +106,16 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await expect(page.getByText('Sonnenhof')).toBeVisible();
   await expect(page.getByText(t.money(300))).toBeVisible();
   await expect(page.getByText(t.day(1))).toBeVisible();
-  // the notice board sells hay
-  await page.getByRole('button', { name: t.places.board }).tap();
+  // the feed store shows its bales and sells hay
+  await page.getByRole('button', { name: t.places.feed }).tap();
+  await expect(page.locator('#stock')).toHaveText(t.stock(10, 5));
   await page.getByRole('button', { name: t.hayPack(5, 25) }).tap();
-  await expect(page.getByRole('status')).toHaveText(t.bought(5));
+  await expect(page.locator('.toast')).toHaveText(t.bought(5));
   await expect(page.locator('#hay')).toHaveText(t.hay(15));
+  await expect(page.locator('#stock')).toHaveText(t.stock(15, 7));
   await expect(page.locator('#money')).toHaveText(t.money(275));
-  await page.getByRole('button', { name: t.close }).tap();
+  await page.screenshot({ path: test.info().outputPath('store.png') });
+  await page.getByRole('button', { name: t.toFarm }).tap();
   // the stable: both ponies with their needs
   await page.getByRole('button', { name: t.places.stall }).tap();
   for (const name of ['Kiwi', 'Luna']) await expect(page.locator('.nameplate', { hasText: name })).toBeVisible();
@@ -287,10 +290,12 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   });
   await page.reload();
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
-  await page.getByRole('button', { name: t.places.board }).tap();
+  await page.getByRole('button', { name: t.places.feed }).tap();
   await expect(page.getByText(t.omaCredit)).toBeVisible();
   await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
   await expect(page.locator('#hay')).toHaveText(t.hay(20));
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByText(t.owe(45))).toBeVisible();
   await page.getByRole('button', { name: t.loan(100) }).tap();
   await expect(page.locator('#money')).toHaveText(t.money(100));

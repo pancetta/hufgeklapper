@@ -133,7 +133,7 @@ export const DATA = {
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
   /** What Oma Hanne explains the first time the player opens it. */
-  features: ['stable', 'care', 'board', 'arena'] as const,
+  features: ['stable', 'care', 'board', 'arena', 'store'] as const,
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   /** A horse's own name: at most this many characters, so it fits on the nameplate. */
