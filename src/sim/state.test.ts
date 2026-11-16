@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -374,6 +374,54 @@ describe('Sim', () => {
     const s = apply(newGame(1), { type: 'explained', what: 'stable' });
     expect(s.explained).toEqual(['stable']);
     expect(apply(s, { type: 'explained', what: 'stable' })).toBe(s);
+  });
+
+  it('holds the farm inspection once all goals are met: a passed quiz makes a Reitschule with a market, a failed one waits a day', () => {
+    const s = newGame(1), done: State = { ...s, goalsDone: ['groom', 'lessons', 'badge', 'savings', 'reputation'] };
+    const right = [0, 0, 0, 0, 0], twoWrong = [1, 2, 0, 0, 0];
+    expect([canInspect(s), canInspect(done)]).toEqual([false, true]);
+    expect(apply(done, { type: 'inspection', answers: [0, 0, 0] })).toBe(done);
+    const failed = apply(done, { type: 'inspection', answers: twoWrong });
+    expect([failed.stage, canInspect(failed)]).toEqual(['kleinerHof', false]);
+    const passed = apply(done, { type: 'inspection', answers: right });
+    expect([passed.stage, passed.market.length, canInspect(passed)]).toEqual(['reitschule', DATA.market.offers, false]);
+    // the Reitschule has new goals
+    expect(goals(passed).map((g) => g.id)).toEqual(DATA.goals.reitschule.map((g) => g.id));
+    expect(goals(passed).filter((g) => g.done)).toEqual([]); // the Kleiner Hof's reached goals don't carry over
+    // the lesson goal counts from the stage's start, even after many lessons before
+    const busy = apply({ ...done, lessonsGiven: 40 }, { type: 'inspection', answers: right });
+    expect(goals(busy).find((g) => g.id === 'lessons')).toMatchObject({ have: 0, done: false });
+  });
+
+  it('sells horses at the Reitschule: fresh offers each morning, only with money and a free stall place', () => {
+    const [offers] = marketFor(4, 42);
+    expect(offers).toHaveLength(DATA.market.offers);
+    for (const o of offers) {
+      const [lo, hi] = DATA.market.price[o.look.build];
+      expect(o.price).toBeGreaterThanOrEqual(lo); expect(o.price).toBeLessThanOrEqual(hi);
+    }
+    expect(marketFor(4, 42)[0]).toEqual(offers);
+    expect(new Set(offers.map((o) => o.name)).size).toBe(offers.length);
+    expect(marketFor(4, 42, offers.map((o) => o.name))[0].map((o) => o.name).filter((n) => offers.some((o) => o.name === n))).toEqual([]); // not a name already on the farm
+    const s: State = { ...newGame(1), stage: 'reitschule', market: offers, money: 2000 };
+    expect(apply(s, { type: 'buyHorse', offer: offers[0].id })).toBe(s); // both stall places taken
+    const roomy = apply(s, { type: 'build', what: 'stalls' });
+    expect([stalls(roomy), roomy.money]).toEqual([DATA.stalls.reitschule + DATA.build.stalls.places, 2000 - DATA.build.stalls.cost]);
+    const bought = apply(roomy, { type: 'buyHorse', offer: offers[0].id });
+    expect(bought.horses.at(-1)).toMatchObject({ id: offers[0].id, name: offers[0].name, look: offers[0].look });
+    expect([bought.money, bought.market.length]).toEqual([roomy.money - offers[0].price, offers.length - 1]);
+    expect(apply({ ...roomy, money: 10 }, { type: 'buyHorse', offer: offers[0].id }).horses).toHaveLength(2);
+    expect(apply(bought, { type: 'sleep' }).market.map((o) => o.id)).not.toContain(offers[1].id); // a new market tomorrow
+  });
+
+  it('builds once each: stall places and the arena upgrade, which brings one more pupil a day', () => {
+    const s: State = { ...newGame(1), stage: 'reitschule', money: 1000, reputation: 0 };
+    expect(buildWaits(newGame(1), 'arena')).toBe('stage');
+    expect(buildWaits({ ...s, money: 10 }, 'arena')).toBe('money');
+    const up = apply(s, { type: 'build', what: 'arena' });
+    expect([up.built.arena, buildWaits(up, 'arena')]).toEqual([1, 'built']);
+    expect(apply(up, { type: 'build', what: 'arena' })).toBe(up);
+    expect(apply(s, { type: 'sleep' }).pupils.length + 1).toBe(apply(up, { type: 'sleep' }).pupils.length);
   });
 
   it('rolls the same numbers from the same seed', () => {

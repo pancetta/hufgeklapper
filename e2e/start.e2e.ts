@@ -401,6 +401,57 @@ test('the task list and Oma Hanne: she explains a place once, and says when a po
   await expect(page.getByRole('heading', { name: t.shopTitle })).toBeVisible();
 });
 
+test('the farm inspection makes a Reitschule: build stall places, buy a horse at the market, upgrade the arena', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // as if every goal of the Kleiner Hof were met and money saved up
+  await changeSave(page, (s) => { Object.assign(s, { goalsDone: ['groom', 'lessons', 'badge', 'savings', 'reputation'], money: 2000 }); });
+  await page.getByRole('button', { name: t.startInspection }).tap();
+  await expect(page.getByText(t.inspectionIntro)).toBeVisible();
+  await expect(page.getByRole('img', { name: t.inspector })).toBeVisible();
+  await page.getByRole('button', { name: t.next }).tap();
+  for (const q of t.inspectionQuiz) {
+    await expect(page.getByText(q.q)).toBeVisible();
+    await page.getByRole('button', { name: q.a[0].text }).tap();
+    await page.getByRole('button', { name: t.next }).tap();
+  }
+  await expect(page.getByText(t.inspectionPassed)).toBeVisible();
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  // the Reitschule's new goals
+  await expect(page.getByText(t.goalText.horses(3))).toBeVisible();
+  // the market: no free stall place yet
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByRole('heading', { name: t.market })).toBeVisible();
+  await expect(page.locator('[data-offer]')).toHaveCount(DATA.market.offers);
+  await expect(page.locator('[data-offer]').first()).toBeDisabled();
+  await page.getByRole('button', { name: t.close }).tap();
+  // build two stall places on the free plot
+  await page.getByRole('button', { name: t.places.free }).tap();
+  await page.getByRole('button', { name: t.buildStalls(DATA.build.stalls.cost) }).tap();
+  await expect(page.getByText(t.builtStalls)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.getByRole('button', { name: t.shelter })).toBeVisible();
+  // now a horse can move in
+  await page.getByRole('button', { name: t.places.board }).tap();
+  const offer = page.locator('[data-offer]').first(), name = (await offer.textContent())!.split(' · ')[0];
+  await offer.tap();
+  await expect(page.getByText(t.boughtHorse(name))).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  expect(state.horses.map((h: { name: string }) => h.name)).toEqual(['Kiwi', 'Luna', name]);
+  // the stable now has four places: three horses and one free
+  await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
+  await expect(page.locator('.nameplate:not(.empty)')).toHaveCount(3);
+  await expect(page.locator('.nameplate.empty')).toHaveCount(1);
+  await page.screenshot({ path: test.info().outputPath('stable-four.png') });
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  // the arena upgrade
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.upgradeArena(DATA.build.arena.cost) }).tap();
+  await page.getByRole('button', { name: t.upgradeArena(DATA.build.arena.cost) }).tap();
+  await expect(page.getByText(t.builtArena)).toBeVisible();
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();

@@ -8,8 +8,9 @@ import { SPRITES } from './farm';
 import type { Drawable } from './life';
 import { TILE } from './terrain';
 
-export type Building = 'stall' | 'feedStore' | 'pasture' | 'arena';
-export type Plot = { id: string; c0: number; r0: number; c1: number; r1: number; building: Building | null };
+export type Building = 'stall' | 'feedStore' | 'pasture' | 'arena' | 'shelter';
+/** `level` 1: the building is upgraded; `flags`: the farm is a Reitschule and dresses up with pennants. */
+export type Plot = { id: string; c0: number; r0: number; c1: number; r1: number; building: Building | null; level?: number; flags?: boolean };
 type Images = Record<string, CanvasImageSource>;
 
 /** Plot rectangle in world pixels. */
@@ -106,6 +107,49 @@ function jump(x: number, y: number, colour: string): Drawable {
   } };
 }
 
+/** An open shelter with two more stall places (our own drawing, in the barn's colours): red planks, a grey roof, straw. */
+function shelter(p: Plot): Drawable {
+  const b = bounds(p), x0 = b.x0 + 10, x1 = b.x1 - 10, foot = b.y1 - 6, w = x1 - x0;
+  return { y: foot, draw: (ctx) => {
+    shadow(ctx, (x0 + x1) >> 1, foot - 1, w / 2 + 4, 5, 0.28);
+    const px = (c: string, x: number, y: number, ww: number, hh: number) => { ctx.fillStyle = c; ctx.fillRect(x, y, ww, hh); };
+    px('#2a1a10', x0 - 1, foot - 38, w + 2, 39); // outline
+    px('#b8433a', x0, foot - 37, w, 37); // back wall of red planks
+    for (let x = x0 + 5; x < x1; x += 6) px('#8e2f28', x, foot - 37, 1, 37);
+    px('#3a2414', x0 + 6, foot - 30, w - 12, 30); // the open front: dark inside
+    px('#e2c068', x0 + 6, foot - 7, w - 12, 7); px('#c9a548', x0 + 8, foot - 5, w - 16, 2); // straw on the floor
+    for (const x of [x0 + 3, x1 - 6]) { px('#f4efe2', x, foot - 34, 3, 34); px('#c9c2b0', x + 2, foot - 34, 1, 34); } // white posts
+    // the roof: grey shingles, a little overhang, a lighter ridge
+    for (let r = 0; r < 14; r++) px(r % 3 === 2 ? '#4a4a5c' : '#5d5d72', x0 - 5 + Math.floor(r / 3), foot - 52 + r, w + 10 - 2 * Math.floor(r / 3), 1);
+    px('#2a1a10', x0 - 6, foot - 53, w + 12, 1); px('#8a8aa0', x0 - 4, foot - 52, w + 8, 1);
+  } };
+}
+
+/** The Reitschule's pennants: a string of little flags along the arena's top fence, clear of the waiting pupils. */
+function pennants(p: Plot): Drawable {
+  const b = bounds(p), x0 = b.x0 + 12, x1 = b.x1 - 92, y = b.y0 + 1, colours = ['#d94f3d', '#f2c14e', '#3d6fd9', '#43a047'];
+  return { y, draw: (ctx) => {
+    for (let x = x0; x < x1; x++) { ctx.fillStyle = '#efe6d0'; ctx.fillRect(x, y - 7 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3), 1, 1); }
+    for (let x = x0 + 4, i = 0; x < x1 - 4; x += 9, i++) {
+      const top = y - 6 + Math.round(Math.sin(((x - x0) / (x1 - x0)) * Math.PI) * 3);
+      ctx.fillStyle = colours[i % colours.length];
+      for (let r = 0; r < 5; r++) ctx.fillRect(x - 2 + Math.ceil(r / 2), top + r, 5 - 2 * Math.ceil(r / 2), 1);
+    }
+  } };
+}
+
+/** The upgraded arena: flower boxes along the bottom fence. */
+function flowerBoxes(p: Plot): Drawable[] {
+  const b = bounds(p), y = b.y1 - 3;
+  return [b.x0 + 40, b.x0 + 90, b.x1 - 90, b.x1 - 40].map((x, i) => ({ y, draw: (ctx: CanvasRenderingContext2D) => {
+    shadow(ctx, x, y, 9, 2, 0.25);
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 9, y - 6, 18, 7);
+    ctx.fillStyle = '#a0623a'; ctx.fillRect(x - 8, y - 5, 16, 5);
+    ctx.fillStyle = '#4c9a2a'; ctx.fillRect(x - 8, y - 9, 16, 4);
+    for (let k = 0; k < 4; k++) { ctx.fillStyle = (k + i) % 2 ? '#ffe066' : '#e94f3f'; ctx.fillRect(x - 7 + k * 4, y - 10 - (k % 2), 2, 2); }
+  } }));
+}
+
 /** A free plot: four stakes with a string between them and a little sign. */
 function freePlot(p: Plot): Drawable[] {
   const b = bounds(p), x0 = b.x0 + 8, y0 = b.y0 + 12, x1 = b.x1 - 8, y1 = b.y1 - 8;
@@ -140,7 +184,9 @@ export function plotDrawables(p: Plot, img: Images): Drawable[] {
     }
     case 'feedStore': return [sprite('hayShed', cx, b.y1 - 6, img)];
     case 'pasture': return [...fence(p, [0, 0], img, p.c0 + 1), sprite('troughWater', b.x0 + 88, b.y0 + 86, img), sprite('hayRoll', b.x1 - 50, b.y0 + 166, img)];
-    case 'arena': return [...fence(p, [384, 0], img), ...jumps(p).map((j) => jump(j.x, j.y, j.colour))];
+    case 'arena': return [...fence(p, [384, 0], img), ...jumps(p).map((j) => jump(j.x, j.y, j.colour)),
+      ...(p.flags ? [pennants(p)] : []), ...(p.level ? flowerBoxes(p) : [])];
+    case 'shelter': return [shelter(p)];
     default: return freePlot(p);
   }
 }

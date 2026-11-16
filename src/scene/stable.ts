@@ -75,13 +75,16 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
         const p = (t * 0.06 + d * 0.27 + i * 0.13) % 1;
         ctx.fillRect(Math.round(wx + 8 + p * 40 + Math.sin(t + d) * 3), Math.round(wy + 36 + p * 70), 1, 1);
       }
-      blit(ctx, deco, HAY, bx + boxW - 38, floor - 60); // hay rack on the back wall
+      // wide stalls show the horse from the side next to a hay rack; narrow ones (a bigger stable) from the front,
+      // looking out over the door, so no horse reaches into the next stall
+      const narrow = boxW < 100;
+      if (!narrow) blit(ctx, deco, HAY, bx + boxW - 38, floor - 60); // hay rack on the back wall
       const sheet = sheets[i];
       if (sheet) {
         // the horse stands a little back in its stall
         const foot = floor - 6, breathe = Math.sin(t * 1.8 + i) > 0.85 ? 1 : 0;
-        shadow(ctx, cx, foot - 1, 26, 3, 0.25);
-        ctx.drawImage(sheet, 128, 0, 128, 128, Math.round(cx - 64), foot - 93 - breathe, 128, 128); // the side view (west)
+        shadow(ctx, cx, foot - 1, narrow ? 12 : 26, 3, 0.25);
+        ctx.drawImage(sheet, narrow ? 256 : 128, 0, 128, 128, Math.round(cx - 64), foot - 93 - breathe, 128, 128); // front (south) or side (west)
       }
       // the half door: planks, a top rail, an X brace
       const dx = bx + 6, dw = boxW - 12, dy = floor - 20, dh = 24;

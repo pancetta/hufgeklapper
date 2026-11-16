@@ -28,6 +28,15 @@ _Avoid_: level, tier
 **Farm inspection** ("Hof-Prüfung"):
 The step to the next **Farm stage**: all **Goals** of the stage met, then a short quiz with the inspector.
 
+**Market** ("Pferdemarkt"):
+At the Reitschule, the notice board offers a few horses and ponies each morning; buying one needs the money and a free **Stall place**.
+
+**Stall place** ("Stallplatz"):
+Room for one horse. The Kleiner Hof has two; at the Reitschule an open shelter ("Offenstall") on the free **Plot** adds two more.
+
+**Inspector** ("Prüferin", Frau Berger):
+Holds the **Farm inspection**'s quiz.
+
 **Goal** ("Aufgabe"):
 One item on the always-visible goal list, e.g. *Gib 5 Reitstunden*.
 _Avoid_: quest, mission, achievement

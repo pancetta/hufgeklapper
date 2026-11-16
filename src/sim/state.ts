@@ -3,7 +3,7 @@
  * Randomness comes from the seed kept in the state, so the same game plays the same way.
  */
 import type { Breed, Look } from '../horses/look';
-import { breedLook } from '../horses/look';
+import { BREEDS, breedLook, type Coat, type Face, FACES } from '../horses/look';
 import type { HairStyle } from '../riders/look';
 import { DATA } from './data';
 
@@ -20,7 +20,7 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 9;
+  version: 10;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -45,9 +45,15 @@ export type State = {
   badgeFailedDay: number;
   /** The day of the last show the player rode in (0: none yet). */
   lastShowDay: number;
-  /** Goals reached (they stay reached), and the features Oma Hanne has explained already. */
+  /** Goals of the current stage reached (they stay reached; a new stage starts afresh), and the features Oma Hanne has explained. */
   goalsDone: GoalId[];
   explained: Feature[];
+  /** The farm inspection: the day it last failed (0: never). The Reitschule's market and what has been built. */
+  inspectionFailedDay: number;
+  /** Lessons given before this farm stage began: a stage's lesson goal counts from its start. */
+  lessonsBefore: number;
+  market: Offer[];
+  built: { stalls: number; arena: number };
   badgeQuizDay: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
@@ -55,7 +61,10 @@ export type State = {
 };
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
-export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize'; amount: number };
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize' | 'horse' | 'build'; amount: number };
+
+/** A horse for sale at the Reitschule's market. */
+export type Offer = { id: string; name: string; breed: Breed; look: Look; price: number };
 
 /** The player's figure ("Avatar"): a name and a rider's look (indices into the palettes in riders/look.ts). */
 export type Avatar = { name: string; skin: number; hair: HairStyle; hairColor: number; jacket: number };
@@ -74,7 +83,8 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'train'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
   | { type: 'show'; horse: string; faults: number }
-  | { type: 'explained'; what: Feature };
+  | { type: 'explained'; what: Feature }
+  | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: 'stalls' | 'arena' };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -87,8 +97,8 @@ export function roll(seed: number): [value: number, next: number] {
 }
 
 /** This morning's pupils: one, plus more the better the farm's reputation. */
-export function pupilsFor(day: number, reputation: number, seed: number): [Pupil[], number] {
-  const n = 1 + DATA.lessons.morePupilsAt.filter((r) => reputation >= r).length, pupils: Pupil[] = [];
+export function pupilsFor(day: number, reputation: number, seed: number, more = 0): [Pupil[], number] {
+  const n = 1 + more + DATA.lessons.morePupilsAt.filter((r) => reputation >= r).length, pupils: Pupil[] = [];
   for (let i = 0; i < n; i++) {
     let a: number, b: number, c: number, d: number;
     [a, seed] = roll(seed); [b, seed] = roll(seed); [c, seed] = roll(seed); [d, seed] = roll(seed);
@@ -100,13 +110,40 @@ export function pupilsFor(day: number, reputation: number, seed: number): [Pupil
   return [pupils, seed];
 }
 
+/** A horse as it arrives: needs as new, a little jumping skill. */
+const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
+  ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
+
+/** This morning's horses for sale: breed, coat, a marking now and then, a price in the build's range. */
+export function marketFor(day: number, seed: number, taken: string[] = []): [Offer[], number] {
+  const M = DATA.market, offers: Offer[] = [];
+  let r: number;
+  for (let i = 0; i < M.offers; i++) {
+    [r, seed] = roll(seed); const breed = M.breeds[Math.floor(r * M.breeds.length)] as Breed, b = BREEDS[breed];
+    [r, seed] = roll(seed); const coat = b.coats[Math.floor(r * b.coats.length)] as Coat;
+    [r, seed] = roll(seed); const face = r < 0.5 ? (Object.keys(FACES) as Face[])[Math.floor(r * 8)] : undefined;
+    const free = M.names.filter((n) => !taken.includes(n) && !offers.some((o) => o.name === n)); // no two horses called the same
+    [r, seed] = roll(seed); const name = free[Math.floor(r * free.length)] ?? M.names[i];
+    [r, seed] = roll(seed); const [lo, hi] = M.price[b.build];
+    offers.push({ id: `m${day}-${i}`, name, breed, look: breedLook(breed, coat, face ? { face } : {}), price: Math.round((lo + r * (hi - lo)) / 10) * 10 });
+  }
+  return [offers, seed];
+}
+
+/** The farm inspection can come once every goal of the Kleiner Hof is met (not again on the day it failed). */
+export const canInspect = (s: State) => s.stage === 'kleinerHof' && allGoalsDone(s) && s.inspectionFailedDay !== s.day;
+const isQuiz = (a: unknown, q: { questions: number; answers: number }) =>
+  Array.isArray(a) && a.length === q.questions && a.every((x) => Number.isInteger(x) && x >= 0 && x < q.answers);
+/** Why a building can't be built now: not yet a Reitschule, built already, or too little money. */
+export function buildWaits(s: State, what: 'stalls' | 'arena'): 'stage' | 'built' | 'money' | null {
+  return s.stage !== 'reitschule' ? 'stage' : s.built[what] >= 1 ? 'built' : s.money < DATA.build[what].cost ? 'money' : null;
+}
+
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
-  const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
-    ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 9, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 10, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -193,7 +230,6 @@ export function showResult(s: State, h: Horse, faults: number, rider: string) {
 
 /** The quiz's score: in the quiz data the right answer of each question comes first (index 0). */
 export const quizScore = (answers: number[]) => answers.filter((a) => a === 0).length;
-const isAnswers = (a: unknown) => Array.isArray(a) && a.length === DATA.badge.questions && a.every((x) => Number.isInteger(x) && x >= 0 && x < DATA.badge.answers);
 
 /** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
 export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
@@ -217,7 +253,7 @@ export function earn(s: State, amount: number): State {
   const today: Entry[] = repay ? [...s.today, { what: 'repay', amount: -repay }] : s.today;
   return { ...s, money: s.money + amount - repay, debt: s.debt - repay, today };
 }
-export const stalls = (s: State) => DATA.stalls[s.stage];
+export const stalls = (s: State) => DATA.stalls[s.stage] + s.built.stalls * DATA.build.stalls.places;
 export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
 
 /** One night for one horse: it eats from the hay store if there is any, gets hungry, dirty and rested, and its
@@ -236,7 +272,7 @@ export type Feature = (typeof DATA.features)[number];
 
 /** How far each goal of the farm stage has come; a goal once reached stays done. */
 export function goals(s: State) {
-  const have = { groom: s.careDone.groom, lessons: s.lessonsGiven, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation };
+  const have = { groom: s.careDone.groom, lessons: s.lessonsGiven - s.lessonsBefore, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation, horses: s.horses.length };
   return DATA.goals[s.stage].map(({ id, need }) => {
     const done = s.goalsDone.includes(id) || have[id] >= need;
     return { id, need, have: done ? need : Math.max(0, have[id]), done };
@@ -269,6 +305,26 @@ export function apply(state: State, action: Action): State {
 
 function step(state: State, action: Action): State {
   switch (action.type) {
+    case 'inspection': {
+      // the quiz with the inspector: enough right answers make the farm a Reitschule with its first market; else tomorrow
+      const I = DATA.inspection;
+      if (!canInspect(state) || !isQuiz(action.answers, I)) return state;
+      if (quizScore(action.answers) < I.pass) return { ...state, inspectionFailedDay: state.day };
+      const [market, seed] = marketFor(state.day, state.seed, state.horses.map((h) => h.name));
+      // the new stage starts its own goal list (counts like lessons given go on from where they are)
+      return { ...state, stage: 'reitschule', market, seed, goalsDone: [], lessonsBefore: state.lessonsGiven };
+    }
+    case 'buyHorse': {
+      const o = state.market.find((x) => x.id === action.offer);
+      if (!o || state.money < o.price || state.horses.length >= stalls(state) || state.horses.some((h) => h.id === o.id)) return state;
+      return { ...state, money: state.money - o.price, market: state.market.filter((x) => x !== o),
+        horses: [...state.horses, horse(o.id, o.name, o.breed, o.look)], today: [...state.today, { what: 'horse', amount: -o.price }] };
+    }
+    case 'build': {
+      if (buildWaits(state, action.what)) return state;
+      const cost = DATA.build[action.what].cost;
+      return { ...state, money: state.money - cost, built: { ...state.built, [action.what]: state.built[action.what] + 1 }, today: [...state.today, { what: 'build', amount: -cost }] };
+    }
     case 'explained':
       return state.explained.includes(action.what) || !DATA.features.includes(action.what) ? state : { ...state, explained: [...state.explained, action.what] };
     case 'sleep': {
@@ -286,8 +342,9 @@ function step(state: State, action: Action): State {
       });
       if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
       if (state.today.length) news.push({ kind: 'bill' });
-      const [pupils, seed] = pupilsFor(state.day + 1, state.reputation, state.seed);
-      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, seed };
+      const [pupils, seed1] = pupilsFor(state.day + 1, state.reputation, state.seed, state.built.arena * DATA.build.arena.pupils);
+      const [market, seed] = state.stage === 'reitschule' ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
+      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed };
     }
     case 'care': {
       const h = state.horses.find((x) => x.id === action.horse);
@@ -342,7 +399,7 @@ function step(state: State, action: Action): State {
     }
     case 'badgeQuiz': {
       // the quiz first: too few right answers fail the badge for today; enough lead on to the jumping round
-      if (badgeWaits(state) || state.badgeQuizDay === state.day || !isAnswers(action.answers)) return state;
+      if (badgeWaits(state) || state.badgeQuizDay === state.day || !isQuiz(action.answers, DATA.badge)) return state;
       return quizScore(action.answers) >= DATA.badge.quizPass ? { ...state, badgeQuizDay: state.day } : { ...state, badgeFailedDay: state.day };
     }
     case 'badge': {
