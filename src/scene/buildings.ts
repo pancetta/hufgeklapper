@@ -3,7 +3,7 @@
  * A building places itself from its plot: the ground it needs, its fence, its parts and fittings. So adding or
  * upgrading a building later means changing a plot's entry, never redrawing the map.
  */
-import { blit, shadow } from './draw';
+import { blit, pole, shadow, standard } from './draw';
 import { SPRITES } from './farm';
 import type { Drawable } from './life';
 import { TILE } from './terrain';
@@ -93,28 +93,16 @@ const sprite = (name: keyof typeof SPRITES, x: number, y: number, img: Images): 
   return { y, draw: (ctx) => blit(ctx, img[s.sheet], s.rect, x - s.ax, y - s.ay) };
 };
 
-/** A show jump (our own drawing): two white standards with striped poles. */
 /**
  * A show jump across the canter lane (which runs left and right), seen from above like the jumping arena's: a white
  * standard at each end, the striped pole between them, its shadow on the sand. The far standard and the pole stand
  * behind a horse on the lane, the near standard in front of it.
  */
 function jump(x: number, y: number, colour: string): Drawable[] {
-  const h = 11, lift = 6; // short enough that a lesson's quiet round (see `track`) passes below the lower jump
-  const standard = (ctx: CanvasRenderingContext2D, sy: number) => {
-    ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x - 1, sy, 5, 2);
-    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, sy - 11, 5, 12);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, sy - 10, 3, 10);
-    ctx.fillStyle = colour; ctx.fillRect(x - 1, sy - 8, 3, 2); ctx.fillRect(x - 1, sy - 4, 3, 2);
-  };
+  const h = 8; // short enough that a lesson's quiet round (see `track`) passes clear below the lower jump
   return [
-    { y: y - h, draw: (ctx) => {
-      standard(ctx, y - h);
-      ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x + 1, y - h + 2, 2, 2 * h); // the pole's shadow on the sand
-      ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, y - h - lift - 1, 3, 2 * h + 2);
-      for (let i = 0; i <= 2 * h; i++) { ctx.fillStyle = Math.floor(i / 5) % 2 ? colour : '#ffffff'; ctx.fillRect(x, y - h - lift + i, 1, 1); }
-    } },
-    { y: y + h, draw: (ctx) => standard(ctx, y + h) },
+    { y: y - h, draw: (ctx) => { standard(ctx, x, y - h, colour); pole(ctx, x, y - h - 6, x, y + h - 6, colour); } },
+    { y: y + h, draw: (ctx) => standard(ctx, x, y + h, colour) },
   ];
 }
 

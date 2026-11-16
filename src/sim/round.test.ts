@@ -48,17 +48,18 @@ describe('a round on the show-jumping arena', () => {
 
   it('a tap counts from when the finger touched down', () => {
     // lined up for jump 1, the tap's touch exactly at the perfect take-off, lifted 0.1 s later
-    const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0 };
+    const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0, v: R.speed };
     expect(hopp(at, E, judge, 0.1).air?.down).toBe(false);
     expect(hopp(at, E, judge).air?.down).toBe(true); // judged at the lift it would be late
   });
 
   it('a touch on time or late takes off at once; an earlier one waits to see if it is a tap', () => {
-    const j = E.jumps[0], at = (offset: number): Round => ({ ...newRound(E), x: j.x - R.takeoff + offset * R.speed, y: j.y, heading: 0 });
+    const j = E.jumps[0], at = (offset: number, v: number = R.speed): Round => ({ ...newRound(E), x: j.x - R.takeoff + offset * R.speed, y: j.y, heading: 0, v, started: true });
     expect(touchDown(at(0), E, judge).air?.down).toBe(false); // on time: clear
     expect(touchDown(at(0.15), E, judge).air?.down).toBe(true); // late: a knocked pole, not a refusal
     expect(touchDown(at(-0.3), E, judge)).toEqual(at(-0.3)); // early: maybe the start of a stroke
     expect(touchDown(at(-1), E, judge)).toEqual(at(-1));
+    expect(touchDown(at(0.1, 0), E, judge)).toEqual(at(0.1, 0)); // standing: only a tap jumps, never the start of a way
   });
 
   /** Rides `path` from `r` for `secs`; returns the horse's positions. */
@@ -102,6 +103,15 @@ describe('a round on the show-jumping arena', () => {
     const stood = r;
     for (let i = 0; i < 60; i++) r = step(r, E, DT, null);
     expect([stood.v, r.x, r.t > stood.t]).toEqual([0, stood.x, true]);
+  });
+
+  it('a way that ends just before a jump: the horse stands about where it ends, no fault', () => {
+    const j = E.jumps[0];
+    for (const end of [60, 40, 30, 20, 15]) {
+      const seen = along({ ...newRound(E), x: j.x - 120, y: j.y, heading: 0 }, [{ x: j.x - end, y: j.y }], 3), last = seen[seen.length - 1];
+      expect([end, last.v, last.faults, last.refused]).toEqual([end, 0, 0, null]);
+      expect(Math.abs(last.x - (j.x - end)), `${end}`).toBeLessThan(R.reach + 2);
+    }
   });
 
   it('a way into a corner: the horse rides into it and stands there, not shaking', () => {

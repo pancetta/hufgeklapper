@@ -27,6 +27,11 @@ export type Round = {
 const R = DATA.jumping.ride, A = DATA.jumping.arena;
 export const ANGLE: Record<Dir, number> = { E: 0, S: Math.PI / 2, W: Math.PI, N: -Math.PI / 2 };
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+/** A point pulled inside the fence, `gap` pixels clear of it. */
+const inside = (p: { x: number; y: number }, gap = 6) => {
+  const lo = A.fence + gap;
+  return { x: Math.max(lo, Math.min(A.w - lo, p.x)), y: Math.max(lo, Math.min(A.h - lo, p.y)) };
+};
 
 /** Where a point lies from a jump (or the finish): `s` along the way it is ridden (negative before it), `lat` across. */
 export function rel(x: number, y: number, [jx, jy]: [number, number], dir: Dir) {
@@ -71,7 +76,7 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
     if (Math.hypot(target.x - r.x, target.y - r.y) > 4) heading = wrap(heading + Math.max(-turn, Math.min(turn, wrap(want - heading))));
   }
   // along a way the horse speeds up to a canter, at its end it slows down (in the air it flies on)
-  const v = r.air ? r.v : Math.max(0, Math.min(R.speed, r.v + (target ? R.speedUp : -R.speedUp) * dt));
+  const v = r.air ? r.v : Math.max(0, Math.min(R.speed, r.v + (target ? R.speedUp : -R.brake) * dt));
   let x = r.x + Math.cos(heading) * v * dt, y = r.y + Math.sin(heading) * v * dt;
   // the fence: the horse slides along it
   const lo = A.fence + 6, hx = A.w - A.fence - 6, hy = A.h - A.fence - 6;
@@ -116,6 +121,7 @@ export function takeOffOffset(r: Round, c: Course) {
  * slow tap is never too late. Earlier, nothing yet: only a tap counts (`hopp` with its lag), not the start of a stroke.
  */
 export function touchDown(r: Round, c: Course, judge: (offset: number) => 'early' | 'clear' | 'fault'): Round {
+  if (!r.v) return r; // a standing horse jumps on a tap only: the start of a new way never jumps
   const offset = takeOffOffset(r, c);
   return offset !== null && (offset >= 0 || judge(offset) === 'clear') ? hopp(r, c, judge) : r;
 }
@@ -127,7 +133,7 @@ export function touchDown(r: Round, c: Course, judge: (offset: number) => 'early
 export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | 'clear' | 'fault', lag = 0): Round {
   const offset = takeOffOffset(r, c);
   if (offset === null) return r;
-  const what = judge(offset - lag);
+  const what = judge(offset - (lag * Math.max(r.v, 1)) / R.speed); // the horse moved lag × its speed since the touch
   if (what === 'early') return r;
   const j = c.jumps[r.next], { s } = rel(r.x, r.y, [j.x, j.y], j.dir);
   // straight over the jump, landing as far behind the pole as the hooves left the ground before it
@@ -141,8 +147,7 @@ export type Point = { x: number; y: number };
  * path is used up.
  */
 export function follow(r: Round, path: Point[]): { target: Point | null; path: Point[] } {
-  const lo = A.fence + 6, inside = (p: Point) => ({ x: Math.max(lo, Math.min(A.w - lo, p.x)), y: Math.max(lo, Math.min(A.h - lo, p.y)) });
-  path = path.map(inside); // a way drawn past the fence is ridden along its inside
+  path = path.map((p) => inside(p)); // a way drawn past the fence is ridden along its inside
   const d = (p: Point) => Math.hypot(p.x - r.x, p.y - r.y);
   // only the next few points: where a drawn loop crosses itself, the later pass must not cut the loop short
   let near = -1;
@@ -168,7 +173,6 @@ export function autopilot(r: Round, c: Course, window = 0.03) {
   const entry = along(-90), atEntry = Math.hypot(entry.x - r.x, entry.y - r.y) < 25;
   const onLine = s < 0 && Math.abs(lat) < 20 && Math.cos(r.heading - a) > 0.5;
   const p = onLine || atEntry ? along(Math.min(s + 50, 40)) : s < -60 ? entry : along(-150, lat >= 0 ? 60 : -60);
-  const lo = A.fence + 10; // loop points stay inside the fence
-  p.x = Math.max(lo, Math.min(A.w - lo, p.x)); p.y = Math.max(lo, Math.min(A.h - lo, p.y));
+  Object.assign(p, inside(p, 10)); // loop points stay inside the fence
   return { ...p, hopp: offset !== null && Math.abs(offset) <= window };
 }

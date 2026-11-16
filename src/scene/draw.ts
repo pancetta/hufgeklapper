@@ -34,3 +34,26 @@ export function shadow(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx
     ctx.fillRect(Math.round(cx - w), Math.round(cy + dy), w * 2, 1);
   }
 }
+
+/* the show jumps' parts, from above (our own drawing): on the jumping arena and the farm's arena */
+/** A striped pole from (x0, y0) to (x1, y1), its shadow `drop` pixels lower on the sand. */
+export function pole(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, colour: string, drop = 6) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + ((x1 - x0) * i) / n), y = Math.round(y0 + ((y1 - y0) * i) / n);
+    if (drop) { ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x + 1, y + drop, 2, 2); }
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, y - 1, 3, 3);
+  }
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + ((x1 - x0) * i) / n), y = Math.round(y0 + ((y1 - y0) * i) / n);
+    ctx.fillStyle = Math.floor(i / 5) % 2 ? colour : '#ffffff'; ctx.fillRect(x, y, 1, 1);
+  }
+}
+
+/** A white standard with coloured bands, standing on the sand at (x, y). */
+export function standard(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string) {
+  ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x - 1, y, 5, 2);
+  ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, y - 11, 5, 12);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, y - 10, 3, 10);
+  ctx.fillStyle = colour; ctx.fillRect(x - 1, y - 8, 3, 2); ctx.fillRect(x - 1, y - 4, 3, 2);
+}
