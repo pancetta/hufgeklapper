@@ -38,6 +38,13 @@ describe('save files', () => {
     for (const b of broken) expect(parseSave(text(b))).toEqual({ ok: false, reason: 'invalid' });
   });
 
+  it('gives a save from version 6 (before the riding badge) no practice and no badge', () => {
+    const now = toSave(played(), 'Hof');
+    const { trainings: _a, badges: _b, badgeFailedDay: _c, badgeQuizDay: _d, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 6, state: { ...old, version: 6 } }));
+    expect(p.ok && [p.save.state.trainings, p.save.state.badges, p.save.state.badgeFailedDay]).toEqual([0, 0, 0]);
+  });
+
   it('gives a save from version 5 (before the avatar editor) the default figure', () => {
     const now = toSave(played(), 'Hof');
     const { avatar: _, ...old } = now.state;

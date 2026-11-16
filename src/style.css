@@ -248,3 +248,13 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .bubble img { width: 120px; image-rendering: pixelated; grid-row: span 2; }
 .bubble p { margin: 0; }
 .bubble button { justify-self: end; }
+
+/* the badge quiz: answers under Oma's bubble, with a picture where there is one */
+.bubble .answers { grid-column: 1 / -1; display: grid; gap: 8px; }
+.answers button { display: flex; align-items: center; justify-content: center; gap: 10px; justify-self: stretch; }
+.answers .icon { width: 28px; height: 28px; }
+.rosette { width: 33px; image-rendering: pixelated; }
+.rosette.big { width: 110px; justify-self: center; }
+.player-card .preview { justify-self: center; }
+.player-card h3 { margin: 4px 0 0; }
+.player-card .badge { display: flex; align-items: center; justify-content: center; gap: 8px; }
