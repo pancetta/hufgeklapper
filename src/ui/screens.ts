@@ -511,13 +511,14 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.showClassName(showClass) : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
-    <p id="jump-hud" class="jump-hud" aria-live="off"></p>
+    <p id="jump-hud" class="jump-hud" aria-live="off"></p><p id="jump-tip" class="jump-tip" role="status" hidden></p>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
   // practice and the riding badge ride the E course, a show its class's
   const course = courseFor(kind, showClass), allowed = timeAllowed(course);
   const hud = (r: Round) => { $('jump-hud').textContent = t.jumpHud(Math.min(r.next + 1, course.jumps.length), course.jumps.length, r.faults, Math.floor(r.t), allowed); };
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
     look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), judge: (o) => takeOff(h, o), onChange: hud,
+    onWaiting: (w) => { $('jump-tip').hidden = !w; if (w) $('jump-tip').textContent = t.drawTip(w, h.look.build === 'pony'); },
   });
   hud(newRound(course));
   // on the arena a tap is "Hopp!" (the scene); on a keyboard the space bar is too, unless a button has the focus

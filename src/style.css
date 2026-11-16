@@ -319,3 +319,9 @@ canvas { image-rendering: pixelated; }
 .choice small { font-size: calc(var(--fs) * 13px); opacity: 0.9; }
 .choice i { font-style: normal; color: var(--sun); }
 .choice.best { box-shadow: 0 0 0 3px var(--sun); }
+
+/* what to do while the horse waits for a way: big, at the top in the middle */
+.jump-tip {
+  position: fixed; left: 0; right: 0; top: 12px; margin: 0 auto; width: fit-content; max-width: 60vw; text-align: center; z-index: 2;
+  font-size: calc(var(--fs) * 18px); background: var(--sun); color: var(--ink); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 6px 12px;
+}

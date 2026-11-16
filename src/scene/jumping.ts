@@ -21,6 +21,7 @@ export type JumpingOptions = {
   window: number; // seconds; drawn as the green take-off patch
   judge: (offset: number) => 'early' | 'clear' | 'fault'; // the Sim's `takeOff` for this horse
   onChange?: (r: Round) => void; // for the round's counters (jump, faults, time)
+  onWaiting?: (waiting: 'first' | 'more' | null) => void; // the horse stands for a (first) way to ride; null: it rides
 };
 
 const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand
@@ -137,7 +138,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
-  let path: Point[] = [], box = canvas.getBoundingClientRect();
+  let path: Point[] = [], box = canvas.getBoundingClientRect(), go = false, waiting: 'first' | 'more' | null = null; // go: the first way is drawn
   let touch: { id: number; x: number; y: number; at: number; t: number; drawing: boolean } | null = null; // the finger down now
   let done = (_faults: number) => {};
   const result = new Promise<number>((ok) => { done = ok; });
@@ -182,6 +183,13 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     gate(ctx, c.start, false); gate(ctx, c.finish, true);
     const next = c.jumps[r.next];
     if (next && !r.air) guide(ctx, next, o.window, t);
+    // while the horse waits for a way: pulsing dots from it towards the next jump (or the finish), where to draw
+    if (waiting && !path.length) {
+      const [gx, gy, gd] = next ? [next.x, next.y, next.dir] : c.finish, a = ANGLE[gd as Dir], tx = gx - Math.cos(a) * 50, ty = gy - Math.sin(a) * 50;
+      const n = Math.max(1, Math.floor(Math.hypot(tx - r.x, ty - r.y) / 8));
+      ctx.fillStyle = `rgba(255, 210, 63, ${0.45 + 0.4 * Math.sin(t * 4)})`;
+      for (let i = 1; i <= n; i++) ctx.fillRect(Math.round(r.x + ((tx - r.x) * i) / n) - 1, Math.round(r.y + ((ty - r.y) * i) / n) - 1, 3, 3);
+    }
     // the way still to ride: white dots on the sand
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     for (const p of path) ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
@@ -211,13 +219,17 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     while (running && acc >= STEP) {
       acc -= STEP;
       const before = r;
-      const f = follow(r, path);
+      // the horse sets off once the first way is drawn and the finger lifts: there is time to draw it
+      const f = go ? follow(r, path) : { target: null, path };
       path = f.path;
       r = step(r, c, STEP, f.target);
       if (r.stopped && !before.stopped) path = []; // a refusal: the horse turns round, the child draws a new way
       if (r.next !== before.next || r.faults !== before.faults || Math.floor(r.t) !== Math.floor(before.t)) o.onChange?.(r);
       if (r.done) { running = false; done(r.faults); }
     }
+    // standing for a way to ride (before the first, or at the end of one): say so once it changes
+    const now_ = running && !r.air && !r.stopped && r.v === 0 && !path.length ? (go ? 'more' : 'first') : running && !go ? 'first' : null;
+    if (now_ !== waiting) { waiting = now_; o.onWaiting?.(waiting); }
     draw();
     requestAnimationFrame(frame);
   }
@@ -244,6 +256,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     if (e.pointerId !== touch?.id) return;
     const tap = !touch.drawing && performance.now() - touch.at < TAP.ms && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px;
     const lag = r.t - touch.t;
+    if (touch.drawing && path.length > 1) go = true;
     touch = null;
     if (tap && running) judged(hopp(r, c, o.judge, lag)); // nothing if the touch already took off
   };

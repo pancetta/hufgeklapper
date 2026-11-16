@@ -71,7 +71,7 @@ export const DATA = {
      * the course's straight length ridden at `speed`, times `time`; each started `timeFault` seconds over it is a
      * fault, and `giveUp` seconds over it the round ends, each jump left a fault.
      */
-    ride: { speed: 90, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 2, timeFault: 5, giveUp: 45 },
+    ride: { speed: 90, speedUp: 150, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 2, timeFault: 5, giveUp: 45 },
     arena: { w: 480, h: 300, fence: 14 },
     /** The courses ("Parcours"), by show class; practice and the riding badge use E. Arena pixels; a jump is ridden the way of `dir`. */
     courses: {

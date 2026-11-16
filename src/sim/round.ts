@@ -14,6 +14,8 @@ export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: numb
 
 export type Round = {
   x: number; y: number; heading: number; // radians: 0 east, π/2 south (the screen's y points down)
+  v: number; // speed now, arena pixels a second: the horse speeds up to a canter along a way and slows down at its end
+  started: boolean; // the clock runs from the first way the child gives
   t: number; next: number; faults: number;
   down: number[]; // jumps with a knocked pole
   air: { jump: number; from: number; to: number; down: boolean } | null; // in the air over a jump, from/to in seconds
@@ -47,13 +49,17 @@ export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: keyof typ
 
 export function newRound(c: Course): Round {
   const [x, y, dir] = c.start;
-  return { x, y, heading: ANGLE[dir], t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, done: false };
+  return { x, y, heading: ANGLE[dir], v: 0, started: false, t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, done: false };
 }
 
-/** The round `dt` seconds later, steering to `target` (the next point of the drawn path, arena pixels) or straight on (null). */
+/**
+ * The round `dt` seconds later, steering to `target` (the next point of the drawn path, arena pixels); with none,
+ * the horse slows down and stands. Before the first way, nothing moves and the clock waits.
+ */
 export function step(r: Round, c: Course, dt: number, target: { x: number; y: number } | null): Round {
-  if (r.done) return r;
+  if (r.done || (!r.started && !target)) return r;
   const t = r.t + dt, allowed = timeAllowed(c);
+  r = { ...r, started: true };
   if (t > allowed + R.giveUp) return { ...r, t, done: true, faults: r.faults + (c.jumps.length - r.next) + timeFaults(t, allowed) };
   if (r.stopped > 0) {
     const stopped = Math.max(0, r.stopped - dt);
@@ -64,13 +70,15 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
     const want = Math.atan2(target.y - r.y, target.x - r.x), turn = R.turn * dt;
     if (Math.hypot(target.x - r.x, target.y - r.y) > 4) heading = wrap(heading + Math.max(-turn, Math.min(turn, wrap(want - heading))));
   }
-  let x = r.x + Math.cos(heading) * R.speed * dt, y = r.y + Math.sin(heading) * R.speed * dt;
+  // along a way the horse speeds up to a canter, at its end it slows down (in the air it flies on)
+  const v = r.air ? r.v : Math.max(0, Math.min(R.speed, r.v + (target ? R.speedUp : -R.speedUp) * dt));
+  let x = r.x + Math.cos(heading) * v * dt, y = r.y + Math.sin(heading) * v * dt;
   // the fence: the horse slides along it
   const lo = A.fence + 6, hx = A.w - A.fence - 6, hy = A.h - A.fence - 6;
   if (x < lo || x > hx) { x = Math.max(lo, Math.min(hx, x)); heading = Math.sin(heading) >= 0 ? ANGLE.S : ANGLE.N; }
   if (y < lo || y > hy) { y = Math.max(lo, Math.min(hy, y)); heading = Math.cos(heading) >= 0 ? ANGLE.E : ANGLE.W; }
   if ((x === lo || x === hx) && (y === lo || y === hy)) heading = Math.atan2(A.h / 2 - y, A.w / 2 - x); // a corner: out towards the middle
-  let next: Round = { ...r, x, y, heading, t };
+  let next: Round = { ...r, x, y, heading, v, t };
   if (r.air) {
     if (t < r.air.to) return next;
     // landed: the jump is done, a knocked pole is a fault
@@ -82,7 +90,7 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
     const j = c.jumps[i], before = rel(r.x, r.y, [j.x, j.y], j.dir), after = rel(x, y, [j.x, j.y], j.dir);
     if (Math.abs(after.lat) > R.half || Math.sign(before.s) === Math.sign(after.s)) continue;
     const counts = i === r.next && before.s < 0; // a refusal at the next jump, ridden the right way, is a fault
-    return { ...r, t, heading, stopped: R.stop, refused: i, faults: r.faults + (counts ? 1 : 0) };
+    return { ...r, t, heading, v: 0, stopped: R.stop, refused: i, faults: r.faults + (counts ? 1 : 0) };
   }
   // through the finish after the last jump
   if (r.next === c.jumps.length) {
@@ -123,7 +131,7 @@ export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | '
   if (what === 'early') return r;
   const j = c.jumps[r.next], { s } = rel(r.x, r.y, [j.x, j.y], j.dir);
   // straight over the jump, landing as far behind the pole as the hooves left the ground before it
-  return { ...r, heading: ANGLE[j.dir], air: { jump: r.next, from: r.t, to: r.t + (R.takeoff - s) / R.speed, down: what === 'fault' } };
+  return { ...r, heading: ANGLE[j.dir], v: R.speed, air: { jump: r.next, from: r.t, to: r.t + (R.takeoff - s) / R.speed, down: what === 'fault' } };
 }
 
 export type Point = { x: number; y: number };
@@ -133,6 +141,8 @@ export type Point = { x: number; y: number };
  * path is used up.
  */
 export function follow(r: Round, path: Point[]): { target: Point | null; path: Point[] } {
+  const lo = A.fence + 6, inside = (p: Point) => ({ x: Math.max(lo, Math.min(A.w - lo, p.x)), y: Math.max(lo, Math.min(A.h - lo, p.y)) });
+  path = path.map(inside); // a way drawn past the fence is ridden along its inside
   const d = (p: Point) => Math.hypot(p.x - r.x, p.y - r.y);
   // only the next few points: where a drawn loop crosses itself, the later pass must not cut the loop short
   let near = -1;
