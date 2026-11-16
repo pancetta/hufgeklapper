@@ -1,0 +1,33 @@
+src/scene/jumping.ts
+  s_7657db1b41ed88::t_d4978aebbb1201 144,209
+  s_7657db1b41ed88::t_5e7b0cfb1802b1 13
+src/sim/data.ts
+  s_7657db1b41ed88::t_d4978aebbb1201 68-69,75
+src/scene/draw.ts
+  s_7657db1b41ed88::t_5e7b0cfb1802b1 37-59
+src/scene/buildings.ts
+  s_7657db1b41ed88::t_5e7b0cfb1802b1 6,104-105
+  s_7657db1b41ed88::t_d4978aebbb1201 102
+src/sim/round.ts
+  s_7657db1b41ed88::t_d4978aebbb1201 30-34,79,124,136,176
+  s_7657db1b41ed88::t_5e7b0cfb1802b1 150
+src/sim/round.test.ts
+  s_7657db1b41ed88::t_7a9ef4ed1c0395 51,57,62,108-114
+  s_7657db1b41ed88::t_cd17d62ebb94e1 115-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "48781761112c89506cdd7d5e500c36472e423b11",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
