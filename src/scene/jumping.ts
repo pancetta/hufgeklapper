@@ -1,14 +1,15 @@
 /**
  * The jumping minigame on the show-jumping arena ("Springplatz"), seen from above (#43): sand, a white fence, the
  * numbered jumps, start and finish flags; the next jump has a yellow number, an arrow and a green take-off patch as
- * wide as the Sim's take-off window. The finger steers, "Hopp!" takes off. Drawing and input only: how the horse
+ * wide as the Sim's take-off window. One finger does it all (#47): drawing paints the way the horse rides, from the
+ * horse onwards and mid-ride too; a short tap anywhere is "Hopp!". Drawing and input only: how the horse
  * moves, refuses and lands, and what counts as a fault, is the Sim's round (src/sim/round.ts).
  */
 import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
-import { ANGLE, autopilot, type Course, type CourseJump, type Dir, hopp, newRound, type Round, step } from '../sim/round';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, step, touchDown } from '../sim/round';
 import { blit, shadow } from './draw';
 import { drawRider } from './kids';
 import { seat } from './life';
@@ -136,7 +137,8 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
-  let target: { x: number; y: number } | null = null, finger: number | null = null, box = canvas.getBoundingClientRect();
+  let path: Point[] = [], box = canvas.getBoundingClientRect();
+  let touch: { id: number; x: number; y: number; at: number; t: number; drawing: boolean } | null = null; // the finger down now
   let done = (_faults: number) => {};
   const result = new Promise<number>((ok) => { done = ok; });
 
@@ -145,8 +147,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
-    // the arena on the left, room on the right for "Hopp!"
-    ox = Math.max(0, Math.min(8, W - A.w)); oy = Math.max(0, Math.floor((H - A.h) / 2));
+    ox = Math.max(0, Math.floor((W - A.w) / 2)); oy = Math.max(0, Math.floor((H - A.h) / 2));
     box = canvas.getBoundingClientRect();
   }
   const toArena = (e: PointerEvent) => { const b = canvas.getBoundingClientRect(); return { x: (e.clientX - b.left) / S - ox, y: (e.clientY - b.top) / S - oy }; };
@@ -181,6 +182,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     gate(ctx, c.start, false); gate(ctx, c.finish, true);
     const next = c.jumps[r.next];
     if (next && !r.air) guide(ctx, next, o.window, t);
+    // the way still to ride: white dots on the sand
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    for (const p of path) ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
     // jumps and horse by where they stand; in the air the horse is above every pole
     // (poles running down the screen: the part below the hooves again, after the horse)
     const jump = (j: CourseJump, i: number) => drawJump(ctx, j, COLOURS[i % COLOURS.length], r.down.includes(i));
@@ -207,7 +211,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     while (running && acc >= STEP) {
       acc -= STEP;
       const before = r;
-      r = step(r, c, STEP, target);
+      const f = follow(r, path);
+      path = f.path;
+      r = step(r, c, STEP, f.target);
+      if (r.stopped && !before.stopped) path = []; // a refusal: the horse turns round, the child draws a new way
       if (r.next !== before.next || r.faults !== before.faults || Math.floor(r.t) !== Math.floor(before.t)) o.onChange?.(r);
       if (r.done) { running = false; done(r.faults); }
     }
@@ -215,12 +222,33 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     requestAnimationFrame(frame);
   }
 
-  // one finger steers: the horse turns towards it while it is down
-  canvas.addEventListener('pointerdown', (e) => { if (finger !== null) return; finger = e.pointerId; canvas.setPointerCapture(e.pointerId); target = toArena(e); });
-  canvas.addEventListener('pointermove', (e) => { if (e.pointerId === finger) target = toArena(e); });
-  const lift = (e: PointerEvent) => { if (e.pointerId === finger) { finger = null; target = null; } };
+  // one finger: moving it draws a new way from the horse on; a touch on time or late takes off at once; an earlier
+  // short tap without moving is "Hopp!" too, judged from the touch
+  const TAP = { ms: 350, px: 10 };
+  const judged = (next: Round) => { if (next !== r) { r = next; o.onChange?.(r); } };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (touch) return; // a second finger or a palm doesn't take over
+    touch = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now(), t: r.t, drawing: false };
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows: drawing still works on the canvas */ }
+    if (running) judged(touchDown(r, c, o.judge));
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== touch?.id) return;
+    if (!touch.drawing && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px) return;
+    const p = toArena(e);
+    if (!touch.drawing || !path.length) { touch.drawing = true; path = [{ x: r.x, y: r.y }]; } // a new stroke, or after a refusal
+    const last = path[path.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) >= 4) path.push(p);
+  });
+  const lift = (e: PointerEvent) => {
+    if (e.pointerId !== touch?.id) return;
+    const tap = !touch.drawing && performance.now() - touch.at < TAP.ms && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px;
+    const lag = r.t - touch.t;
+    touch = null;
+    if (tap && running) judged(hopp(r, c, o.judge, lag)); // nothing if the touch already took off
+  };
   canvas.addEventListener('pointerup', lift);
-  canvas.addEventListener('pointercancel', lift);
+  canvas.addEventListener('pointercancel', (e) => { if (e.pointerId === touch?.id) touch = null; });
   const onResize = () => { fit(); draw(); };
   fit();
   addEventListener('resize', onResize);
@@ -230,7 +258,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     /** Starts the canter; resolves with the faults once the horse is through the finish. */
     run() { running = true; last = performance.now(); acc = 0; return result; },
     /** "Hopp!": take off, if the horse is lined up for the next jump. */
-    hopp() { if (running) { const before = r; r = hopp(r, c, o.judge); if (r !== before) o.onChange?.(r); } },
+    hopp() { if (running) judged(hopp(r, c, o.judge)); },
     stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }
