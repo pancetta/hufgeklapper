@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck,
   showWaits, stalls,
 } from './state';
 
@@ -16,14 +16,16 @@ export type Report = {
   /** What the farm is worth at the end: money minus debt, plus what was spent on horses and building. */
   worth: number;
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
-  sickDays: number; maxDebt: number; lessons: number; shows: number; stuck: boolean;
+  sickDays: number; maxDebt: number; lessons: number; shows: number;
+  deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
+  stuck: boolean; // a dead end longer than Oma Hanne takes to help
 };
 
 const ALL_RIGHT = Array(DATA.badge.questions).fill(0);
 
 /** Plays `days` days with `strategy` from a new game on `seed`. */
 export function play(strategy: Strategy, seed: number, days: number): Report {
-  let s = newGame(seed), luck = seed ^ 0x5eed, shows = 0, sickDays = 0, maxDebt = 0, badgeDay: number | null = null, inspectionDay: number | null = null, pensionDay: number | null = null;
+  let s = newGame(seed), luck = seed ^ 0x5eed, streak = 0, longest = 0, shows = 0, sickDays = 0, maxDebt = 0, badgeDay: number | null = null, inspectionDay: number | null = null, pensionDay: number | null = null;
   const money: number[] = [];
   const act = (a: Action) => { s = apply(s, a); };
   /**
@@ -45,6 +47,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
     sickDays += s.horses.filter(isSick).length; // counted in the morning, before the vet comes
+    streak = stuck(s) ? streak + 1 : 0; longest = Math.max(longest, streak); // mornings in a dead end, waiting for Oma Hanne's next help
     // the vet for a sick horse, with a loan if the money is short
     for (const h of s.horses.filter(isSick)) { if (s.money < DATA.vet.cost) act({ type: 'loan' }); act({ type: 'vet', horse: h.id }); }
     // hay: the careful keep a few nights in store, the careless buy when it's gone
@@ -104,9 +107,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     money.push(s.money);
     act({ type: 'sleep' });
   }
-  // stuck: every horse sick, no money for the vet and no more loans
-  const stuck = s.horses.every((h) => isSick(h)) && s.money < DATA.vet.cost && s.debt + DATA.loan.amount > DATA.loan.debtLimit;
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, stuck };
+  // stuck: a dead end (every horse sick, no money for the vet, no more loans) longer than Oma Hanne takes to help
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, stuck: longest > DATA.rescue.every };
 }
 
 /** One line per run, for docs/economy.md and the console. */

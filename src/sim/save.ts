@@ -8,13 +8,13 @@ import { DATA } from './data';
 import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, type State } from './state';
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
-const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1, staffUnpaid: 1, boarderLeft: 1 };
+const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1, staffUnpaid: 1, boarderLeft: 1, omaHelped: 1 };
 const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1, showFee: 1, prize: 1, horse: 1, build: 1, wage: 1, board: 1, partBoard: 1 };
 const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-9-]{1,40}$/.test(p.id) && isText(p.name, 30)
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -60,7 +60,7 @@ function isOffer(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 11 && isAvatar(x.avatar)
+  return isObj(x) && x.version === 12 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
     && isInt(x.staff, 0, DATA.staff.names.length) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
     && (x.partOffer === null || (isObj(x.partOffer) && typeof x.partOffer.horse === 'string' && isText(x.partOffer.rider, 30) && isInt(x.partOffer.pay, 0, 1000))) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
     && Array.isArray(x.market) && x.market.length <= 10 && x.market.every(isOffer)
@@ -141,6 +141,13 @@ function fromVersion10(x: Obj): unknown {
   return { ...x, version: 11, state: { ...s, version: 11, staff: 0, boardOffers: [], partOffer: null } };
 }
 
+/** Version 11 to 12: Oma Hanne's help in a dead end (never needed yet). */
+function fromVersion11(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 12, state: { ...s, version: 12, rescueDay: 0 } };
+}
+
 /** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */
 function fromVersion9(x: Obj): unknown {
   const s = x.state;
@@ -164,6 +171,7 @@ export function parseSave(text: string): Parsed {
   if (isObj(x) && x.version === 8) x = fromVersion8(x);
   if (isObj(x) && x.version === 9) x = fromVersion9(x);
   if (isObj(x) && x.version === 10) x = fromVersion10(x);
+  if (isObj(x) && x.version === 11) x = fromVersion11(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

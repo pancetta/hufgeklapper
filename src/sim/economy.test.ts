@@ -23,8 +23,9 @@ describe('economy run', () => {
     expect(median(days as number[])).toBeLessThanOrEqual(30);
   });
 
-  it('never gets a careless player stuck', () => {
+  it('never gets a careless player stuck, not even in a long game: Oma Hanne helps out of a dead end', () => {
     for (const r of of('careless')) expect(r.stuck, `seed ${r.seed}`).toBe(false);
+    for (const seed of SEEDS) expect(play('careless', seed, 120).stuck, `seed ${seed}, 120 days`).toBe(false);
   });
 
   // careful (lessons first) reaches the Reitschule sooner and is ahead early; sport (a trained horse in the higher show

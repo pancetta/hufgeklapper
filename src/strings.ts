@@ -81,6 +81,7 @@ export const t = {
   newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
   newsHayLow: 'Das Heu wird knapp.',
   newsRested: (name: string) => `${name} ist wieder fit.`,
+  newsOmaHelped: 'Oma Hanne hat dir geholfen: Sie hat den Tierarzt bezahlt und Heu gebracht. Pflege deine Ponys gut, dann werden sie wieder fit!',
   newsStaffUnpaid: 'Für den Lohn war nicht genug Geld da. Heute hilft dir niemand im Stall.',
   newsBoarderLeft: (owner: string, horse: string) => `${owner} hat ${horse} abgeholt: Das Pferd war zu lange schlecht gepflegt. Dein Ruf sinkt.`,
   morningGo: 'Los geht’s!',

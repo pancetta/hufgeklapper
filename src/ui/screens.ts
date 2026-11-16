@@ -243,7 +243,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
     : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay
-    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid
+    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid : n.kind === 'omaHelped' ? t.newsOmaHelped
     : n.kind === 'boarderLeft' ? t.newsBoarderLeft(esc(n.owner ?? ''), esc(n.horse ?? '')) : '';
   function morning(news: News[]) {
     if (!news.length) return;
