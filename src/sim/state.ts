@@ -122,7 +122,7 @@ export function marketFor(day: number, seed: number, taken: string[] = []): [Off
     [r, seed] = roll(seed); const breed = M.breeds[Math.floor(r * M.breeds.length)] as Breed, b = BREEDS[breed];
     [r, seed] = roll(seed); const coat = b.coats[Math.floor(r * b.coats.length)] as Coat;
     [r, seed] = roll(seed); const face = r < 0.5 ? (Object.keys(FACES) as Face[])[Math.floor(r * 8)] : undefined;
-    const free = M.names.filter((n) => !taken.includes(n) && !offers.some((o) => o.name === n)); // no two horses called the same
+    const free = M.names.filter((n) => !taken.some((x) => x.toLowerCase() === n.toLowerCase()) && !offers.some((o) => o.name === n)); // no two horses called the same
     [r, seed] = roll(seed); const name = free[Math.floor(r * free.length)] ?? M.names[i];
     [r, seed] = roll(seed); const [lo, hi] = M.price[b.build];
     offers.push({ id: `m${day}-${i}`, name, breed, look: breedLook(breed, coat, face ? { face } : {}), price: Math.round((lo + r * (hi - lo)) / 10) * 10 });
@@ -225,7 +225,7 @@ export type ShowRow = { rider: string; horse: string; score: number; you?: true 
 export function showResult(s: State, h: Horse, faults: number, rider: string, c: ShowClass) {
   const S = DATA.shows, C = S.classes[c], J = DATA.jumping, rows: ShowRow[] = [];
   let seed = s.seed, r: number;
-  const pool = S.rivals.filter(([name]) => name !== rider); // no rival with the player's own name
+  const pool = S.rivals.filter(([name, horse]) => name !== rider && horse.toLowerCase() !== h.name.toLowerCase()); // no rival with the player's or the horse's name
   for (let i = 0; i < S.rivalsPerShow; i++) {
     [r, seed] = roll(seed);
     const [name, horse] = pool.splice(Math.floor(r * pool.length), 1)[0];
@@ -374,9 +374,11 @@ function step(state: State, action: Action): State {
       };
     }
     case 'rename': {
-      // a name of its own: trimmed, not empty, not too long for a nameplate, not another horse's name on the farm
+      // a name of its own: trimmed, not empty, not too long for a nameplate, not the name of another horse on the farm
+      // or at the market (buying it would make two)
       const name = typeof action.name === 'string' ? action.name.trim() : '', h = state.horses.find((x) => x.id === action.horse);
-      if (!h || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && x.name.toLowerCase() === name.toLowerCase())) return state;
+      const same = (n: string) => n.toLowerCase() === name.toLowerCase();
+      if (!h || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && same(x.name)) || state.market.some((o) => same(o.name))) return state;
       return { ...state, horses: state.horses.map((x) => (x === h ? { ...x, name } : x)) };
     }
     case 'vet': {
