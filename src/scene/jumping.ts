@@ -24,7 +24,7 @@ export type JumpingOptions = {
   onWaiting?: (waiting: 'first' | 'more' | null) => void; // the horse stands for a (first) way to ride; null: it rides
 };
 
-const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand
+const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand, unless the course says
 const ROW: Record<Dir, number> = { N: 0, W: 1, S: 2, E: 3 };
 const COLOURS = ['#d94f3d', '#3d6fd9', '#f2c14e', '#3da35a'];
 const across = (d: Dir) => d === 'E' || d === 'W'; // a jump ridden east or west has its poles running down the screen
@@ -62,17 +62,17 @@ function paintArena() {
 }
 
 /** One jump from above: standards at both ends, poles across between them; a knocked pole lies on the sand. */
-function drawJump(ctx: CanvasRenderingContext2D, j: CourseJump, colour: string, fallen: boolean) {
-  const h = R.half, a = ANGLE[j.dir], ux = Math.round(Math.cos(a)), uy = Math.round(Math.sin(a));
-  // the parts of the jump, nearest to the horse first: an oxer has a second, higher part 7 px behind
-  const parts = j.kind === 'oxer' ? [0, 7] : [0];
+function drawJump(ctx: CanvasRenderingContext2D, j: CourseJump, colour: string, fallen: boolean, lift: number) {
+  const h = R.half, a = ANGLE[j.dir], ux = Math.round(Math.cos(a)), uy = Math.round(Math.sin(a)), tall = lift + 5;
+  // the parts of the jump, nearest to the horse first: an oxer has a second, higher part behind, wider the higher
+  const parts = j.kind === 'oxer' ? [0, lift + 1] : [0];
   for (const d of parts) {
     const x = j.x + ux * d, y = j.y + uy * d, last = fallen && d === parts[parts.length - 1];
     const [ax, ay, bx, by] = across(j.dir) ? [x, y - h, x, y + h] : [x - h, y, x + h, y];
-    standard(ctx, ax, ay, colour); standard(ctx, bx, by, colour);
+    standard(ctx, ax, ay, colour, tall); standard(ctx, bx, by, colour, tall);
     if (last) { pole(ctx, ax + 3, ay + 4, bx - 3 + (across(j.dir) ? 6 : 0), by + (across(j.dir) ? -2 : 5), colour, 0); continue; } // on the sand, slanted
-    if (j.kind === 'cross') { pole(ctx, ax, ay - 9, bx, by - 2, colour); pole(ctx, ax, ay - 2, bx, by - 9, colour); }
-    else pole(ctx, ax, ay - LIFT - (d ? 2 : 0), bx, by - LIFT - (d ? 2 : 0), colour);
+    if (j.kind === 'cross') { pole(ctx, ax, ay - lift - 3, bx, by - 2, colour, lift); pole(ctx, ax, ay - 2, bx, by - lift - 3, colour, lift); }
+    else pole(ctx, ax, ay - lift - (d ? 2 : 0), bx, by - lift - (d ? 2 : 0), colour, lift);
   }
 }
 
@@ -138,7 +138,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     ctx.save();
     // in the air the horse grows, as if closer to us, and rises above its shadow
     const grow = 1 + lift * 0.25;
-    ctx.translate(r.x, r.y - lift * 14); ctx.scale(grow, grow); ctx.translate(-r.x, -r.y);
+    ctx.translate(r.x, r.y - lift * (8 + (c.height ?? LIFT))); ctx.scale(grow, grow); ctx.translate(-r.x, -r.y); // higher jumps, higher arc
     // the jump pose from the side: legs stretched at take-off, tucked over the pole, reaching out to land
     const f = phase < 0 ? Math.floor(t * 11) % 6 : !side ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
     const [sheet, frame] = r.stopped || !running || (!r.air && !r.v) ? [idle, [ROW[dir] * 128, 0, 128, 128] as const] : [gallop, [f * 128, ROW[dir] * 128, 128, 128] as const];
@@ -173,7 +173,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     for (const p of path) ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2);
     // jumps and horse by where they stand; in the air the horse is above every pole
     // (poles running down the screen: the part below the hooves again, after the horse)
-    const jump = (j: CourseJump, i: number) => drawJump(ctx, j, COLOURS[i % COLOURS.length], r.down.includes(i));
+    const jump = (j: CourseJump, i: number) => drawJump(ctx, j, COLOURS[i % COLOURS.length], r.down.includes(i), c.height ?? LIFT);
     const items = c.jumps.map((j, i) => ({ y: j.y - (across(j.dir) ? R.half : 0), draw: () => jump(j, i) }));
     items.push({ y: r.air ? Infinity : r.y, draw: () => {
       drawHorse(t);

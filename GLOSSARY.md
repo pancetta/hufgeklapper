@@ -100,8 +100,9 @@ The first **Minigame**: a **Course** on the show-jumping arena ("Springplatz"), 
 way with a finger and the horse rides it; a short tap is "Hopp!", the take-off.
 
 **Course** ("Parcours"):
-The numbered jumps of a round, ridden in order, with start, finish and a time allowed ("erlaubte Zeit"). Each show
-class has its own; practice and the riding badge ride the E course.
+The numbered jumps of a round, ridden in order, with start, finish and a time allowed ("erlaubte Zeit"). Each round
+builds its own course from the day and the practice so far; a show's class sets how many jumps, how many oxers and
+how high (practice and the riding badge ride E courses).
 
 **Fault** ("Fehler"):
 What a round costs: a knocked pole, a **Refusal**, or each started few seconds over the time allowed.

@@ -10,7 +10,8 @@ import { DATA } from './data';
 export type Dir = 'N' | 'E' | 'S' | 'W';
 export type CourseJump = { x: number; y: number; dir: Dir; kind: 'cross' | 'upright' | 'oxer' };
 /** Start and finish: a point and the way the horse rides through it. */
-export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[] };
+/** A course; `height`: how high its poles rest, in arena pixels (higher classes, higher jumps; drawing only). */
+export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number };
 
 export type Round = {
   x: number; y: number; heading: number; // radians: 0 east, π/2 south (the screen's y points down)
@@ -47,10 +48,6 @@ export function timeAllowed(c: Course) {
   return Math.ceil((len / R.speed) * R.time);
 }
 const timeFaults = (t: number, allowed: number) => (t > allowed ? Math.ceil((t - allowed) / R.timeFault) : 0);
-
-/** Practice and the riding badge ride the E course, a show its class's. */
-export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: keyof typeof DATA.jumping.courses = 'E') =>
-  DATA.jumping.courses[kind === 'show' ? showClass : 'E'];
 
 export function newRound(c: Course): Round {
   const [x, y, dir] = c.start;
