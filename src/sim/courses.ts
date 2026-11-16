@@ -6,7 +6,7 @@
  * After `tries` misses the class's fixed course is the fallback.
  */
 import { DATA } from './data';
-import { ANGLE, autopilot, type Course, type CourseJump, type Dir, hopp, newRound, step, timeAllowed } from './round';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, hopp, judge, newRound, step, timeAllowed } from './round';
 import { roll } from './state';
 
 type ShowClass = keyof typeof DATA.jumping.courses;
@@ -25,7 +25,7 @@ function fits(x: number, y: number, dir: Dir) {
  * One try at a course for `cls` with the random numbers from `seed`; null if no layout fits the arena. Each jump is
  * placed after the last one; where none fits, the search goes back and moves the jump before (up to `budget` places).
  */
-export function build(cls: ShowClass, seed: number): [Course | null, number] {
+function build(cls: ShowClass, seed: number): [Course | null, number] {
   let r: number;
   const rnd = () => { [r, seed] = roll(seed); return r; }, between = (lo: number, hi: number) => lo + rnd() * (hi - lo);
   const n = DATA.jumping.courses[cls].jumps.length, oxers = G.oxers[cls];
@@ -64,15 +64,14 @@ export function build(cls: ShowClass, seed: number): [Course | null, number] {
   }
   if (!place(sx, sy, dir0) || !finish) return [null, seed];
   // the kinds: so many oxers, the rest crosses and uprights, spread over the course
-  const kinds = jumps.map((_, i): CourseJump['kind'] => (i < oxers ? 'oxer' : rnd() < 0.5 ? 'cross' : 'upright')).sort(() => rnd() - 0.5);
-  jumps.forEach((j, i) => { j.kind = kinds[i]; });
+  jumps.forEach((j) => { j.kind = rnd() < 0.5 ? 'cross' : 'upright'; });
+  for (let k = 0; k < oxers;) { const j = jumps[Math.floor(rnd() * n)]; if (j.kind !== 'oxer') { j.kind = 'oxer'; k++; } } // a fair spread, the same in every browser
   return [{ start: [sx, sy, dir0], finish, jumps }, seed];
 }
 
 /** Whether the autopilot rides `c` clean, without a refusal or a jump out of turn in its way, in at most `share` of the time allowed. */
 export function rideable(c: Course, share = G.share) {
   let r = newRound(c);
-  const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
   while (!r.done && r.t < timeAllowed(c)) {
     const a = autopilot(r, c);
     if (a.hopp) r = hopp(r, c, judge);
@@ -93,4 +92,5 @@ export function courseOf(cls: ShowClass, seed: number): Course {
 }
 
 /** Practice and the riding badge ride an E course, a show its class's; `seed` makes each round's course its own. */
-export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: ShowClass, seed: number) => courseOf(kind === 'show' ? showClass : 'E', seed);
+export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: ShowClass, seed: number) =>
+  courseOf(kind === 'show' ? showClass : 'E', seed * 3 + ['train', 'badge', 'show'].indexOf(kind)); // practice after a show: another course

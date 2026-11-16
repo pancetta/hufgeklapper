@@ -6,7 +6,8 @@ const A = DATA.jumping.arena, R = DATA.jumping.ride, CLASSES = ['E', 'A', 'L'] a
 
 describe('courses that change', () => {
   it('builds a course per seed for every class: its jumps inside the fence, rideable clean in good time', () => {
-    for (const cls of CLASSES)
+    for (const cls of CLASSES) {
+      let fixed = 0;
       for (let seed = 1; seed <= 40; seed++) {
         const c = courseOf(cls, seed), name = `${cls} ${seed}`;
         expect(c.jumps, name).toHaveLength(DATA.jumping.courses[cls].jumps.length);
@@ -18,7 +19,10 @@ describe('courses that change', () => {
         for (const [x, y] of [c.start, c.finish]) expect(c.jumps.every((j) => Math.hypot(j.x - x, j.y - y) >= DATA.jumping.build.apart), name).toBe(true);
         expect(rideable(c), name).toBe(true);
         expect(c.height).toBe(DATA.jumping.height[cls]);
+        if (JSON.stringify(c.jumps) === JSON.stringify(DATA.jumping.courses[cls].jumps)) fixed++;
       }
+      expect(fixed, `${cls}: rides the fixed course`).toBeLessThan(4); // the fallback stays rare
+    }
   });
 
   it('gives the same course for the same seed, and other courses for other seeds', () => {
@@ -29,6 +33,7 @@ describe('courses that change', () => {
 
   it('practice and the badge ride an E course, a show its class: higher classes, higher poles', () => {
     expect(courseFor('train', 'L', 3).jumps).toHaveLength(DATA.jumping.courses.E.jumps.length);
+    expect(courseFor('train', 'E', 3)).not.toEqual(courseFor('show', 'E', 3)); // practice after a show: another course
     expect(courseFor('show', 'L', 3).jumps).toHaveLength(DATA.jumping.courses.L.jumps.length);
     expect(DATA.jumping.height.E < DATA.jumping.height.A && DATA.jumping.height.A < DATA.jumping.height.L).toBe(true);
   });

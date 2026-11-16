@@ -74,15 +74,15 @@ export const DATA = {
      */
     ride: { speed: 90, speedUp: 150, brake: 400, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 3, timeFault: 5, giveUp: 45 },
     arena: { w: 480, h: 300, fence: 14 },
+    /** How high a class's poles rest (arena pixels): low for E, higher for A and L; the oxer spreads with it. */
+    height: { E: 5, A: 7, L: 9 },
     /**
      * Building a course (#56): a jump stands `runIn` from the fence along its way and `apart` from every other; the
      * next one lies `straight` ahead, or `ahead` then `turn` along after a quarter turn;
      * so many of a class's jumps are oxers; the search places at most `budget` jumps a try; a course is used if the
      * autopilot rides it in `share` of the time allowed; after `tries` the fixed course below is ridden.
      */
-    /** How high a class's poles rest (arena pixels): low for E, higher for A and L; the oxer spreads with it. */
-    height: { E: 5, A: 7, L: 9 },
-    build: { runIn: 60, apart: 70, straight: [100, 150], ahead: [40, 90], turn: [70, 120], oxers: { E: 0, A: 2, L: 4 }, budget: 2000, share: 0.5, tries: 60 },
+    build: { runIn: 60, apart: 66, straight: [100, 150], ahead: [40, 90], turn: [70, 120], oxers: { E: 0, A: 2, L: 4 }, budget: 3000, share: 0.5, tries: 100 },
     /** The courses ("Parcours"), by show class; practice and the riding badge use E. Arena pixels; a jump is ridden the way of `dir`. */
     courses: {
       E: {

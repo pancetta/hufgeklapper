@@ -9,7 +9,6 @@ import { DATA } from './data';
 
 export type Dir = 'N' | 'E' | 'S' | 'W';
 export type CourseJump = { x: number; y: number; dir: Dir; kind: 'cross' | 'upright' | 'oxer' };
-/** Start and finish: a point and the way the horse rides through it. */
 /** A course; `height`: how high its poles rest, in arena pixels (higher classes, higher jumps; drawing only). */
 export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number };
 
@@ -157,12 +156,14 @@ export function follow(r: Round, path: Point[]): { target: Point | null; path: P
   return { target: rest[0] ?? null, path: rest };
 }
 
+/** How a rider who knows the way takes off (the course check and the e2e route): within a short moment of perfect. */
+export const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
+
 /**
  * The way a rider who knows it would ride from `r` on, as points every few pixels: the autopilot played ahead
  * (with "Hopp!" on time), until the finish or `secs`. For the Playwright round, which draws it in one stroke.
  */
 export function route(r: Round, c: Course, secs = 30): Point[] {
-  const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
   const points: Point[] = [{ x: r.x, y: r.y }];
   for (let t = 0; t < secs && !r.done; t += 1 / 60) {
     const a = autopilot(r, c);
