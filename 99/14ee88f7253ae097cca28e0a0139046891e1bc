@@ -1,0 +1,28 @@
+src/sim/round.ts
+  s_7657db1b41ed88::t_c865fc259a661a 159-161
+src/sim/round.test.ts
+  s_7657db1b41ed88::t_3583730b757131 152-158
+src/sim/courses.ts
+  s_7657db1b41ed88::t_c865fc259a661a 9,28,67-68,95-96
+src/sim/data.ts
+  s_7657db1b41ed88::t_b2eb04e8e250ed 85
+  s_7657db1b41ed88::t_c865fc259a661a 77-78
+src/sim/courses.test.ts
+  s_7657db1b41ed88::t_3583730b757131 9-10,22,24-25,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9914ee88f7253ae097cca28e0a0139046891e1bc",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
