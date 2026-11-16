@@ -653,7 +653,7 @@ export function showStable() {
     const h = game.get().horses.find((x) => x.id === id)!, card = $('card');
     card.innerHTML = `<div class="sheet horse-card">
       <canvas id="portrait" width="96" height="72"></canvas>
-      <h2>${esc(h.name)}</h2>
+      <form id="rename" class="rename"><h2>${esc(h.name)}</h2><button type="button" id="rename-start" class="small">${t.rename}</button></form>
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
@@ -666,6 +666,21 @@ export function showStable() {
     $('close-card').addEventListener('click', () => { card.hidden = true; });
     $('care').addEventListener('click', () => showCare(h.id));
     card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
+    // a name of its own: the field replaces the heading; the Sim says no to an empty or taken name
+    $('rename-start').addEventListener('click', () => {
+      const form = $<HTMLFormElement>('rename');
+      form.innerHTML = `<input id="horse-name" maxlength="${DATA.horseName.max}" autocomplete="off" enterkeyhint="done" aria-label="${t.newName}">
+        <button type="submit" class="small">${t.done}</button><p class="oma" id="rename-why" hidden>${t.nameTaken}</p>`;
+      const field = $<HTMLInputElement>('horse-name');
+      field.value = h.name; field.focus(); field.select();
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = field.value.trim();
+        if (name && name !== h.name) game.dispatch({ type: 'rename', horse: h.id, name });
+        if (name && game.get().horses.find((x) => x.id === h.id)!.name !== name) { $('rename-why').hidden = false; return; }
+        render(); showCard(h.id); // the nameplate and the card show the new name
+      });
+    });
   }
   render();
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };

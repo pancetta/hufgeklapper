@@ -39,6 +39,29 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     if (on && start < 0) start = x;
     if (!on && start >= 0) { hooves.push({ x: (start + x - 1) / 2, done: false }); start = -1; }
   }
+  // a little life, as the LPC idle sheet has one still frame: breathing, a tail swish, blinking, and a happy hop with
+  // hearts after each finished care. The tail is what lies behind the hind hoof; the eye is the glint the asset
+  // script painted in (none on a very dark coat), closed with the coat colour around it.
+  const tailX = Math.round(Math.max(...hooves.map((h) => h.x))) + 3, legs = bottom - 12; // below `legs` nothing moves
+  let tailTop = legs, tailEnd = 0;
+  for (let y = 0; y < legs; y++) for (let x = tailX; x < 128; x++) if (opaque(x, y)) { tailTop = Math.min(tailTop, y); tailEnd = y; }
+  const lum = (i: number) => px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11;
+  const lid: [number, number][] = [];
+  let lidColor = '';
+  for (let i = 0; i < px.length; i += 4) if (px[i] === 255 && px[i + 1] === 251 && px[i + 2] === 232) {
+    const gx = (i / 4) % 128, gy = Math.floor(i / 4 / 128);
+    let bright = -1;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const j = ((gy + dy) * 128 + gx + dx) * 4;
+      if (!dx && !dy || lum(j) < 110) lid.push([gx + dx, gy + dy]);
+      else if (lum(j) > bright) { bright = lum(j); lidColor = `rgb(${px[j]}, ${px[j + 1]}, ${px[j + 2]})`; }
+    }
+    break;
+  }
+  const body = document.createElement('canvas');
+  body.width = body.height = 128;
+  const bctx = body.getContext('2d')!;
+  let happyAt = -9;
   const dirt = document.createElement('canvas');
   dirt.width = dirt.height = 128;
   const dctx = dirt.getContext('2d', { willReadFrequently: true })!;
@@ -55,13 +78,16 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
   const manure = Array.from({ length: Math.max(1, Math.round(opts.dirt * 4)) }, () => ({ x: 0.15 + rnd() * 0.5, y: rnd(), gone: false }));
   const hay = { x: 0, y: 0, home: true, dragging: false, inManger: false };
   const done = new Set<Care>(opts.cared);
-  const sparkles: { x: number; y: number; age: number }[] = [];
+  const sparkles: { x: number; y: number; age: number }[] = [], hearts: { x: number; y: number; age: number }[] = [];
   const finish = (what: Care) => {
     if (done.has(what)) return;
     done.add(what);
     for (let i = 0; i < 8; i++) sparkles.push({ x: L.cx - 30 + Math.random() * 60, y: L.foot - 70 + Math.random() * 50, age: -i * 0.08 });
+    cheer();
     opts.onDone(what);
   };
+  /** The horse is happy: a little hop and hearts. */
+  const cheer = () => { for (let i = 0; i < 3; i++) hearts.push({ x: L.cx - 40 + i * 6, y: L.foot - 80, age: -i * 0.25 }); happyAt = t; };
 
   function fit() {
     S = Math.min(2, fitPixels(innerWidth, innerHeight).scale) * 3;
@@ -91,8 +117,23 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     blit(ctx, deco, hay.inManger ? MANGER_FULL : MANGER_EMPTY, L.mx, L.my - (hay.inManger ? 46 : 32));
     shadow(ctx, L.cx, L.foot - 1, 28, 3, 0.25);
     const hx = L.cx - 64, hy = L.foot - 1 - bottom;
-    ctx.drawImage(frame, hx, hy);
-    ctx.drawImage(dirt, hx, hy);
+    // the pose: coat and dirt, eyes shut for a moment every few seconds; the body breathes and hops, the legs stay on
+    // the straw (they hop along), the tail swishes now and then
+    bctx.clearRect(0, 0, 128, 128); bctx.drawImage(frame, 0, 0); bctx.drawImage(dirt, 0, 0);
+    if (lid.length && t % 3.7 < 0.14) { bctx.fillStyle = lidColor; for (const [x, y] of lid) bctx.fillRect(x, y, 1, 1); }
+    const hop = t - happyAt < 0.5 ? Math.round(Math.sin((t - happyAt) / 0.5 * Math.PI) * 3) : 0;
+    const up = hy - hop - (Math.sin(t * 1.8) > 0.6 ? 1 : 0);
+    const swish = t % 4.3 < 0.9 ? Math.sin((t % 4.3) / 0.9 * Math.PI * 2) * 3 : 0;
+    // one row more for the legs: it fills the gap when the body breathes up
+    ctx.drawImage(body, 0, legs - 1, 128, 129 - legs, hx, hy - hop + legs - 1, 128, 129 - legs);
+    if (!swish) ctx.drawImage(body, 0, 0, 128, legs, hx, up, 128, legs);
+    else {
+      ctx.drawImage(body, 0, 0, tailX, legs, hx, up, tailX, legs);
+      for (let y = 0; y < legs; y++) {
+        const dx = y > tailTop && y <= tailEnd ? Math.round(swish * ((y - tailTop) / Math.max(1, tailEnd - tailTop)) ** 1.5) : 0;
+        ctx.drawImage(body, tailX, y, 128 - tailX, 1, hx + tailX + dx, up + y, 128 - tailX, 1);
+      }
+    }
     // hoof rings to tap, while the hoof pick is out
     if (tool === 'hooves') for (const h of hooves) {
       ctx.fillStyle = h.done ? '#3c9a3c' : `rgba(255, 255, 255, ${0.55 + 0.45 * Math.sin(t * 5)})`;
@@ -101,6 +142,14 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       if (h.done) ctx.fillRect(x - 2, y, 5, 1);
     }
     if (tool === 'feed' && !hay.inManger) blit(ctx, deco, HAY, Math.round(hay.x), Math.round(hay.y));
+    for (const h of hearts) {
+      h.age += 1 / 60;
+      if (h.age < 0 || h.age > 1.5) continue;
+      const x = Math.round(h.x + Math.sin(h.age * 6) * 2), y = Math.round(h.y - h.age * 16);
+      ctx.globalAlpha = 1 - h.age / 1.5; ctx.fillStyle = '#e8507a';
+      ctx.fillRect(x, y, 2, 1); ctx.fillRect(x + 3, y, 2, 1); ctx.fillRect(x - 1, y + 1, 7, 2); ctx.fillRect(x, y + 3, 5, 1); ctx.fillRect(x + 1, y + 4, 3, 1); ctx.fillRect(x + 2, y + 5, 1, 1);
+      ctx.globalAlpha = 1;
+    }
     for (const s of sparkles) {
       s.age += 1 / 60;
       if (s.age < 0 || s.age > 1.2) continue;
@@ -167,6 +216,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       if (what === 'hooves') hooves.forEach((h) => { h.done = true; });
       if (what === 'feed') hay.inManger = true;
       if (what === 'muck') manure.forEach((m) => { m.gone = true; });
+      if (!done.has(what)) cheer();
       done.add(what);
     },
     stop() { running = false; removeEventListener('resize', fit); },

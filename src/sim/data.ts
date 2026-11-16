@@ -101,6 +101,8 @@ export const DATA = {
   features: ['stable', 'care', 'board', 'arena'] as const,
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
+  /** A horse's own name: at most this many characters, so it fits on the nameplate. */
+  horseName: { max: 16 },
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],
   /** Stalls ("Boxen") in the stable, per farm stage. */
   stalls: { kleinerHof: 2, reitschule: 2 },

@@ -118,6 +118,10 @@ export const t = {
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
   pupilKind: (small: boolean, advanced: boolean) => `${small ? 'Kleines' : 'Großes'} Kind · ${advanced ? 'kann schon reiten' : 'reitet zum ersten Mal'}`,
   fits: { right: 'passt gut', smallOnHorse: 'etwas groß', bigOnPony: 'zu klein' },
+  rename: 'Umbenennen',
+  newName: 'Neuer Name',
+  done: 'Fertig',
+  nameTaken: 'So heißt schon ein anderes Pferd. Wähle einen anderen Namen.',
   cantWork: { sick: 'ist krank', resting: 'ruht sich aus', tired: 'ist zu müde' },
   lessonRuns: (pupil: string, horse: string) => `${pupil} reitet auf ${horse}.`,
   lessonDone: (pupil: string, mood: 'delighted' | 'happy' | 'unhappy', pay: number, repaid: number) =>

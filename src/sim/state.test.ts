@@ -363,6 +363,8 @@ describe('Sim', () => {
       expect(apply(st, show)).toBe(st);
     }
     expect(showResult(s, h, 0, 'Lotta', 'E').table.filter((r) => r.rider === 'Lotta')).toHaveLength(1);
+    const blitz = { ...h, name: 'blitz' }; // no rival on a horse with the player's horse's name
+    expect(showResult({ ...s, horses: [blitz] }, blitz, 0, 'Mara', 'E').table.filter((r) => r.horse.toLowerCase() === 'blitz')).toHaveLength(1);
   });
 
   it('enters a higher class only with a horse that may start there; its fee and prize are the class\'s own', () => {
@@ -373,6 +375,18 @@ describe('Sim', () => {
     const novice = { ...s, horses: [{ ...h, skills: { jumping: L.minSkill - 1 } }] };
     expect(apply(novice, { type: 'show', horse: h.id, faults: 0, showClass: 'L' })).toBe(novice);
     expect(apply(s, { type: 'show', horse: h.id, faults: 0, showClass: 'toString' as 'E' })).toBe(s); // not a class
+  });
+
+  it('renames a horse: trimmed, 1–16 characters, not a name another horse already has', () => {
+    const s = newGame(1), [kiwi, luna] = s.horses;
+    expect(apply(s, { type: 'rename', horse: kiwi.id, name: '  Sternchen ' }).horses[0].name).toBe('Sternchen');
+    expect(apply(s, { type: 'rename', horse: kiwi.id, name: 'kiwi' }).horses[0].name).toBe('kiwi'); // its own name, other case
+    for (const name of ['', '   ', 'x'.repeat(DATA.horseName.max + 1), luna.name, luna.name.toUpperCase()])
+      expect(apply(s, { type: 'rename', horse: kiwi.id, name }), JSON.stringify(name)).toBe(s);
+    expect(apply(s, { type: 'rename', horse: 'nobody', name: 'Max' })).toBe(s);
+    const market: State = { ...s, market: marketFor(5, 9)[0] }; // a name for sale is taken too
+    expect(apply(market, { type: 'rename', horse: kiwi.id, name: market.market[0].name.toLowerCase() })).toBe(market);
+    expect(marketFor(5, 9, [market.market[0].name.toLowerCase()])[0].map((o) => o.name)).not.toContain(market.market[0].name);
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
