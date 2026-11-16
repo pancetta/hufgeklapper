@@ -1,0 +1,36 @@
+src/sim/round.ts
+  s_7657db1b41ed88::t_054e7fdd8d3387 44-47,72,131-132
+  s_7657db1b41ed88::t_7494e3567f57b6 126-130
+docs/economy.md
+  s_7657db1b41ed88::t_5d1068f958bc1d 62-63
+  s_7657db1b41ed88::t_a5a900aac05e74 33
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_34ee2943b69e15 11,14
+  s_7657db1b41ed88::t_42aa1784d2f924 16
+src/scene/jumping.ts
+  s_7657db1b41ed88::t_34ee2943b69e15 111-112,114,139,150,198-200
+src/ui/screens.ts
+  s_7657db1b41ed88::t_34ee2943b69e15 14,510,523,550
+src/sim/round.test.ts
+  s_7657db1b41ed88::t_054e7fdd8d3387 26-41
+src/sim/data.ts
+  s_7657db1b41ed88::t_3622f818aa480b 91,94-95
+  s_7657db1b41ed88::t_e5c6abf50cf5f3 93
+  s_7657db1b41ed88::t_34ee2943b69e15 104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f84b5580c03220d5e3eed1ea9fbbea076f05e4ec",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
