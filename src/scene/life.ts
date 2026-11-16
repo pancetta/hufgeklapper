@@ -10,6 +10,7 @@ import { blit, type Rect, shadow } from './draw';
 import { WINDMILL } from './farm';
 import type { Kid } from '../riders/look';
 import { drawKid, drawRider } from './kids';
+import { avatarKid } from '../riders/look';
 import { drawWindmill } from './windmill';
 
 export type Drawable = { y: number; draw: (ctx: CanvasRenderingContext2D, t: number) => void };
@@ -98,6 +99,7 @@ export const walker = (area: Area, rnd: () => number): Walker => {
 };
 
 const YARD: Area = [180, 425, 350, 465];
+const GROOMS: Kid[] = [avatarKid({ skin: 2, hair: 'kurz', hairColor: 1, jacket: 3 }), avatarKid({ skin: 1, hair: 'lang', hairColor: 3, jacket: 5 })];
 
 export const START_HERD: Look[] = [
   { build: 'pony', coat: 'isabell' },
@@ -141,7 +143,7 @@ function cloudShape(s: number) {
 }
 
 /** The farm's life: `herd` roams the pasture; with `canter`, a pony canters over the jumps in the arena. */
-export function createLife(seed: number, plots: Plot[], herd: Look[], canter: boolean) {
+export function createLife(seed: number, plots: Plot[], herd: Look[], canter: boolean, staff = 0) {
   const rnd = random(seed);
   // the herd lives on the first pasture, the pony canters in the first arena
   const PASTURE = inside(plots.find((p) => p.building === 'pasture')!);
@@ -150,6 +152,8 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
   const horses = herd.map((look) => ({ look, w: walker(PASTURE, rnd) }));
   const sheep = [walker(PASTURE, rnd)];
   const chickens = [0, 1, 2, 3, 4].map(() => walker(YARD, rnd));
+  // the grooms ("Pferdepfleger") at work in the yard: two figures of their own
+  const grooms = GROOMS.slice(0, staff).map((kid) => ({ kid, w: walker(YARD, rnd) }));
   const dog = { x: 420, dir: 1, wait: 0 };
   const TRACK = track(arena), LAP = loopLength(LOOP), TRACK_LAP = loopLength(TRACK), SPOTS = waitingSpots(arena);
   let ride = 0, waiting: Kid[] = [];
@@ -168,6 +172,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
     for (const h of horses) wander(h.w, PASTURE, h.look.build === 'pony' ? 13 : 16, dt, rnd, grazes(h.look), crowd);
     for (const s of sheep) wander(s, PASTURE, 8, dt, rnd, true, crowd);
     for (const c of chickens) wander(c, YARD, 14, dt, rnd);
+    for (const g of grooms) wander(g.w, YARD, 22, dt, rnd, false);
     if (dog.wait > 0) dog.wait -= dt;
     else {
       dog.x += dog.dir * 22 * dt;
@@ -216,6 +221,7 @@ export function createLife(seed: number, plots: Plot[], herd: Look[], canter: bo
       const f = s.mode === 'stand' ? 0 : Math.floor((t + s.phase) * (s.mode === 'eat' ? 2 : 6)) % 4;
       out.push({ y: s.y, draw: (ctx) => { shadow(ctx, s.x, s.y - 1, s.dir === 'W' || s.dir === 'E' ? 16 : 9, 3); blit(ctx, img[sheet], [f * 128, ROW[s.dir] * 128, 128, 128], s.x - 64, s.y - 82); } });
     }
+    for (const g of grooms) out.push({ y: g.w.y, draw: (ctx) => drawKid(ctx, g.kid, g.w.x, g.w.y, g.w.dir, g.w.mode === 'walk' ? Math.floor((t + g.w.phase) * 6) : 0) });
     for (const c of chickens) {
       const sheet = c.mode === 'walk' ? 'animals/chicken-walk.png' : 'animals/chicken-eat.png';
       const f = c.mode === 'stand' ? 0 : Math.floor((t + c.phase) * 6) % 4;

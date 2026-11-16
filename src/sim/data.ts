@@ -145,8 +145,9 @@ export const DATA = {
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
   goals: {
     kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 25 }, { id: 'badge', need: 1 }, { id: 'savings', need: 500 }, { id: 'reputation', need: 60 }],
-    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
-  } as Record<'kleinerHof' | 'reitschule', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses'; need: number }[]>,
+    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 700 }],
+    pensionsstall: [{ id: 'boarders', need: 2 }, { id: 'staff', need: 1 }, { id: 'partBoard', need: 1 }, { id: 'reputation', need: 75 }, { id: 'savings', need: 900 }],
+  } as Record<'kleinerHof' | 'reitschule' | 'pensionsstall', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses' | 'boarders' | 'staff' | 'partBoard'; need: number }[]>,
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
   /** What Oma Hanne explains the first time the player opens it. */
@@ -157,7 +158,9 @@ export const DATA = {
   horseName: { max: 16 },
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],
   /** Stalls ("Boxen") in the stable, per farm stage. */
-  stalls: { kleinerHof: 2, reitschule: 3 }, // the Reitschule has room for a horse from the market at once
+  stalls: { kleinerHof: 2, reitschule: 3, pensionsstall: 5 }, // each stage has room for one or two more at once
+  /** The farm stages in order ("Hofstufen"): each farm inspection opens the next. */
+  stages: ['kleinerHof', 'reitschule', 'pensionsstall'] as const,
   /**
    * The farm inspection ("Hof-Prüfung") after all goals of the Kleiner Hof: a quiz with the inspector. At the
    * Reitschule: a horse market with fresh offers each morning, stall places to build on the free plot, the arena
@@ -171,6 +174,18 @@ export const DATA = {
     names: ['Blitz', 'Sternchen', 'Fanny', 'Moritz', 'Pünktchen', 'Lotte', 'Max', 'Wolke', 'Karamell', 'Nugget', 'Bella', 'Sammy', 'Flocke', 'Sunny'],
   },
   build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 } },
+  /**
+   * The Pensionsstall (#62, #63). A groom ("Pferdepfleger") cares for `horses` horses each night for `wage` a day;
+   * at most `max` of them. Boarders ("Einsteller") bring their horse into a free stall and pay each day; badly kept
+   * (fed, clean and happy below `keptBelow`, or sick) for `patience` nights, they leave and the reputation drops by
+   * `leaveReputation`. A part-boarder ("Reitbeteiligung") rides one of your horses each day for `pay` and its energy.
+   */
+  staff: { wage: 30, horses: 4, max: 2, names: ['Tom', 'Lisa'] },
+  boarders: {
+    offers: 2, pay: [10, 18], keptBelow: 0.5, patience: 3, leaveReputation: 10,
+    owners: ['Familie Weber', 'Familie Klein', 'Frau Sommer', 'Herr Yilmaz', 'Familie Novak', 'Frau Jansen', 'Herr Becker'],
+  },
+  partBoard: { pay: [8, 12], energy: 25 },
   /** The farm stage that unlocks building on a free plot. */
   freePlotsFrom: 'reitschule',
 } as const;

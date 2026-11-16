@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -478,6 +478,70 @@ describe('Sim', () => {
     // the lesson goal counts from the stage's start, even after many lessons before
     const busy = apply({ ...done, lessonsGiven: 40 }, { type: 'inspection', answers: right });
     expect(goals(busy).find((g) => g.id === 'lessons')).toMatchObject({ have: 0, done: false });
+  });
+
+  describe('the Pensionsstall', () => {
+    const pension = (): State => {
+      // a Reitschule with every goal met passes its inspection: the Pensionsstall, with boarders looking for a stall
+      const s: State = { ...newGame(3), stage: 'reitschule', goalsDone: DATA.goals.reitschule.map((g) => g.id), money: 2000 };
+      return apply(s, { type: 'inspection', answers: Array(DATA.inspection.questions).fill(0) });
+    };
+
+    it('the second inspection makes a Pensionsstall with boarders looking for a stall; it has no next stage yet', () => {
+      const s = pension();
+      expect([s.stage, s.boardOffers.length, stalls(s), nextStage(s), canInspect({ ...s, goalsDone: DATA.goals.pensionsstall.map((g) => g.id) })])
+        .toEqual(['pensionsstall', DATA.boarders.offers, DATA.stalls.pensionsstall, null, false]);
+      expect(goals(s).map((g) => g.id)).toEqual(DATA.goals.pensionsstall.map((g) => g.id));
+    });
+
+    it('a groom, paid each morning, cares for the worst kept horses; unpaid, they stay away', () => {
+      const s0 = apply(pension(), { type: 'hire' }), dirty = s0.horses.map((h) => ({ ...h, needs: { ...h.needs, fed: 20, clean: 20, happy: 20 } }));
+      expect([s0.staff, apply(apply(s0, { type: 'hire' }), { type: 'hire' }).staff]).toEqual([1, DATA.staff.max]); // at most two
+      const morning = apply({ ...s0, horses: dirty }, { type: 'sleep' });
+      expect(morning.today).toContainEqual({ what: 'wage', amount: -DATA.staff.wage });
+      expect(morning.night).toContainEqual({ kind: 'staffCared', count: dirty.length });
+      expect(morning.horses.every((h) => h.needs.clean > 20)).toBe(true);
+      const broke = apply({ ...s0, money: DATA.staff.wage - 1, horses: dirty }, { type: 'sleep' });
+      expect([broke.night.some((n) => n.kind === 'staffUnpaid'), broke.today.some((e) => e.what === 'wage')]).toEqual([true, false]);
+      expect(apply(s0, { type: 'fire' }).staff).toBe(0);
+      expect(apply({ ...newGame(1), money: 999 }, { type: 'hire' }).staff).toBe(0); // only from the Pensionsstall on
+    });
+
+    it('a boarder\'s horse moves into a free stall, pays each morning, and is not for lessons or shows', () => {
+      const s0 = pension(), o = s0.boardOffers[0], s = apply(s0, { type: 'board', offer: o.id }), guest = s.horses.find((h) => h.id === o.id)!;
+      expect([guest.owner, s.boardOffers.length]).toEqual([{ name: o.owner, pay: o.pay, unhappy: 0 }, DATA.boarders.offers - 1]);
+      expect(apply({ ...s, horses: s.horses.map((h) => ({ ...h })) }, { type: 'train', horse: guest.id, faults: 0 }).trainings).toBe(s.trainings);
+      expect(apply(s, { type: 'rename', horse: guest.id, name: 'Neu' })).toBe(s);
+      const full = { ...s, horses: [...s.horses, ...Array(DATA.stalls.pensionsstall).fill(s.horses[0]).map((h, i) => ({ ...h, id: `x${i}` }))] };
+      expect(apply(full, { type: 'board', offer: s.boardOffers[0].id })).toBe(full); // no free stall
+      const next = apply(s, { type: 'sleep' });
+      expect(next.today).toContainEqual({ what: 'board', amount: o.pay });
+      expect(goals(next).find((g) => g.id === 'boarders')!.have).toBe(1);
+      expect(goals(next).find((g) => g.id === 'horses')).toBeUndefined(); // the Pensionsstall counts boarders, not horses
+    });
+
+    it('badly kept for a few nights, a boarder takes their horse away and the reputation drops', () => {
+      const s0 = pension(), o = s0.boardOffers[0];
+      let s = apply(s0, { type: 'board', offer: o.id });
+      const neglect = (st: State): State => ({ ...st, feed: 50, horses: st.horses.map((h) => (h.owner ? { ...h, needs: { ...h.needs, fed: 5, clean: 5, happy: 5 } } : h)) });
+      for (let n = 1; n < DATA.boarders.patience; n++) s = apply(neglect(s), { type: 'sleep' });
+      expect(s.horses.find((h) => h.id === o.id)?.owner?.unhappy).toBe(DATA.boarders.patience - 1);
+      const gone = apply(neglect(s), { type: 'sleep' });
+      expect([gone.horses.some((h) => h.id === o.id), gone.reputation]).toEqual([false, s.reputation - DATA.boarders.leaveReputation]);
+      expect(gone.night).toContainEqual({ kind: 'boarderLeft', horse: o.name, owner: o.owner });
+    });
+
+    it('a rider rides one of your horses each day for a fee and its energy, until you end it', () => {
+      let s = apply(pension(), { type: 'sleep' }); // a rider's offer comes in the morning
+      const p = s.partOffer!, h = s.horses.find((x) => x.id === p.horse)!;
+      s = apply(s, { type: 'partBoard' });
+      expect([s.partOffer, s.horses.find((x) => x.id === h.id)!.rider]).toEqual([null, { name: p.rider, pay: p.pay }]);
+      const rested = { ...s, horses: s.horses.map((x) => ({ ...x, needs: { ...x.needs, energy: 50 } })) }, next = apply(rested, { type: 'sleep' });
+      expect(next.today).toContainEqual({ what: 'partBoard', amount: p.pay });
+      const other = next.horses.find((x) => x.id !== h.id && !x.rider)!, ridden = next.horses.find((x) => x.id === h.id)!;
+      expect(other.needs.energy - ridden.needs.energy).toBe(DATA.partBoard.energy);
+      expect(apply(next, { type: 'endPartBoard', horse: h.id }).horses.find((x) => x.id === h.id)!.rider).toBeUndefined();
+    });
   });
 
   it('sells horses at the Reitschule: fresh offers each morning, only with money and a free stall place', () => {

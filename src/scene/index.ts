@@ -27,6 +27,7 @@ export type FarmOptions = {
   herd?: Look[]; // the horses on the pasture (the start screen shows a sample herd)
   canter?: boolean; // a pony canters over the jumps
   plots?: Plot[]; // the farm's plots as built (default: the starting farm)
+  staff?: number; // grooms at work: they walk about the yard
   onTap?: (target: string) => void; // a plot's id, or 'board' for the notice board
   onLayout?: () => void; // the view changed size: labels placed with toScreen need moving
 };
@@ -53,7 +54,7 @@ export async function startFarm(canvas: HTMLCanvasElement, opts: FarmOptions = {
   paintTerrain(groundCanvas.getContext('2d')!, img['nature/terrain.png'], map.map((row) => row.join('')));
 
   const scenery = staticDrawables(img, plots);
-  const life = createLife(7, plots, herd, canter);
+  const life = createLife(7, plots, herd, canter, opts.staff ?? 0);
   const ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, ox = 0, oy = 0, last = performance.now(), vignette: CanvasGradient, running = true;
 

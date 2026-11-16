@@ -81,6 +81,9 @@ export const t = {
   newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
   newsHayLow: 'Das Heu wird knapp.',
   newsRested: (name: string) => `${name} ist wieder fit.`,
+  newsStaffCared: (names: string, n: number, two = false) => `${names} ${two ? 'haben' : 'hat'} heute früh ${n} ${n === 1 ? 'Pferd' : 'Pferde'} geputzt, gefüttert und ausgemistet.`,
+  newsStaffUnpaid: 'Für den Lohn deines Pferdepflegers war nicht genug Geld da. Heute hilft er nicht.',
+  newsBoarderLeft: (owner: string, horse: string) => `${owner} hat ${horse} abgeholt: Das Pferd war zu lange schlecht gepflegt.`,
   morningGo: 'Los geht’s!',
 
   // caring for a horse
@@ -103,6 +106,21 @@ export const t = {
   hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price} €`,
   hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
   stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
+  staffTitle: 'Pferdepfleger',
+  hire: (name: string, wage: number, horses: number) => `${name} einstellen: ${wage} € am Tag, pflegt ${horses} Pferde`,
+  hired: (names: string, two: boolean) => (two ? `Bei dir arbeiten ${names}. Jeden Morgen putzen, füttern und misten sie für dich.` : `Bei dir arbeitet ${names}. Jeden Morgen putzt, füttert und mistet ${names} für dich.`),
+  fire: (name: string) => `${name} entlassen`,
+  boardersTitle: 'Einsteller suchen einen Platz',
+  boardOffer: (owner: string, horse: string, breed: string, pay: number) => `${owner} · ${horse} (${breed}) · ${pay} € am Tag`,
+  noBoarders: 'Heute sucht niemand einen Platz.',
+  partTitle: 'Reitbeteiligung',
+  partOffer: (rider: string, horse: string, pay: number) => `${rider} möchte jeden Tag ${horse} reiten: ${pay} € am Tag`,
+  partYes: 'Ja, gern',
+  ownedBy: (owner: string, pay: number) => `Gehört ${owner} · zahlt ${pay} € am Tag`,
+  boarderUnhappy: (owner: string) => `${owner} ist nicht zufrieden: Pflege das Pferd besser!`,
+  riddenBy: (rider: string, pay: number) => `Reitbeteiligung: ${rider} reitet jeden Tag (${pay} € am Tag)`,
+  endPart: 'Reitbeteiligung beenden',
+  guest: 'Gast',
   boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
   owe: (n: number) => `Du schuldest ${n} €.`,
   omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
@@ -116,7 +134,7 @@ export const t = {
   diaryOut: 'Ausgegeben',
   diaryDebts: 'Schulden',
   diaryTotal: (total: number, money: number) => `Heute ${total ? (total > 0 ? '+' : '−') : ''}${Math.abs(total)} € · In der Kasse: ${money} €`,
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut' , wage: 'Lohn Pferdepfleger', board: 'Einsteller', partBoard: 'Reitbeteiligung' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
@@ -200,8 +218,11 @@ export const t = {
     savings: (n: number) => `Spare ${n} € (ohne Schulden)`,
     reputation: (n: number) => `Mach deine Reitschüler glücklich (Ruf ${n})`,
     horses: (n: number) => `Hab ${n} Pferde oder Ponys`,
+    boarders: (n: number) => `Nimm ${n} Einsteller auf`,
+    staff: () => 'Stell einen Pferdepfleger ein',
+    partBoard: () => 'Finde eine Reitbeteiligung',
   },
-  allGoals: { kleinerHof: 'Alle Aufgaben geschafft!', reitschule: 'Alle Aufgaben geschafft! Die nächste Stufe kommt bald.' },
+  allGoals: { kleinerHof: 'Alle Aufgaben geschafft!', reitschule: 'Alle Aufgaben geschafft!', pensionsstall: 'Alle Aufgaben geschafft! Die nächste Stufe kommt bald.' },
   // the farm inspection
   inspector: 'Frau Berger, die Prüferin',
   startInspection: 'Hof-Prüfung starten',
@@ -215,6 +236,16 @@ export const t = {
     { q: 'Wie lebt ein Pferd am liebsten?', a: [{ text: 'Mit anderen Pferden zusammen' }, { text: 'Ganz allein' }, { text: 'Im Haus' }] },
   ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
   inspectionPassed: 'Herzlichen Glückwunsch! Dein Hof ist jetzt eine Reitschule. Du kannst Pferde kaufen und bauen!',
+  // the second farm inspection: Reitschule to Pensionsstall
+  inspectionIntro2: 'Guten Tag, da bin ich wieder! Heute geht es um einen Pensionsstall: Dort wohnen auch Pferde von anderen Leuten. Ich habe fünf Fragen.',
+  inspectionQuiz2: [
+    { q: 'Ein Einsteller bezahlt dich jeden Tag. Wofür?', a: [{ text: 'Für den Platz und die Pflege seines Pferdes' }, { text: 'Für Reitstunden auf deinen Ponys' }, { text: 'Für das Heu, das er selbst mitbringt' }] },
+    { q: 'Was macht ein Pferdepfleger?', a: [{ text: 'Er putzt, füttert und mistet für dich' }, { text: 'Er reitet für dich Turniere' }, { text: 'Er baut neue Ställe' }] },
+    { q: 'Ein Pferd frisst jede Nacht einen Heuballen. Du hast 4 Pferde und 12 Ballen. Wie viele Nächte reicht das Heu?', a: [{ text: '3 Nächte' }, { text: '4 Nächte' }, { text: '12 Nächte' }] },
+    { q: 'Was ist eine Reitbeteiligung?', a: [{ text: 'Jemand reitet regelmäßig dein Pferd und bezahlt dafür' }, { text: 'Ein Pferd, das dir nur halb gehört' }, { text: 'Eine Reitstunde für Anfänger' }] },
+    { q: 'Das Pferd eines Einstellers sieht ungepflegt aus. Was tust du?', a: [{ text: 'Ich pflege es so gut wie meine eigenen' }, { text: 'Nichts, es gehört mir ja nicht' }, { text: 'Ich reite damit ein Turnier' }] },
+  ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
+  inspectionPassed2: 'Herzlichen Glückwunsch! Dein Hof ist jetzt ein Pensionsstall. Am Schwarzen Brett findest du Einsteller, Reitbeteiligungen und einen Pferdepfleger.',
   inspectionFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht noch nicht. Morgen komme ich wieder.`,
   // the Reitschule: market and building
   market: 'Pferdemarkt',

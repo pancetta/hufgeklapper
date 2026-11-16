@@ -343,3 +343,6 @@ canvas { image-rendering: pixelated; }
 .diary-bar.out i { background: #d9534f; }
 .diary-bar.debt i { background: #8e8e9e; }
 .diary-total { text-align: center; font-size: calc(var(--fs) * 18px); }
+
+/* a boarder's horse in the stable: a blue nameplate, "Gast" */
+.nameplate.guest { background: #d6e6f5; }

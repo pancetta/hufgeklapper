@@ -19,7 +19,8 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.89× careful's after 40 days and 1.15× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.10× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 21–22 (60-day run, median ≤ 30) |
 
 ## Current numbers
 
@@ -27,20 +28,20 @@ Sick days are counted in the morning, before the vet comes.
 
 | Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 632 € | 230 € | 391 € | 1831 € | 3 | 12 | 112 | 13 | 0 | 0 € | nein |
-| careful | 2 | 711 € | 212 € | 323 € | 1653 € | 3 | 12 | 111 | 12 | 0 | 0 € | nein |
-| careful | 3 | 696 € | 284 € | 535 € | 1655 € | 3 | 11 | 113 | 12 | 0 | 0 € | nein |
+| careful | 1 | 632 € | 230 € | 673 € | 1853 € | 3 | 12 | 84 | 13 | 0 | 0 € | nein |
+| careful | 2 | 711 € | 212 € | 749 € | 1901 € | 3 | 12 | 88 | 12 | 0 | 0 € | nein |
+| careful | 3 | 696 € | 284 € | 698 € | 1864 € | 3 | 11 | 85 | 12 | 0 | 0 € | nein |
 | careful | 4 | 648 € | 228 € | 458 € | 1758 € | 3 | 11 | 114 | 12 | 0 | 0 € | nein |
-| careful | 5 | 676 € | 266 € | 368 € | 1728 € | 4 | 12 | 112 | 11 | 0 | 0 € | nein |
+| careful | 5 | 676 € | 266 € | 943 € | 2086 € | 4 | 12 | 90 | 11 | 0 | 0 € | nein |
 | careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | nein |
 | careless | 2 | 549 € | 513 € | 476 € | 476 € | 3 | 18 | 44 | 10 | 14 | 0 € | nein |
 | careless | 3 | 581 € | 525 € | 329 € | 329 € | 3 | 18 | 37 | 10 | 14 | 0 € | nein |
 | careless | 4 | 524 € | 402 € | 202 € | 202 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
 | careless | 5 | 514 € | 498 € | 563 € | 563 € | 4 | 21 | 49 | 9 | 14 | 0 € | nein |
 | sport | 1 | 435 € | 476 € | 442 € | 1252 € | 3 | 25 | 64 | 13 | 0 | 0 € | nein |
-| sport | 2 | 502 € | 534 € | 215 € | 1485 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
+| sport | 2 | 502 € | 534 € | 474 € | 1554 € | 3 | 25 | 62 | 13 | 0 | 0 € | nein |
 | sport | 3 | 429 € | 468 € | 367 € | 1297 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
-| sport | 4 | 426 € | 618 € | 469 € | 1719 € | 5 | 25 | 69 | 12 | 0 | 0 € | nein |
+| sport | 4 | 426 € | 618 € | 513 € | 1799 € | 5 | 25 | 69 | 12 | 0 | 0 € | nein |
 | sport | 5 | 421 € | 650 € | 275 € | 1435 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
 
 ## What changed because of it
@@ -63,8 +64,13 @@ Sick days are counted in the morning, before the vet comes.
   class L from about day 47–65. The careful player buys the cheapest horse. The run doesn't model the momentum of
   A and L, so real rounds there are a little harder.
 
+- The Pensionsstall (#61–#63): boarders pay 10–18 € a day, a groom costs 30 € a day. With them the careful player
+  pulls ahead earlier; the Reitschule's savings goal went up to 700 € (was 600 €) to keep the #18 balance.
+
 ## Open points
 
+- **Careless over 80 days.** A careless player can get stuck after about two months (every horse sick, no money, no
+  more loans); the test checks 40 days. This was so before the Pensionsstall.
 - The run's jumping rounds count knocked poles only: refusals and time faults on the arena (#43) are not in the
   model, so a real child's rounds come out a little worse. The riding badge allows 2 faults (was 1) for that reason.
 - **Careless gets nowhere slowly.** About 14 sick days in 40 (a pony falls sick every few days and rests after the
