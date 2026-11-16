@@ -329,3 +329,16 @@ canvas { image-rendering: pixelated; }
 /* the jumping bar shows how far this horse can come: a mark at its breed's limit */
 .bar.skill { position: relative; }
 .bar.skill::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: var(--scope, 100%); width: 2px; background: var(--wood-dark); }
+
+/* the farm diary before the night: one bar per kind of money, green in, red out */
+.sheet.ask.diary { text-align: left; width: min(90vw, 560px); } /* more specific than .sheet.ask: its min-width would win */
+.diary h2 { text-align: center; }
+.diary h3 { margin: 6px 0 0; font-size: calc(var(--fs) * 18px); }
+.diary-row { display: grid; grid-template-columns: 9em 1fr 5em; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px); }
+.diary-row b { text-align: right; }
+.diary-row span:first-child { justify-self: start; }
+.diary-bar { height: 12px; background: #e9dcc0; border: 2px solid var(--wood-dark); border-radius: 3px; overflow: hidden; }
+.diary-bar i { display: block; height: 100%; }
+.diary-bar.in i { background: #5cb85c; }
+.diary-bar.out i { background: #d9534f; }
+.diary-total { text-align: center; font-size: calc(var(--fs) * 18px); }

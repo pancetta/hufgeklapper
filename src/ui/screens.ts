@@ -20,7 +20,7 @@ import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -213,6 +213,22 @@ function topBar() {
 
 function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   $('sleep').addEventListener('click', () => {
+    // the farm diary first: today's money as bars, then good night
+    const day = dayMoney(game.get().today);
+    if (!day.income.length && !day.costs.length) return goodNight();
+    const most = Math.max(...[...day.income, ...day.costs].map((r) => Math.abs(r.amount)));
+    const bar = (r: { what: Entry['what']; amount: number }) => `<div class="diary-row"><span>${t.billWhat[r.what]}</span>
+      <span class="diary-bar ${r.amount > 0 ? 'in' : 'out'}"><i style="width:${Math.max(4, Math.round((Math.abs(r.amount) / most) * 100))}%"></i></span><b>${t.euros(r.amount)}</b></div>`;
+    const box = $('morning');
+    box.firstElementChild!.innerHTML = `<h2>${t.diaryTitle(game.get().day)}</h2>
+      ${day.income.length ? `<h3>${t.diaryIn}</h3>${day.income.map(bar).join('')}` : ''}
+      ${day.costs.length ? `<h3>${t.diaryOut}</h3>${day.costs.map(bar).join('')}` : ''}
+      <p class="diary-total">${t.diaryTotal(day.total, game.get().money)}</p><button type="button">${t.goodNight}</button>`;
+    box.firstElementChild!.classList.add('diary');
+    box.hidden = false;
+    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; box.firstElementChild!.classList.remove('diary'); goodNight(); });
+  });
+  function goodNight() {
     const night = $('night');
     night.querySelector('p')!.textContent = t.goodNight;
     night.hidden = false;
@@ -221,7 +237,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
       night.querySelector('p')!.textContent = t.day(game.get().day);
       setTimeout(() => { night.hidden = true; morning(game.get().night); }, 900);
     }, 900);
-  });
+  }
   // the morning summary: one short line per piece of news, then on with the day
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
@@ -229,8 +245,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   function morning(news: News[]) {
     if (!news.length) return;
     const lines = [...new Set(news.filter((n) => n.kind !== 'bill').map(line))]; // "no hay" comes once per horse; say it once
-    const bill = game.get().bill;
-    if (bill.length) lines.push(`<b>${t.billTitle}</b> ${bill.map((e) => `${t.billWhat[e.what]} ${t.euros(e.amount)}`).join(' · ')}`);
+    if (!lines.length) return; // yesterday's money was in the diary
     const box = $('morning');
     box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
     box.hidden = false;

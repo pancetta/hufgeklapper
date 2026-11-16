@@ -293,6 +293,21 @@ export const fitsNone = (p: Pupil, horses: Horse[]) => !lessonChoices(p, horses)
 /** How a pupil felt about a lesson: below `happyAt` the farm's reputation drops. */
 export const mood = (happy: number): 'delighted' | 'happy' | 'unhappy' => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';
 
+/**
+ * The day's money for the diary: the entries summed by what they were for, money in (positive) and out
+ * (negative) apart, the biggest first, and the day's total.
+ */
+export function dayMoney(entries: Entry[]) {
+  const by = new Map<Entry['what'], number>();
+  for (const e of entries) by.set(e.what, (by.get(e.what) ?? 0) + e.amount);
+  const rows = [...by].map(([what, amount]) => ({ what, amount })).filter((r) => r.amount);
+  return {
+    income: rows.filter((r) => r.amount > 0).sort((a, b) => b.amount - a.amount),
+    costs: rows.filter((r) => r.amount < 0).sort((a, b) => a.amount - b.amount),
+    total: entries.reduce((n, e) => n + e.amount, 0),
+  };
+}
+
 /** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
 export function earn(s: State, amount: number): State {
   const repay = Math.min(s.debt, Math.round(amount * DATA.repayShare));

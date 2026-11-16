@@ -112,6 +112,10 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
+  diaryTitle: (day: number) => `Dein Tag ${day}`,
+  diaryIn: 'Eingenommen',
+  diaryOut: 'Ausgegeben',
+  diaryTotal: (total: number, money: number) => `Heute ${total >= 0 ? '+' : ''}${total} € · In der Kasse: ${money} €`,
   billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut' },
 
   // riding lessons
