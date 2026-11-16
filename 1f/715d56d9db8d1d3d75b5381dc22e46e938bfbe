@@ -1,0 +1,37 @@
+src/sim/data.ts
+  s_7657db1b41ed88::t_7d1787dedd7600 57-58,127,145
+  s_7657db1b41ed88::t_01aef69dedb68f 138
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_01aef69dedb68f 4
+  s_7657db1b41ed88::t_7d1787dedd7600 378-390,464-467
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_7d1787dedd7600 308-321,325,332-336,505,523,527-534,543,546-547
+src/sim/state.ts
+  s_7657db1b41ed88::t_7d1787dedd7600 169-171,177,257,262-277,279
+src/strings.ts
+  s_7657db1b41ed88::t_7d1787dedd7600 121-125,238
+docs/economy.md
+  s_7657db1b41ed88::t_7d1787dedd7600 22,30-34,40-44,54,58-59
+src/style.css
+  s_7657db1b41ed88::t_01aef69dedb68f 316
+  s_7657db1b41ed88::t_7d1787dedd7600 317-321
+src/ui/screens.ts
+  s_7657db1b41ed88::t_7d1787dedd7600 401-402,405-409
+  s_7657db1b41ed88::t_01aef69dedb68f 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1f715d56d9db8d1d3d75b5381dc22e46e938bfbe",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
