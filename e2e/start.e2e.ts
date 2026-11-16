@@ -325,6 +325,19 @@ test('Oma Hanne explains once which horse fits whom, when no pony fits the pupil
   await expect(page.locator('#lesson [data-horse="kiwi"]')).toContainText('Ein Pony ist zu klein');
 });
 
+test('in a dead end Oma Hanne helps: every pony sick, no money, no more loans', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => {
+    Object.assign(s, { money: 0, debt: DATA.loan.debtLimit, feed: 0 });
+    for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10;
+  });
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.newsOmaHelped)).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: t.morningGo }).tap();
+  await expect(page.locator('#hay')).toHaveText(t.hay(DATA.rescue.hay));
+});
+
 test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');

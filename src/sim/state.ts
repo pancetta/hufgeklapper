@@ -26,7 +26,7 @@ export type FarmStage = (typeof DATA.stages)[number];
 export type BoardOffer = { id: string; owner: string; name: string; breed: Breed; look: Look; pay: number };
 
 export type State = {
-  version: 11;
+  version: 12;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -62,6 +62,8 @@ export type State = {
   built: { stalls: number; arena: number };
   /** The Pensionsstall: grooms hired, boarders looking for a stall today, a rider who would like one of your horses. */
   staff: number;
+  /** The day Oma Hanne last helped out of a dead end (0: never). */
+  rescueDay: number;
   boardOffers: BoardOffer[];
   partOffer: { horse: string; rider: string; pay: number } | null;
   badgeQuizDay: number;
@@ -86,7 +88,7 @@ export type Care = 'groom' | 'hooves' | 'feed' | 'muck';
 export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 
 /** Morning news: data only; the screens turn it into words. */
-export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft'; horse?: string; owner?: string; count?: number };
+export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft' | 'omaHelped'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
@@ -183,7 +185,7 @@ export function buildWaits(s: State, what: 'stalls' | 'arena'): 'stage' | 'built
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 11, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 12, rescueDay: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -200,6 +202,14 @@ export const canFeed = (s: State) => s.feed >= 1;
 /** Hay can always be had: paid if the money is there, else on credit, so the horses never go hungry for lack of it. */
 export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
+/** A dead end: every horse of your own sick, no money for the vet and no more loans; nothing earns money any more. */
+export const stuck = (s: State) => s.horses.some(own) && s.horses.filter(own).every(isSick) && !canPayVet(s) && !canLoan(s);
+/** Oma Hanne's help in a dead end (not again within a few days): the vet for every sick horse of yours, and some hay. */
+function rescue(s: State): State {
+  if (!stuck(s) || (s.rescueDay && s.day - s.rescueDay < DATA.rescue.every)) return s; // (0: never helped yet)
+  const horses = s.horses.map((h) => (own(h) && isSick(h) ? { ...h, needs: { ...h.needs, health: Math.max(h.needs.health, DATA.vet.health) }, rest: DATA.vet.restDays } : h));
+  return { ...s, horses, feed: s.feed + DATA.rescue.hay, rescueDay: s.day, night: [...s.night, { kind: 'omaHelped' }] };
+}
 
 /** Why a horse can't do work that takes `energy` now (sick, resting after the vet, too tired), or null if it can. */
 export function cantWork(h: Horse, energy: number): 'sick' | 'resting' | 'tired' | null {
@@ -498,7 +508,7 @@ function step(state: State, action: Action): State {
       const [pupils, seed1] = pupilsFor(state.day + 1, state.reputation, state.seed, state.built.arena * DATA.build.arena.pupils);
       const [market, seed2] = atLeast(state, 'reitschule') ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
       const morning: State = { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed: seed2 };
-      return atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning;
+      return rescue(atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning);
     }
     case 'hire': // a groom more (from the Pensionsstall on), up to the most a farm takes; or one less
       return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.names.length ? { ...state, staff: state.staff + 1 } : state;

@@ -48,6 +48,13 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives a save from version 11 (before Oma Hanne\'s help) no day of help yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { rescueDay: _a, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 11, state: { ...old, version: 11 } }));
+    expect(p.ok && p.save.state.rescueDay).toBe(0);
+  });
+
   it('gives a save from version 10 (before the Pensionsstall) no grooms, boarders or riders', () => {
     const now = toSave(played(), 'Hof');
     const { staff: _a, boardOffers: _b, partOffer: _c, ...old } = now.state;

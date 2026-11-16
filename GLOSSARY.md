@@ -41,6 +41,10 @@ cared for like yours but isn't yours (no lessons, no shows); badly kept too long
 **Part-boarder** ("Reitbeteiligung"):
 Someone who rides one of your horses each day for a fee; it costs the horse energy.
 
+**Oma's help** ("Oma Hanne hilft"):
+The safety net's last step: in a dead end (every horse of your own sick, no money for the vet, no more loans) Oma
+Hanne pays the vet in the night and brings some hay; at most every few days.
+
 **Groom** ("Pferdepfleger"):
 Staff from the **Pensionsstall** on: for a wage each day, they care for a few horses every morning.
 

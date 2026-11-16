@@ -18,7 +18,7 @@ the arena is not poorer for it.
 | Target (#18) | Status |
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
-| A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met |
+| A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met, also over 120 days: Oma Hanne helps out of a dead end (#66); the longest dead end is 6 days (without her help 25–61) |
 | No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.07× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 23 (60-day run, median ≤ 30) |
 
@@ -70,8 +70,9 @@ Sick days are counted in the morning, before the vet comes.
 
 ## Open points
 
-- **Careless over 80 days.** A careless player can get stuck after about two months (every horse sick, no money, no
-  more loans); the test checks 40 days. This was so before the Pensionsstall.
+- **Careless over a long game:** hay on credit has no limit, so a careless player's debt passes the bank's limit;
+  with every horse sick nothing earns. Oma Hanne now pays the vet and brings hay in such a dead end, at most every
+  10 days (#66). The careless player stays poor (worth around −130 to −240 € after 120 days), but can always go on.
 - The run's jumping rounds count knocked poles only: refusals and time faults on the arena (#43) are not in the
   model, so a real child's rounds come out a little worse. The riding badge allows 2 faults (was 1) for that reason.
 - **Careless gets nowhere slowly.** About 14 sick days in 40 (a pony falls sick every few days and rests after the

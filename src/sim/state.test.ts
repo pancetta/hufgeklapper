@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -478,6 +478,19 @@ describe('Sim', () => {
     // the lesson goal counts from the stage's start, even after many lessons before
     const busy = apply({ ...done, lessonsGiven: 40 }, { type: 'inspection', answers: right });
     expect(goals(busy).find((g) => g.id === 'lessons')).toMatchObject({ have: 0, done: false });
+  });
+
+  it('Oma Hanne helps out of a dead end: the vet for every sick horse and some hay; not again within a few days', () => {
+    const sick = (st: State): State => ({ ...st, money: 0, debt: DATA.loan.debtLimit, feed: 0, horses: st.horses.map((h) => ({ ...h, needs: { ...h.needs, health: 10 } })) });
+    const s = sick(newGame(1));
+    expect(stuck(s)).toBe(true);
+    const helped = apply(s, { type: 'sleep' });
+    expect([helped.horses.every((h) => !isSick(h) && h.rest === DATA.vet.restDays), helped.feed, helped.rescueDay, helped.night]).toEqual([true, DATA.rescue.hay, helped.day, expect.arrayContaining([{ kind: 'omaHelped' }])]);
+    expect([helped.money, helped.debt]).toEqual([0, DATA.loan.debtLimit]); // a gift, not a loan
+    const again = apply(sick(helped), { type: 'sleep' });
+    expect(again.horses.every(isSick)).toBe(true); // not again so soon
+    expect(stuck({ ...s, money: DATA.vet.cost })).toBe(false); // with money for the vet it is no dead end
+    expect(apply({ ...s, money: DATA.vet.cost }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
   });
 
   describe('the Pensionsstall', () => {
