@@ -10,7 +10,8 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "assets": "node scripts/assets.ts",
-    "icon": "node scripts/icon.ts"
+    "icon": "node scripts/icon.ts",
+    "economy": "ECONOMY=1 vitest run src/sim/economy.test.ts --disableConsoleIntercept"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

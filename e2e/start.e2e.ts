@@ -368,9 +368,9 @@ test('the task list and Oma Hanne: she explains a place once, and says when a po
   // the task list, open; it folds away
   const toggle = page.getByRole('button', { name: t.goalsTitle(0, 5) });
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await expect(page.getByText(t.goalText.lessons(5))).toBeVisible();
+  await expect(page.getByText(t.goalText.lessons(DATA.goals.kleinerHof[1].need))).toBeVisible();
   await toggle.tap();
-  await expect(page.getByText(t.goalText.lessons(5))).toBeHidden();
+  await expect(page.getByText(t.goalText.lessons(DATA.goals.kleinerHof[1].need))).toBeHidden();
   // the first visit to the stable: Oma explains it; the second time she doesn't
   await page.getByRole('button', { name: t.places.stall }).tap();
   await expect(page.getByText(t.explain.stable)).toBeVisible();
