@@ -21,7 +21,7 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | Care | Touch gestures: brush by swiping over the coat, tap each hoof, and so on. After the same **Care action** has been done 5 times, *Schnell erledigen* unlocks for it. Later, staff take care over. |
 | Sport | A short skill **Minigame**; the horse's needs and skills widen or narrow the timing window. |
 | Horse views | Side view, large, in the stable and for care; top-down (walking in 4 directions) on the farm map and the course. Both come from the same LPC sheets. |
-| Jumping view | Top-down: the course scrolls, the player taps at take-off, the horse grows and its shadow stays on the ground during the jump. |
+| Jumping view | Top-down on the show-jumping arena: the whole course in view, the finger steers the cantering horse through the turns, "Hopp!" takes off in front of each jump; the horse grows and its shadow stays on the ground during the jump (#43). |
 | Living farm | The farm map is animated: horses and ponies wander and stand on the pasture, the windmill turns. |
 | Career | Two tracks: **Farm stage** (Kleiner Hof → Reitschule → Pensionsstall → Zuchthof → Reitsportzentrum), each ended by a **Farm inspection** (goals plus a short quiz), and **Riding badges** (quiz plus minigame) that open harder sports. |
 | First income | **Lessons**: pupils show up, the player assigns a horse, the lesson runs by itself; pay and satisfaction depend on the horse's needs and on the fit (small child → pony). |

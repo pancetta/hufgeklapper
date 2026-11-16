@@ -11,13 +11,14 @@ import { bounds, type Plot, waitingSpots } from '../scene/buildings';
 import { avatarKid, HAIR, HAIR_STYLES, JACKET, pupilKid, SKIN } from '../riders/look';
 import { drawKid } from '../scene/kids';
 import { startJumping } from '../scene/jumping';
+import { newRound, type Round, timeAllowed } from '../sim/round';
 import { omaPortrait, portrait } from '../scene/oma';
 import { PLOTS, PROPS } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -503,12 +504,22 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.showClassName(showClass) : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
+    <p id="jump-hud" class="jump-hud" aria-live="off"></p><button type="button" id="hopp" class="hopp">${t.hopp}</button>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
+  // practice and the riding badge ride the E course, a show its class's
+  const course = DATA.jumping.courses[kind === 'show' ? showClass : 'E'], allowed = timeAllowed(course);
+  const hud = (r: Round) => { $('jump-hud').textContent = t.jumpHud(Math.min(r.next + 1, course.jumps.length), course.jumps.length, r.faults, Math.floor(r.t), allowed); };
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
-    look: h.look, kid: avatarKid(game.get().avatar), jumps: DATA.jumping.jumps, window: jumpWindow(h), takeOff: (o) => takeOff(h, o), missed: (o) => missed(h, o),
+    look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), judge: (o) => takeOff(h, o), onChange: hud,
   });
-  // pointerdown, not click: the take-off timing should not wait for the finger to lift
-  $('jumping').addEventListener('pointerdown', () => round.then((r) => r.tap()));
+  hud(newRound(course));
+  // pointerdown, not click: the take-off timing should not wait for the finger to lift; the space bar on a keyboard
+  $('hopp').addEventListener('pointerdown', (e) => { e.preventDefault(); round.then((r) => r.hopp()); });
+  const key = (e: KeyboardEvent) => {
+    if (e.code !== 'Space' || (e.target instanceof HTMLButtonElement && e.target.id !== 'hopp')) return; // other buttons keep their space bar
+    e.preventDefault(); round.then((r) => r.hopp());
+  };
+  addEventListener('keydown', key);
   $('jump-go').addEventListener('click', async () => {
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
@@ -539,7 +550,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   });
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
-  leave = () => { round.then((r) => r.stop()); };
+  leave = () => { removeEventListener('keydown', key); round.then((r) => r.stop()); };
 }
 
 /**

@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
   showWaits, stalls,
 } from './state';
 
@@ -31,9 +31,9 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
    * (skill and care, as in the minigame), more on a neglected one.
    */
   const base = jumpWindow(newGame(seed).horses[0]);
-  const faults = (h: Horse) => {
+  const faults = (h: Horse, c: ShowClass = 'E') => {
     let n = 0, r: number;
-    for (let i = 0; i < DATA.jumping.jumps; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
+    for (let i = 0; i < DATA.jumping.courses[c].jumps.length; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
     return n;
   };
   let invested = 0;
@@ -66,7 +66,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       }
       if (!showWaits(s)) {
         const h = best(fresh(DATA.jumping.energy)), c = h && topClass(h);
-        if (h && c) { act({ type: 'show', horse: h.id, faults: faults(h), showClass: c }); shows++; }
+        if (h && c) { act({ type: 'show', horse: h.id, faults: faults(h, c), showClass: c }); shows++; }
       }
     };
     const lessons = () => {

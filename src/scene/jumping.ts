@@ -1,190 +1,233 @@
 /**
- * The jumping minigame, seen from above: the horse gallops to the right along a sand lane, the course scrolls,
- * and the player taps at take-off. In the air the horse grows while its shadow stays on the ground. A green
- * patch before each jump shows where to tap; how wide it is comes from the Sim's take-off window.
- * Animation and input only: what a tap does is the Sim's `takeOff`, and when an untapped pole falls its `missed`.
+ * The jumping minigame on the show-jumping arena ("Springplatz"), seen from above (#43): sand, a white fence, the
+ * numbered jumps, start and finish flags; the next jump has a yellow number, an arrow and a green take-off patch as
+ * wide as the Sim's take-off window. The finger steers, "Hopp!" takes off. Drawing and input only: how the horse
+ * moves, refuses and lands, and what counts as a fault, is the Sim's round (src/sim/round.ts).
  */
 import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import type { Kid } from '../riders/look';
-import { fitPixels } from '../pixel';
+import { DATA } from '../sim/data';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, hopp, newRound, type Round, step } from '../sim/round';
 import { blit, shadow } from './draw';
 import { drawRider } from './kids';
 import { seat } from './life';
 
-/** The course: speed (px per second), where the hooves leave the ground before a pole, the first jump, the gaps. */
-export const COURSE = { speed: 120, takeoff: 40, first: 260, spacing: 220 };
-const { speed: SPEED, takeoff: TAKEOFF, first: FIRST, spacing: SPACING } = COURSE;
-const RUN_OUT = 170, LANE = { y0: 70, y1: 150 }, HOOVES = 124, H = 220;
-const STEP = 1 / 60, BEFORE = 400; // the course starts this far before the horse
-
 export type JumpingOptions = {
   look: Look;
   kid: Kid;
-  jumps: number;
+  course: Course;
   window: number; // seconds; drawn as the green take-off patch
-  // seconds from the perfect take-off (− early, + late): what a tap does, and whether an untapped pole falls
-  takeOff: (offset: number) => 'early' | 'clear' | 'fault';
-  missed: (offset: number) => boolean;
+  judge: (offset: number) => 'early' | 'clear' | 'fault'; // the Sim's `takeOff` for this horse
+  onChange?: (r: Round) => void; // for the round's counters (jump, faults, time)
 };
 
-/** An upright (one pole), a cross pole (two poles crossed), an oxer (two uprights one behind the other). */
-type Jump = { x: number; kind: 'upright' | 'cross' | 'oxer'; colour: string; done: boolean; down: boolean };
+const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand
+const ROW: Record<Dir, number> = { N: 0, W: 1, S: 2, E: 3 };
+const COLOURS = ['#d94f3d', '#3d6fd9', '#f2c14e', '#3da35a'];
+const across = (d: Dir) => d === 'E' || d === 'W'; // a jump ridden east or west has its poles running down the screen
+const dirOf = (heading: number): Dir => {
+  const c = Math.cos(heading), s = Math.sin(heading);
+  return Math.abs(c) >= Math.abs(s) ? (c > 0 ? 'E' : 'W') : s > 0 ? 'S' : 'N';
+};
 
-/** The course drawn once: grass, a sand lane with fences on both sides, flowers. */
-function paintCourse(width: number) {
+/** The arena drawn once: grass around, sand with a raked look, a white fence with posts, flowers along it. */
+function paintArena() {
   const c = document.createElement('canvas');
-  c.width = width; c.height = H;
-  const g = c.getContext('2d')!;
-  const px = (color: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = color; g.fillRect(x, y, w, h); };
-  let seed = 11;
+  c.width = A.w; c.height = A.h;
+  const g = c.getContext('2d')!, px = (color: string, x: number, y: number, w = 1, h = 1) => { g.fillStyle = color; g.fillRect(x, y, w, h); };
+  let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  px('#5a9a3a', 0, 0, width, H);
-  for (let i = 0; i < width / 6; i++) px(rnd() < 0.5 ? '#6fb04a' : '#4a8a30', Math.floor(rnd() * width), Math.floor(rnd() * H), 2, 1);
-  for (let i = 0; i < width / 40; i++) {
-    const y = rnd() < 0.5 ? 10 + rnd() * 40 : LANE.y1 + 20 + rnd() * 40;
-    px(['#ffe066', '#ffffff', '#ff8fc7', '#7ec8ff'][i % 4], Math.floor(rnd() * width), Math.floor(y), 2, 2);
-  }
-  px('#c9a26a', 0, LANE.y0, width, LANE.y1 - LANE.y0);
-  for (let i = 0; i < width / 3; i++) px(rnd() < 0.5 ? '#b58d58' : '#d8b57e', Math.floor(rnd() * width), LANE.y0 + Math.floor(rnd() * (LANE.y1 - LANE.y0)), 2, 1);
-  px('#a88250', 0, LANE.y0, width, 2);
-  // fences: rails along both edges of the lane, posts every 32 px
-  for (const y of [LANE.y0 - 4, LANE.y1 + 2]) {
-    px('#2a1a10', 0, y - 1, width, 4); px('#8a5a3a', 0, y, width, 2);
-    for (let x = 4; x < width; x += 32) { px('#2a1a10', x - 1, y - 9, 6, 13); px('#a87250', x, y - 8, 4, 11); px('#c89060', x, y - 8, 1, 11); }
+  px('#5a9a3a', 0, 0, A.w, A.h);
+  const f = A.fence;
+  px('#d8b57e', f, f, A.w - 2 * f, A.h - 2 * f);
+  for (let i = 0; i < 2200; i++) px(rnd() < 0.5 ? '#c9a26a' : '#e4c592', f + Math.floor(rnd() * (A.w - 2 * f)), f + Math.floor(rnd() * (A.h - 2 * f)), 2, 1);
+  for (let y = f + 6; y < A.h - f; y += 12) px('rgba(150, 110, 60, 0.18)', f, y, A.w - 2 * f, 1); // raked lines
+  // the fence: two white rails with dark edges, posts every 24 px
+  const rail = (x: number, y: number, w: number, h: number) => { px('#2a1a10', x - 1, y - 1, w + 2, h + 2); px('#f4f1e8', x, y, w, h); };
+  for (const y of [f - 6, A.h - f + 1]) { rail(4, y, A.w - 8, 2); rail(4, y + 3, A.w - 8, 1); }
+  for (const x of [f - 6, A.w - f + 1]) { rail(x, 4, 2, A.h - 8); rail(x + 3, 4, 1, A.h - 8); }
+  for (let x = 4; x < A.w; x += 24) for (const y of [f - 9, A.h - f - 2]) { px('#2a1a10', x - 1, y, 5, 9); px('#ffffff', x, y + 1, 3, 7); }
+  for (let y = 4; y < A.h; y += 24) for (const x of [f - 7, A.w - f]) { px('#2a1a10', x, y - 1, 5, 6); px('#ffffff', x + 1, y, 3, 4); }
+  // flowers on the grass outside
+  for (let i = 0; i < 70; i++) {
+    const edge = i % 4, t = rnd();
+    const x = edge < 2 ? 4 + t * (A.w - 8) : edge === 2 ? 2 + rnd() * 3 : A.w - 5 + rnd() * 3;
+    const y = edge === 0 ? 1 + rnd() * 3 : edge === 1 ? A.h - 4 + rnd() * 3 : 4 + t * (A.h - 8);
+    px(['#ffe066', '#ffffff', '#ff8fc7', '#7ec8ff'][i % 4], Math.floor(x), Math.floor(y), 2, 2);
   }
   return c;
 }
 
-/** A pair of white standards with coloured bands, at the lane's edges. */
-function standards(ctx: CanvasRenderingContext2D, x: number, colour: string) {
-  for (const y of [LANE.y0 + 4, LANE.y1 - 4]) {
-    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 3, y - 16, 8, 18);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 2, y - 15, 6, 16);
-    ctx.fillStyle = colour; ctx.fillRect(x - 2, y - 15, 6, 3); ctx.fillRect(x - 2, y - 8, 6, 3);
+/** A striped pole from (x0, y0) to (x1, y1), its shadow `drop` pixels lower on the sand. */
+function pole(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, colour: string, drop = LIFT) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + ((x1 - x0) * i) / n), y = Math.round(y0 + ((y1 - y0) * i) / n);
+    if (drop) { ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x + 1, y + drop, 2, 2); }
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, y - 1, 3, 3);
+  }
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + ((x1 - x0) * i) / n), y = Math.round(y0 + ((y1 - y0) * i) / n);
+    ctx.fillStyle = Math.floor(i / 5) % 2 ? colour : '#ffffff'; ctx.fillRect(x, y, 1, 1);
   }
 }
 
-/** A striped pole across the lane from (xa, top) to (xb, bottom), with its shadow on the sand. */
-function pole(ctx: CanvasRenderingContext2D, xa: number, xb: number, colour: string) {
-  const top = LANE.y0 - 4, n = LANE.y1 - LANE.y0 - 4;
-  for (let i = 0; i < n; i++) {
-    const px = Math.round(xa + ((xb - xa) * i) / n);
-    ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(px + 5, top + i + 10, 3, 1);
-    ctx.fillStyle = '#2a1a10'; ctx.fillRect(px - 1, top + i, 4, 1);
-    ctx.fillStyle = Math.floor(i / 6) % 2 ? colour : '#ffffff'; ctx.fillRect(px, top + i, 2, 1);
+/** A white standard with coloured bands, standing on the sand at (x, y). */
+function standard(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string) {
+  ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x - 1, y, 5, 2);
+  ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, y - 11, 5, 12);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, y - 10, 3, 10);
+  ctx.fillStyle = colour; ctx.fillRect(x - 1, y - 8, 3, 2); ctx.fillRect(x - 1, y - 4, 3, 2);
+}
+
+/** One jump from above: standards at both ends, poles across between them; a knocked pole lies on the sand. */
+function drawJump(ctx: CanvasRenderingContext2D, j: CourseJump, colour: string, fallen: boolean) {
+  const h = R.half, a = ANGLE[j.dir], ux = Math.round(Math.cos(a)), uy = Math.round(Math.sin(a));
+  // the parts of the jump, nearest to the horse first: an oxer has a second, higher part 7 px behind
+  const parts = j.kind === 'oxer' ? [0, 7] : [0];
+  for (const d of parts) {
+    const x = j.x + ux * d, y = j.y + uy * d, last = fallen && d === parts[parts.length - 1];
+    const [ax, ay, bx, by] = across(j.dir) ? [x, y - h, x, y + h] : [x - h, y, x + h, y];
+    standard(ctx, ax, ay, colour); standard(ctx, bx, by, colour);
+    if (last) { pole(ctx, ax + 3, ay + 4, bx - 3 + (across(j.dir) ? 6 : 0), by + (across(j.dir) ? -2 : 5), colour, 0); continue; } // on the sand, slanted
+    if (j.kind === 'cross') { pole(ctx, ax, ay - 9, bx, by - 2, colour); pole(ctx, ax, ay - 2, bx, by - 9, colour); }
+    else pole(ctx, ax, ay - LIFT - (d ? 2 : 0), bx, by - LIFT - (d ? 2 : 0), colour);
   }
 }
 
-/** One jump: standards at the lane's edges and its poles across; a knocked pole lies slanted on the sand. */
-function drawJump(ctx: CanvasRenderingContext2D, j: Jump, x: number, fallen: boolean) {
-  const top = LANE.y0 + 4, bottom = LANE.y1 - 4;
-  // the back part of an oxer, farther from the horse; it is its back rail that falls
-  if (j.kind === 'oxer') { if (!fallen) pole(ctx, x + 12, x + 12, j.colour); standards(ctx, x + 12, j.colour); }
-  if (fallen) {
-    if (j.kind === 'oxer') pole(ctx, x, x, j.colour);
-    if (j.kind === 'cross') pole(ctx, x + 4, x - 3, j.colour); // one of the crossed poles stays up
-    // the knocked pole lies slanted in the sand, one end still near its standard
-    const from = j.kind === 'oxer' ? x + 14 : x + 2;
-    for (let i = 0, n = bottom - top - 6; i < n; i += 2) {
-      const px = Math.round(from + (i / n) * 22), py = top + 4 + i;
-      ctx.fillStyle = 'rgba(30, 40, 10, 0.25)'; ctx.fillRect(px + 1, py + 2, 3, 2);
-      ctx.fillStyle = Math.floor(i / 6) % 2 ? j.colour : '#ffffff'; ctx.fillRect(px, py, 3, 2);
-    }
-  } else if (j.kind === 'cross') {
-    // the crossed poles, their ends near the standards
-    pole(ctx, x - 6, x + 7, j.colour); pole(ctx, x + 7, x - 6, j.colour);
-  } else pole(ctx, x, x, j.colour);
-  standards(ctx, x, j.colour);
+/** The jump's number on a small plate by its first standard; the next jump's plate is yellow and bounces. */
+function plate(ctx: CanvasRenderingContext2D, j: CourseJump, n: number, next: boolean, t: number) {
+  const x = across(j.dir) ? j.x - 12 : j.x - R.half - 12, y = (across(j.dir) ? j.y - R.half : j.y) - 18 - (next ? Math.round(Math.abs(Math.sin(t * 4)) * 2) : 0);
+  ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, y - 1, 11, 11);
+  ctx.fillStyle = next ? '#ffd23f' : '#ffffff'; ctx.fillRect(x, y, 9, 9);
+  ctx.fillStyle = '#2a1a10'; ctx.font = '12px VT323, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(n), x + 5, y + 5);
 }
 
-/** Runs one round on `canvas`; resolves with the number of knocked poles once the horse is past the finish. */
+/** For the next jump: the green take-off patch, as wide as the window, and two arrows showing the way to jump it. */
+function guide(ctx: CanvasRenderingContext2D, j: CourseJump, window: number, t: number) {
+  const a = ANGLE[j.dir], ux = Math.cos(a), uy = Math.sin(a), w = window * R.speed;
+  ctx.fillStyle = 'rgba(120, 220, 90, 0.5)';
+  for (let s = -R.takeoff - w / 2; s <= -R.takeoff + w / 2; s++)
+    for (let l = -R.half + 3; l <= R.half - 3; l++) ctx.fillRect(Math.round(j.x + ux * s - uy * l), Math.round(j.y + uy * s + ux * l), 1, 1);
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.55 + 0.35 * Math.sin(t * 5)})`;
+  for (const s of [-R.takeoff - 30, -R.takeoff - 42]) for (let k = 0; k < 5; k++) for (const side of [-1, 1]) {
+    // a chevron pointing the way to ride: its tip at the centre line
+    const d = s + k - 4, l = side * (4 - k) * 1.5;
+    ctx.fillRect(Math.round(j.x + ux * d - uy * l), Math.round(j.y + uy * d + ux * l), 2, 2);
+  }
+}
+
+/** Start and finish: a flag on each side (red right, white left, as in a real show) and the line between them. */
+function gate(ctx: CanvasRenderingContext2D, [x, y, dir]: Course['start'], finish: boolean) {
+  const a = ANGLE[dir], ux = Math.cos(a), uy = Math.sin(a), h = R.half * (finish ? 1.5 : 1);
+  if (finish) for (let l = -h; l <= h; l += 2) { ctx.fillStyle = Math.round(l / 2) % 2 ? '#2a1a10' : '#ffffff'; ctx.fillRect(Math.round(x - uy * l), Math.round(y + ux * l), 2, 2); }
+  for (const side of [-1, 1]) {
+    const fx = Math.round(x - uy * h * side), fy = Math.round(y + ux * h * side);
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(fx, fy - 14, 1, 15);
+    ctx.fillStyle = side > 0 ? '#d94f3d' : '#ffffff'; ctx.fillRect(fx + 1, fy - 14, 5, 4);
+  }
+}
+
+/** Runs one round on `canvas`; resolves with its faults once the horse is through the finish. */
 export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions) {
-  const sheet = await horseSheet(o.look, 'gallop');
-  const jumps: Jump[] = Array.from({ length: o.jumps }, (_, i) => ({ x: FIRST + i * SPACING, kind: (['cross', 'upright', 'oxer'] as const)[i % 3], colour: ['#d94f3d', '#3d6fd9', '#f2c14e'][i % 3], done: false, down: false }));
-  const finish = FIRST + (o.jumps - 1) * SPACING + RUN_OUT, course = paintCourse(BEFORE + finish + 400);
-  const ctx = canvas.getContext('2d')!, s = seat(o.look.build, 'E');
-  let S = 1, W = 0, x = 0, t = 0, acc = 0, last = performance.now(), running = true;
-  let air: { from: number; to: number } | null = null;
+  const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
+  const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
+  let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
+  let target: { x: number; y: number } | null = null, finger: number | null = null;
   let done = (_faults: number) => {};
-  const result = new Promise<number>((r) => { done = r; });
+  const result = new Promise<number>((ok) => { done = ok; });
 
   function fit() {
-    S = fitPixels(innerWidth, innerHeight).scale + 1;
-    W = Math.floor(innerWidth / S);
-    canvas.width = W; canvas.height = Math.floor(innerHeight / S);
-    canvas.style.width = `${W * S}px`; canvas.style.height = `${canvas.height * S}px`;
+    S = Math.max(1, Math.floor(Math.min(innerWidth / (A.w + 8), innerHeight / (A.h + 8))));
+    W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
+    canvas.width = W; canvas.height = H;
+    canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
+    // the arena on the left, room on the right for "Hopp!"
+    ox = Math.max(0, Math.min(8, W - A.w)); oy = Math.max(0, Math.floor((H - A.h) / 2));
   }
+  const toArena = (e: PointerEvent) => { const b = canvas.getBoundingClientRect(); return { x: (e.clientX - b.left) / S - ox, y: (e.clientY - b.top) / S - oy }; };
 
-  const ideal = (j: Jump) => j.x - TAKEOFF; // where the hooves should leave the ground
-  const offset = (j: Jump) => (x - ideal(j)) / SPEED;
-
-  function step() {
-    t += STEP; x += SPEED * STEP;
-    if (air && x >= air.to) air = null;
-    // a jump nobody tapped for: the horse runs into the pole
-    for (const j of jumps) if (!j.done && o.missed(offset(j))) { j.done = true; j.down = true; }
-    if (x >= finish && running) { running = false; done(jumps.filter((j) => j.down).length); }
+  function drawHorse(t: number) {
+    const dir = dirOf(r.heading), s = seat(o.look.build, dir), side = dir === 'W' || dir === 'E';
+    const phase = r.air ? (r.t - r.air.from) / (r.air.to - r.air.from) : -1, lift = phase < 0 ? 0 : Math.sin(phase * Math.PI);
+    shadow(ctx, r.x, r.y - 1, (side ? 22 : 11) - lift * 4, 4, 0.26 - lift * 0.1);
+    ctx.save();
+    // in the air the horse grows, as if closer to us, and rises above its shadow
+    const grow = 1 + lift * 0.25;
+    ctx.translate(r.x, r.y - lift * 14); ctx.scale(grow, grow); ctx.translate(-r.x, -r.y);
+    // the jump pose from the side: legs stretched at take-off, tucked over the pole, reaching out to land
+    const f = phase < 0 ? Math.floor(t * 11) % 6 : !side ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
+    const [sheet, frame] = r.stopped || !running ? [idle, [ROW[dir] * 128, 0, 128, 128] as const] : [gallop, [f * 128, ROW[dir] * 128, 128, 128] as const];
+    blit(ctx, sheet, frame, r.x - 64, r.y - 93);
+    drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir);
+    if (dir === 'S') { // coming towards us, the head and neck are in front of the child
+      ctx.beginPath(); ctx.rect(r.x - 64, r.y - 93, 128, 93 + s.dy - 2); ctx.clip();
+      blit(ctx, sheet, frame, r.x - 64, r.y - 93);
+    }
+    ctx.restore();
   }
 
   function draw() {
-    const cam = Math.round(x - W * 0.3), oy = Math.round((canvas.height - H) / 2);
+    const t = performance.now() / 1000;
     ctx.imageSmoothingEnabled = false;
-    ctx.setTransform(1, 0, 0, 1, -cam, oy);
-    ctx.fillStyle = '#5a9a3a'; ctx.fillRect(cam, -oy, W, canvas.height);
-    ctx.drawImage(course, cam + BEFORE, 0, W, H, cam, 0, W, H);
-    // the green take-off patches, as wide as the window
-    for (const j of jumps) if (!j.done) {
-      const half = (o.window / 2) * SPEED;
-      ctx.fillStyle = 'rgba(120, 220, 90, 0.55)'; ctx.fillRect(Math.round(ideal(j) - half), LANE.y0 + 2, Math.round(half * 2), LANE.y1 - LANE.y0 - 4);
-    }
-    // the finish: a chequered line
-    for (let y = LANE.y0; y < LANE.y1; y += 4) { ctx.fillStyle = (y / 4) % 2 ? '#ffffff' : '#2a1a10'; ctx.fillRect(finish, y, 4, 4); ctx.fillStyle = (y / 4) % 2 ? '#2a1a10' : '#ffffff'; ctx.fillRect(finish + 4, y, 4, 4); }
-    // jumps behind the horse's hooves first, the horse, then the rest: poles across the lane overlap correctly
-    const lift = air ? Math.sin(((x - air.from) / (air.to - air.from)) * Math.PI) : 0;
-    // a knocked pole falls when the horse gets there; in the air the horse is above every pole
-    const fallen = (j: Jump) => j.down && x > j.x - 10;
-    for (const j of jumps) if (air || j.x < x - 8) drawJump(ctx, j, j.x, fallen(j));
-    shadow(ctx, x, HOOVES - 1, 24 - lift * 6, 4, 0.28 - lift * 0.1);
-    ctx.save();
-    // in the air the horse grows, as if closer to us, and rises above its shadow
-    const grow = 1 + lift * 0.3;
-    ctx.translate(x, HOOVES - lift * 16); ctx.scale(grow, grow); ctx.translate(-x, -HOOVES);
-    // the jump pose: legs stretched at take-off, tucked over the pole, reaching out to land (LPC gallop frames 3, 0, 4)
-    const phase = air ? (x - air.from) / (air.to - air.from) : -1;
-    const frame = phase < 0 ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
-    blit(ctx, sheet, [frame * 128, 3 * 128, 128, 128], x - 64, HOOVES - 93);
-    drawRider(ctx, o.kid, x + s.dx, HOOVES + s.dy, 'E');
-    ctx.restore();
-    for (const j of jumps) if (!air && j.x >= x - 8) drawJump(ctx, j, j.x, fallen(j));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#5a9a3a'; ctx.fillRect(0, 0, W, H);
+    ctx.setTransform(1, 0, 0, 1, ox, oy);
+    ctx.drawImage(arena, 0, 0);
+    gate(ctx, c.start, false); gate(ctx, c.finish, true);
+    const next = c.jumps[r.next];
+    if (next && !r.air) guide(ctx, next, o.window, t);
+    // jumps and horse by where they stand; in the air the horse is above every pole
+    // (poles running down the screen: the part below the hooves again, after the horse)
+    const jump = (j: CourseJump, i: number) => drawJump(ctx, j, COLOURS[i % COLOURS.length], r.down.includes(i));
+    const items = c.jumps.map((j, i) => ({ y: j.y - (across(j.dir) ? R.half : 0), draw: () => jump(j, i) }));
+    items.push({ y: r.air ? Infinity : r.y, draw: () => {
+      drawHorse(t);
+      c.jumps.forEach((j, i) => {
+        if (r.air || !across(j.dir) || r.y < j.y - R.half || r.y > j.y + R.half) return;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, r.y, A.w, A.h); ctx.clip(); jump(j, i); ctx.restore();
+      });
+    } });
+    c.jumps.forEach((j, i) => plate(ctx, j, i + 1, i === r.next, t)); // signs on the sand, under a jumping horse
+    for (const it of items.sort((a, b) => a.y - b.y)) it.draw();
+    // for the Playwright round: where a rider who knows the way would point, and whether to press "Hopp!" now
+    const a = autopilot(r, c, o.window * 0.4), b = canvas.getBoundingClientRect();
+    canvas.dataset.aim = `${Math.round(b.left + (ox + a.x) * S)},${Math.round(b.top + (oy + a.y) * S)}`;
+    canvas.dataset.hopp = a.hopp ? '1' : '';
   }
 
   function frame(now: number) {
-    if (!running && x >= finish + 60) return;
+    if (stopped) return;
     acc += Math.min(0.1, (now - last) / 1000); last = now;
-    while (acc >= STEP) { acc -= STEP; step(); }
+    while (running && acc >= STEP) {
+      acc -= STEP;
+      const before = r;
+      r = step(r, c, STEP, target);
+      if (r.next !== before.next || r.faults !== before.faults || Math.floor(r.t) !== Math.floor(before.t)) o.onChange?.(r);
+      if (r.done) { running = false; done(r.faults); }
+    }
     draw();
     requestAnimationFrame(frame);
   }
 
-  // turning the iPad clears the canvas: draw again at once, also before and after the round
+  // one finger steers: the horse turns towards it while it is down
+  canvas.addEventListener('pointerdown', (e) => { if (finger !== null) return; finger = e.pointerId; canvas.setPointerCapture(e.pointerId); target = toArena(e); });
+  canvas.addEventListener('pointermove', (e) => { if (e.pointerId === finger) target = toArena(e); });
+  const lift = (e: PointerEvent) => { if (e.pointerId === finger) { finger = null; target = null; } };
+  canvas.addEventListener('pointerup', lift);
+  canvas.addEventListener('pointercancel', lift);
   const onResize = () => { fit(); draw(); };
   fit();
   addEventListener('resize', onResize);
   draw();
+  requestAnimationFrame(frame); // the arena lives before "Los!" too
   return {
-    /** Starts the gallop; resolves with the faults when the horse is past the finish. */
-    run() { last = performance.now(); requestAnimationFrame(frame); return result; },
-    /** The player tapped: take off for the next jump, cleared or not as the judge says. */
-    tap() {
-      const j = jumps.find((k) => !k.done);
-      if (!j || air) return;
-      const what = o.takeOff(offset(j));
-      if (what === 'early') return;
-      j.done = true;
-      j.down = what === 'fault';
-      air = { from: x, to: Math.max(x + 2 * TAKEOFF, j.x + TAKEOFF) };
-    },
-    stop() { running = false; x = Infinity; removeEventListener('resize', onResize); },
+    /** Starts the canter; resolves with the faults once the horse is through the finish. */
+    run() { running = true; last = performance.now(); acc = 0; return result; },
+    /** "Hopp!": take off, if the horse is lined up for the next jump. */
+    hopp() { if (running) { const before = r; r = hopp(r, c, o.judge); if (r !== before) o.onChange?.(r); } },
+    stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }

@@ -130,10 +130,12 @@ export const t = {
   giveLesson: 'Reitstunde geben',
   practiseJumping: 'Springen üben',
   whichHorse: 'Mit welchem Pferd?',
-  jumpHow: (pony: boolean) => `Tippe, wenn dein ${pony ? 'Pony' : 'Pferd'} mitten auf dem grünen Feld ist. Dann springt es!`,
+  jumpHow: (pony: boolean) => `Halte den Finger auf den Platz: Dein ${pony ? 'Pony' : 'Pferd'} läuft dorthin. Reite die Hindernisse der Reihe nach, gerade darauf zu. Auf dem grünen Feld drückst du „Hopp!“.`,
+  hopp: 'Hopp!',
+  jumpHud: (jump: number, all: number, faults: number, s: number, allowed: number) => `Hindernis ${jump}/${all} · Fehler ${faults} · Zeit ${s}/${allowed} s`,
   go: 'Los!',
   jumpClear: (horse: string) => `Fehlerfrei! ${horse} springt jetzt besser.`,
-  jumpFaults: (n: number, horse: string) => `${n} ${n === 1 ? 'Stange ist' : 'Stangen sind'} gefallen. ${horse} hat trotzdem geübt.`,
+  jumpFaults: (n: number, horse: string) => `${n} Fehler. ${horse} hat trotzdem geübt.`,
   // riding badge 1
   ridingBadge: 'Reitabzeichen',
   badgeWaits: {
