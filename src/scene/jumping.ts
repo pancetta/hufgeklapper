@@ -120,7 +120,7 @@ function gate(ctx: CanvasRenderingContext2D, [x, y, dir]: Course['start'], finis
 
 /** Runs one round on `canvas`; resolves with its faults once the horse is through the finish. */
 export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions) {
-  const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
+  const [gallop, idle] = await Promise.all([horseSheet(o.look, o.course.pace ? 'walk' : 'gallop'), horseSheet(o.look, 'idle')]); // a walk ride: the walk sheet
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
   let path: Point[] = [], box = canvas.getBoundingClientRect(), go = false, waiting: 'first' | 'more' | null = null; // go: the first way is drawn
@@ -147,7 +147,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     const grow = 1 + lift * 0.25;
     ctx.translate(r.x, r.y - lift * (8 + (c.height ?? LIFT))); ctx.scale(grow, grow); ctx.translate(-r.x, -r.y); // higher jumps, higher arc
     // the jump pose from the side: legs stretched at take-off, tucked over the pole, reaching out to land
-    const f = phase < 0 ? Math.floor(t * 11) % 6 : !side ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
+    const fps = c.pace ? 7 : 11, f = phase < 0 || !side ? Math.floor(t * fps) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
     const [sheet, frame] = r.stopped || !running || (!r.air && !r.v) ? [idle, [ROW[dir] * 128, 0, 128, 128] as const] : [gallop, [f * 128, ROW[dir] * 128, 128, 128] as const];
     blit(ctx, sheet, frame, r.x - 64, r.y - 93);
     drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir);

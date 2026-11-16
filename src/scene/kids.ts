@@ -18,7 +18,11 @@ function shade(hex: string, f: number) {
  * Draws the figure (or only its upper body, for a rider) into a fresh canvas; the feet sit on its bottom row.
  * Chibi proportions like the LPC figures: a big head under the helmet, a short jacket, breeches and boots.
  */
-function paint(kid: Kid, view: View, step: number, upper: boolean) {
+/** What a rider wears over the jacket: the riding helmet, a body protector, gloves (all, unless said otherwise). */
+export type Gear = { helmet: boolean; vest: boolean; gloves: boolean };
+const ALL: Gear = { helmet: true, vest: false, gloves: false }; // as riders look everywhere else
+
+function paint(kid: Kid, view: View, step: number, upper: boolean, gear: Gear) {
   const big = kid.size === 'big', side = view === 'W' || view === 'E';
   const headW = 8, headH = 7, bodyW = big ? 10 : 8, bodyH = big ? 8 : 6, legH = big ? 8 : 6;
   const w = 14, h = 3 + headH + bodyH + legH; // 3 rows of helmet above the face
@@ -46,9 +50,11 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
   px(light, bx + 1, bodyTop + 1, 2, bodyH - 2);
   px(dark, bx + bodyW - 2, bodyTop, 2, bodyH);
   if (view === 'S') { px('#ffffff', mid - 2, bodyTop, 4, 1); px(dark, mid - 1, bodyTop + 1, 1, bodyH - 1); }
+  if (gear.vest) { px('#2b2b3a', bx, bodyTop + 1, bodyW, bodyH - 2); px('#4a4a5e', bx + 1, bodyTop + 2, bodyW - 2, 1); px('#4a4a5e', bx + 1, bodyTop + bodyH - 3, bodyW - 2, 1); }
+  const hand = gear.gloves ? '#2a1d14' : skin;
   if (!side) {
-    for (const x of [bx - 2, bx + bodyW]) { px(dark, x, bodyTop + 1, 2, bodyH - 2); px(skin, x, bodyTop + bodyH - 1, 2, 1); }
-  } else px(skin, view === 'W' ? bx + 1 : bx + bodyW - 3, bodyTop + bodyH - 2, 2, 2);
+    for (const x of [bx - 2, bx + bodyW]) { px(dark, x, bodyTop + 1, 2, bodyH - 2); px(hand, x, bodyTop + bodyH - 1, 2, 1); }
+  } else px(hand, view === 'W' ? bx + 1 : bx + bodyW - 3, bodyTop + bodyH - 2, 2, 2);
   // the head: face, hair under the helmet in its style (ponytail, short, two pigtails, long)
   px(skin, hx, faceTop, headW, headH);
   px(shade(skin, 0.88), hx, faceTop + headH - 1, headW, 1); // chin shadow
@@ -78,7 +84,8 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
     px('#ffffff', front, faceTop + 3);
     px('#f29a9a', front + (view === 'W' ? 1 : -1), faceTop + 5);
   }
-  // the riding helmet: a round shell with a shine, the peak over the eyes
+  // the riding helmet: a round shell with a shine, the peak over the eyes; without it, hair on top
+  if (!gear.helmet) { px(hair, hx + 1, 1, headW - 2, 1); px(hair, hx, 2, headW, 2); } else {
   px(helmet, hx + 1, 0, headW - 2, 1);
   px(helmet, hx, 1, headW, 3);
   px(shade(helmet, 1.9), hx + 2, 1, 2, 1);
@@ -86,6 +93,7 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
   if (view === 'S') px(shade(helmet, 0.7), hx - 1, 3, headW + 2, 1);
   if (view === 'W') px(shade(helmet, 0.7), hx - 2, 3, 3, 1);
   if (view === 'E') px(shade(helmet, 0.7), hx + headW - 1, 3, 3, 1);
+  }
   // a dark outline around everything, like the LPC figures
   const d = g.getImageData(0, 0, c.width, c.height), a = (x: number, y: number) => d.data[(y * c.width + x) * 4 + 3];
   g.fillStyle = OUTLINE;
@@ -96,16 +104,16 @@ function paint(kid: Kid, view: View, step: number, upper: boolean) {
 }
 
 const cache = new Map<string, HTMLCanvasElement>();
-function figure(kid: Kid, view: View, step: number, upper = false) {
-  const key = `${JSON.stringify(kid)}:${view}:${step % 2}:${upper}`;
+function figure(kid: Kid, view: View, step: number, upper = false, gear = ALL) {
+  const key = `${JSON.stringify(kid)}:${view}:${step % 2}:${upper}:${JSON.stringify(gear)}`;
   let c = cache.get(key);
-  if (!c) cache.set(key, (c = paint(kid, view, step % 2, upper)));
+  if (!c) cache.set(key, (c = paint(kid, view, step % 2, upper, gear)));
   return c;
 }
 
 /** A standing or walking child, feet at (x, y). */
-export function drawKid(ctx: CanvasRenderingContext2D, kid: Kid, x: number, y: number, view: View = 'S', step = 0) {
-  const c = figure(kid, view, step);
+export function drawKid(ctx: CanvasRenderingContext2D, kid: Kid, x: number, y: number, view: View = 'S', step = 0, gear?: Gear) {
+  const c = figure(kid, view, step, false, gear);
   ctx.fillStyle = 'rgba(30, 40, 10, 0.22)';
   ctx.fillRect(Math.round(x - 5), Math.round(y - 1), 11, 2);
   ctx.drawImage(c, Math.round(x - c.width / 2), Math.round(y - c.height + 1));

@@ -20,6 +20,8 @@ import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
+import { startRoutine } from '../scene/routine';
+import { finished, GESTURE, nextStep, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
 import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
@@ -442,7 +444,16 @@ export function showFarm(intro = false) {
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {
-      const before = game.get(), i = before.horses.findIndex((h) => h.id === b.dataset.horse), h = before.horses[i];
+      // the pupil may get the horse ready step by step (the care course) and ride it there
+      const id = b.dataset.horse!, pony = game.get().horses.find((h) => h.id === id)!.look.build === 'pony';
+      sheet.firstElementChild!.innerHTML = `<p>${t.routineAsk(esc(p.name), pony)}</p><div class="answers">
+        <button type="button" id="routine-yes">${t.routineYes}</button><button type="button" id="routine-no">${t.routineNo}</button></div>`;
+      $('routine-yes').addEventListener('click', () => showRoutine(id, p));
+      $('routine-no').addEventListener('click', () => give(id));
+    }));
+    /** The lesson on the farm map, as before the care course. */
+    const give = (id: string) => {
+      const before = game.get(), i = before.horses.findIndex((h) => h.id === id), h = before.horses[i];
       const { pay, happy } = lessonOutcome(p, h);
       sheet.hidden = true;
       game.dispatch({ type: 'lesson', pupil: p.id, horse: h.id });
@@ -450,7 +461,7 @@ export function showFarm(intro = false) {
       const repaid = before.debt - game.get().debt;
       bar.toast(t.lessonRuns(p.name, h.name));
       farm.then((f) => f.lesson(i, pupilKid(p))).then(() => bar.toast(t.lessonDone(p.name, mood(happy), pay, repaid)));
-    }));
+    };
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
   }
@@ -758,11 +769,13 @@ export function showStable() {
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
       <button id="care" type="button">${t.care}</button>
+      ${own(h) ? `<button id="routine" type="button"${cantWork(h, DATA.routine.energy) ? ' disabled' : ''}>${t.routine}</button>${cantWork(h, DATA.routine.energy) ? `<p class="status">${t.routineCant} ${t.cantWork[cantWork(h, DATA.routine.energy)!]}</p>` : ''}` : ''}
       <button id="close-card" type="button">${t.close}</button></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
     $('close-card').addEventListener('click', () => { card.hidden = true; });
     $('care').addEventListener('click', () => showCare(h.id));
+    card.querySelector('#routine')?.addEventListener('click', () => showRoutine(h.id));
     card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
     // ending a part-board asks once more: the rider won't come back
     card.querySelector('#end-part')?.addEventListener('click', (e) => {
@@ -860,5 +873,84 @@ export function showCare(id: string) {
   }));
   $('to-stable').addEventListener('click', showStable);
   pick('groom');
+  leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
+}
+
+/**
+ * The care course (#72): the horse got ready step by step, ridden at a walk (or in the pupil's lesson), and put away.
+ * The Sim says which step a thing on a place is, or why it must wait; Oma Hanne says it at the top.
+ */
+function showRoutine(id: string, pupil?: Pupil) {
+  const s0 = game.get(), h = s0.horses.find((x) => x.id === id)!, pony = h.look.build === 'pony';
+  const $ = screen(`<canvas id="routine" aria-label="${t.routineTitle(esc(h.name))}"></canvas>${topBar()}
+    <h2 class="care-title">${t.routineTitle(esc(h.name))}</h2>
+    <p id="say" class="how" role="status"></p>
+    <div class="routine-bar"><span id="count"></span><button id="tip" type="button" class="small">${t.routineTip}</button><button id="leave" type="button" class="small">${t.routineLeave}</button></div>
+    <nav class="tools things">${THINGS.map((th) => `<button type="button" data-thing="${th}" aria-pressed="false">${t.things[th]}</button>`).join('')}</nav>
+    <section id="ride" class="overlay ride" hidden></section>
+    <section id="routine-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="routine-back">${pupil ? t.toFarm : t.toStable}</button></div></section>`);
+  const bar = wireTopBar($, () => {});
+  let done: StepId[] = [], wrong = 0, thing: Thing = 'hand';
+  const say = (text: string) => { $('say').textContent = text; };
+  const scene = startRoutine($<HTMLCanvasElement>('routine'), { look: h.look, kid: pupil ? pupilKid(pupil) : avatarKid(s0.avatar), straps: DATA.routine.straps[h.breed], onTap: (at) => tap(at) });
+  function pick(th: Thing) {
+    thing = th;
+    app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.thing === th)));
+    scene.then((sc) => sc.cancel());
+  }
+  async function tap(at: Parameters<typeof tryStep>[2]) {
+    const r = tryStep(done, thing, at);
+    if ('why' in r) { if (r.why !== 'done') wrong++; return say(t.routineWhy[r.why]); }
+    const kind = GESTURE[r.step];
+    if (kind) {
+      say(`${t.steps[r.step]} …`);
+      if (!(await (await scene).gesture(kind, at))) return say('');
+    }
+    complete(r.step);
+  }
+  function complete(step: StepId) {
+    done = [...done, step];
+    scene.then((sc) => sc.set(done));
+    say(`✓ ${t.steps[step]}`);
+    $('count').textContent = t.routineCount(done.length, STEPS.length);
+    if (step === 'toArena') ride();
+    if (finished(done)) end();
+  }
+  /** The walk ride on the arena (the pupil's lesson, if there is one), then back to the aisle. */
+  async function ride() {
+    const box = $('ride'), before = game.get();
+    box.innerHTML = `<canvas id="jumping" aria-label="${t.steps.ride}"></canvas><p id="jump-tip" class="jump-tip" role="status">${pupil ? t.routineRidePupil(esc(pupil.name)) : t.routineRide}</p>`;
+    box.hidden = false;
+    const tip = $('jump-tip');
+    const round = await startJumping($<HTMLCanvasElement>('jumping'), {
+      look: { ...h.look, saddle: true, blanket: h.look.blanket ?? '#3d6fd9' }, kid: pupil ? pupilKid(pupil) : avatarKid(s0.avatar), course: WALK, window: 0, hold: 0, judge: () => 'early',
+      onWaiting: (w) => { if (w === 'more') { tip.textContent = t.drawTip(w, pony); tip.hidden = false; } else if (!w) tip.hidden = true; },
+    });
+    await round.run();
+    round.stop();
+    box.hidden = true; box.innerHTML = '';
+    if (pupil) {
+      const { pay, happy } = lessonOutcome(pupil, h);
+      game.dispatch({ type: 'lesson', pupil: pupil.id, horse: id, prepared: wrong });
+      const after = game.get();
+      if (after.lessonsGiven > before.lessonsGiven) bar.toast(t.lessonDone(pupil.name, mood(happy), pay + (wrong ? DATA.routine.tip : DATA.routine.tipClean), before.debt - after.debt));
+    }
+    complete('ride');
+    say(t.routineRode);
+  }
+  function end() {
+    game.dispatch({ type: 'routine', horse: id, wrong, ride: !pupil });
+    const sheet = $('routine-end');
+    sheet.querySelector('p')!.textContent = t.routineDone(h.name, wrong);
+    sheet.hidden = false;
+  }
+  app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.thing as Thing)));
+  $('tip').addEventListener('click', () => { const n = nextStep(done); if (n) say(t.routineNext(t.steps[n])); });
+  const back = () => (pupil ? showFarm() : showStable());
+  $('leave').addEventListener('click', back);
+  $('routine-back').addEventListener('click', back);
+  say(pupil ? t.routineIntroPupil(pupil.name) : t.routineIntro(h.name, pony));
+  $('count').textContent = t.routineCount(0, STEPS.length);
+  pick('hand');
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
 }

@@ -11,9 +11,9 @@ export type Dir = 'N' | 'E' | 'S' | 'W';
 export type CourseJump = { x: number; y: number; dir: Dir; kind: 'cross' | 'upright' | 'oxer' };
 /**
  * A course; `height`: how high its poles rest, in arena pixels (drawing); `hold`: seconds of momentum its jumps need
- * (0 or none: a tap takes off).
+ * (0 or none: a tap takes off); `pace`: a share of the canter (a walk ride without jumps, #72).
  */
-export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number; hold?: number };
+export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number; hold?: number; pace?: number };
 
 export type Round = {
   x: number; y: number; heading: number; // radians: 0 east, π/2 south (the screen's y points down)
@@ -47,7 +47,7 @@ export function timeAllowed(c: Course) {
   const pts = [c.start, ...c.jumps.map((j) => [j.x, j.y]), c.finish];
   let len = 0;
   for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-  return Math.ceil((len / R.speed) * R.time);
+  return Math.ceil((len / (R.speed * (c.pace ?? 1))) * R.time);
 }
 const timeFaults = (t: number, allowed: number) => (t > allowed ? Math.ceil((t - allowed) / R.timeFault) : 0);
 
@@ -75,7 +75,7 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
     if (Math.hypot(target.x - r.x, target.y - r.y) > 4) heading = wrap(heading + Math.max(-turn, Math.min(turn, wrap(want - heading))));
   }
   // along a way the horse speeds up to a canter, at its end it slows down (in the air it flies on)
-  const v = r.air ? r.v : Math.max(0, Math.min(R.speed, r.v + (target ? R.speedUp : -R.brake) * dt));
+  const v = r.air ? r.v : Math.max(0, Math.min(R.speed * (c.pace ?? 1), r.v + (target ? R.speedUp : -R.brake) * dt));
   let x = r.x + Math.cos(heading) * v * dt, y = r.y + Math.sin(heading) * v * dt;
   // the fence: the horse slides along it
   const lo = A.fence + 6, hx = A.w - A.fence - 6, hy = A.h - A.fence - 6;

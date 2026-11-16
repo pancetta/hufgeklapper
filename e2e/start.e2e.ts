@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DATA } from '../src/sim/data';
+import { GESTURE, STEPS } from '../src/sim/routine';
 import { t } from '../src/strings';
 
 /**
@@ -24,6 +25,38 @@ async function rideCourse(page: Page) {
     for (const [x, y] of points.slice(1)) await page.mouse.move(x, y);
     await page.mouse.up();
     await expect(canvas).not.toHaveAttribute('data-route', way); // the horse sets off
+  }
+}
+
+/**
+ * Plays the care course through without a wrong step: for each step its thing from the bar, a tap on its place (a
+ * brush stroked to and fro, each hoof or buckle tapped), and the walk ride drawn in one stroke.
+ */
+async function playRoutine(page: Page) {
+  const canvas = page.locator('#routine'), say = page.locator('#say');
+  const spot = async (at: string) => (JSON.parse((await canvas.getAttribute('data-spots'))!)[at] as string).split(',').map(Number);
+  for (const s of STEPS) {
+    if (!s.thing) { // the ride: the whole way to the finish, then back in the aisle
+      const ride = page.locator('#jumping');
+      await expect(ride).toHaveAttribute('data-route', /\d/);
+      const points = (await ride.getAttribute('data-route'))!.split(' ').map((p) => p.split(',').map(Number));
+      await page.mouse.move(points[0][0], points[0][1]); await page.mouse.down();
+      for (const [x, y] of points.slice(1)) await page.mouse.move(x, y);
+      await page.mouse.up();
+      await expect(page.locator('#ride')).toBeHidden({ timeout: 30_000 });
+      continue;
+    }
+    await page.getByRole('button', { name: t.things[s.thing], exact: true }).tap();
+    const [x, y] = await spot(s.at), how = GESTURE[s.id];
+    if (how === 'brush') {
+      await page.mouse.move(x, y); await page.mouse.down();
+      for (let i = 0; i < 400 && !(await say.textContent())!.startsWith('✓'); i++) await page.mouse.move(x + (i % 2 ? 10 : -10), y);
+      await page.mouse.up();
+    } else {
+      await page.mouse.click(x, y);
+      if (how) for (const m of (await canvas.getAttribute('data-marks'))!.split(' ')) { const [mx, my] = m.split(',').map(Number); await page.mouse.click(mx, my); }
+    }
+    await expect(say, s.id).toHaveText(`✓ ${t.steps[s.id]}`);
   }
 }
 
@@ -240,7 +273,7 @@ test('caring for a pony with gestures: brush, hooves, hay, manure; quick care af
   await newGame(page, 'Pflegehof');
   await page.getByRole('button', { name: t.places.stall }).tap();
   await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
-  await page.getByRole('button', { name: t.care }).tap();
+  await page.getByRole('button', { name: t.care, exact: true }).tap();
   await expect(page.getByText(t.careTitle('Kiwi'))).toBeVisible();
   await page.waitForTimeout(600); // the scene loads
   // the scene's layout, as the care scene computes it (logical pixels, scale S)
@@ -285,7 +318,7 @@ test('caring for a pony with gestures: brush, hooves, hay, manure; quick care af
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
   await page.getByRole('button', { name: t.places.stall }).tap();
   await page.locator('.nameplate', { hasText: 'Luna' }).tap();
-  await page.getByRole('button', { name: t.care }).tap();
+  await page.getByRole('button', { name: t.care, exact: true }).tap();
   await page.locator('[data-quick="muck"]').tap();
   await expect(page.getByText(t.doneCare.muck())).toBeVisible();
 });
@@ -373,7 +406,16 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.locator('#lesson [data-horse="kiwi"]')).toContainText(`${name} wäre`);
   await expect(page.locator('#lesson .choice.best')).toHaveCount(1);
   await expect(page.locator('#lesson .choice.best')).toContainText(t.bestChoice);
+  // the pupil may get the pony ready step by step: yes opens the care course, stopping it leaves the pupil waiting
   await page.locator('#lesson [data-horse="kiwi"]').tap();
+  await expect(page.getByText(t.routineAsk(name, true))).toBeVisible();
+  await page.getByRole('button', { name: t.routineYes }).tap();
+  await expect(page.locator('#say')).toHaveText(t.routineIntroPupil(name));
+  await page.getByRole('button', { name: t.routineLeave }).tap();
+  await expect(pupil).toHaveCount(1);
+  await pupil.tap();
+  await page.locator('#lesson [data-horse="kiwi"]').tap();
+  await page.getByRole('button', { name: t.routineNo }).tap();
   await expect(page.getByRole('status')).toHaveText(t.lessonRuns(name, 'Kiwi'));
   await expect(page.locator('#money')).not.toHaveText(t.money(300));
   await expect(pupil).toHaveCount(0);
@@ -383,6 +425,31 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.giveLesson }).tap();
   await expect(page.getByRole('status')).toHaveText(t.noPupils);
+});
+
+test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  const kiwi = () => page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.horses[0]);
+  const before = await kiwi();
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate[data-horse="kiwi"]').tap();
+  await page.getByRole('button', { name: t.routine }).tap();
+  await expect(page.locator('#say')).toHaveText(t.routineIntro('Kiwi', true));
+  // tied up before it is out of the box: Oma says what comes first
+  await page.getByRole('button', { name: t.things.rope, exact: true }).tap();
+  const ring = (JSON.parse((await page.locator('#routine').getAttribute('data-spots'))!).ring as string).split(',').map(Number);
+  await page.mouse.click(ring[0], ring[1]);
+  await expect(page.locator('#say')).toHaveText(t.routineWhy.tie);
+  await playRoutine(page);
+  await expect(page.locator('#routine-end')).toContainText(t.routineDone('Kiwi', 1));
+  const after = await kiwi();
+  expect(after.cared).toEqual(['groom', 'hooves']);
+  expect(after.needs.happy).toBeGreaterThan(before.needs.happy);
+  expect(after.needs.energy).toBe(before.needs.energy - DATA.routine.energy);
+  await page.getByRole('button', { name: t.toStable }).tap();
+  await expect(page.locator('.nameplate[data-horse="kiwi"]')).toBeVisible();
 });
 
 test('jumping practice: the avatar draws the way round the course, a tap takes off, the pony trains', async ({ page }) => {
