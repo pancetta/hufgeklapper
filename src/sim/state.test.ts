@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -480,25 +480,50 @@ describe('Sim', () => {
     expect(goals(busy).find((g) => g.id === 'lessons')).toMatchObject({ have: 0, done: false });
   });
 
-  it('Oma Hanne helps out of a dead end: the vet for every sick horse and some hay; not again within a few days', () => {
+  it('Oma Hanne helps out of a dead end once: the vet for every sick horse and some hay, a gift', () => {
     const sick = (st: State): State => ({ ...st, money: 0, debt: DATA.loan.debtLimit, feed: 0, horses: st.horses.map((h) => ({ ...h, needs: { ...h.needs, health: 10 } })) });
     const s = sick(newGame(1));
     expect(stuck(s)).toBe(true);
     const helped = apply(s, { type: 'sleep' });
     expect([helped.horses.every((h) => !isSick(h) && h.rest === DATA.vet.restDays), helped.feed, helped.rescueDay, helped.night]).toEqual([true, DATA.rescue.hay, helped.day, expect.arrayContaining([{ kind: 'omaHelped' }])]);
     expect([helped.money, helped.debt]).toEqual([0, DATA.loan.debtLimit]); // a gift, not a loan
-    const again = apply(sick(helped), { type: 'sleep' });
-    expect(again.horses.every(isSick)).toBe(true); // not again so soon
-    // the next help: on the 10th day after, not the 9th (the check runs on the new morning)
-    const D = helped.rescueDay, E = DATA.rescue.every;
-    expect(apply({ ...sick(helped), day: D + E - 2 }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
-    expect(apply({ ...sick(helped), day: D + E - 1 }, { type: 'sleep' }).night).toContainEqual({ kind: 'omaHelped' });
+    expect(stuck({ ...s, money: DATA.vet.cost })).toBe(false); // with money for the vet it is no dead end
+    expect(apply({ ...s, money: DATA.vet.cost }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
     // at the Pensionsstall the morning's pay comes first: a boarder whose pay (half of it repays debt) covers the vet
     // means no dead end
     const guest = { ...s.horses[0], id: 'g', needs: { ...s.horses[0].needs, health: 100 }, owner: { name: 'Familie Weber', pay: DATA.vet.cost / DATA.repayShare, unhappy: 0 } };
     expect(apply({ ...s, stage: 'pensionsstall', horses: [...s.horses, guest] }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
-    expect(stuck({ ...s, money: DATA.vet.cost })).toBe(false); // with money for the vet it is no dead end
-    expect(apply({ ...s, money: DATA.vet.cost }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
+  });
+
+  it('a second dead end: Oma only warns, counting down; lasting the whole countdown, the farm is lost and nothing more happens', () => {
+    const sick = (st: State): State => ({ ...st, money: 0, debt: DATA.loan.debtLimit, horses: st.horses.map((h) => ({ ...h, needs: { ...h.needs, health: 10 } })) });
+    let s = sick({ ...newGame(1), rescueDay: 1, day: 20 }); // she has helped before
+    const warnings: number[] = [];
+    for (let i = 1; i < DATA.rescue.grace; i++) {
+      s = apply(sick(s), { type: 'sleep' });
+      warnings.push(s.night.find((n) => n.kind === 'lastWarning')!.count!);
+      expect([s.deadEnd, gameOver(s), s.night.some((n) => n.kind === 'omaHelped')]).toEqual([i, false, false]);
+    }
+    expect(warnings).toEqual([...Array(DATA.rescue.grace - 1)].map((_, i) => DATA.rescue.grace - 1 - i)); // 4, 3, 2, 1
+    const lost = apply(sick(s), { type: 'sleep' });
+    expect([gameOver(lost), lost.night]).toEqual([true, expect.arrayContaining([{ kind: 'gameOver' }])]);
+    expect(apply(lost, { type: 'loan' })).toBe(lost); // nothing more happens
+    expect(apply(lost, { type: 'sleep' })).toBe(lost);
+    // good care in time heals a horse: no dead end any more, the countdown starts afresh
+    const healed = apply({ ...s, horses: s.horses.map((h, i) => (i ? h : { ...h, needs: { ...h.needs, health: 60 } })) }, { type: 'sleep' });
+    expect([healed.deadEnd, gameOver(healed)]).toEqual([0, false]);
+  });
+
+  it('a second dead end at its worst (every need at 0): doing all Oma says each day saves the farm in time', () => {
+    const zero = Object.fromEntries(NEEDS.map((n) => [n, 0])) as State['horses'][number]['needs'];
+    let s: State = { ...newGame(1), rescueDay: 1, day: 20, deadEnd: 1, money: 0, debt: DATA.loan.debtLimit, feed: 0,
+      horses: newGame(1).horses.map((h) => ({ ...h, needs: zero })) };
+    for (let day = 1; s.deadEnd && day < DATA.rescue.grace; day++) {
+      s = apply(s, { type: 'buyHay', pack: 0 });
+      for (const h of s.horses) for (const what of CARE) s = apply(s, { type: 'care', horse: h.id, what });
+      s = apply(s, { type: 'sleep' });
+    }
+    expect([gameOver(s), s.deadEnd]).toEqual([false, 0]);
   });
 
   describe('the Pensionsstall', () => {

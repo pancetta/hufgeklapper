@@ -338,6 +338,26 @@ test('in a dead end Oma Hanne helps: every pony sick, no money, no more loans', 
   await expect(page.locator('#hay')).toHaveText(t.hay(DATA.rescue.hay));
 });
 
+test('a second dead end lasting too long: Oma warns, then the farm is lost; the start screen says so', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // Oma has helped before, and this dead end has lasted all but one morning
+  await changeSave(page, (s) => {
+    Object.assign(s, { money: 0, debt: DATA.loan.debtLimit, rescueDay: 1, day: 20, deadEnd: DATA.rescue.grace - 2 });
+    for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10;
+  });
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.newsLastWarning(1))).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: t.morningGo }).tap();
+  // one more night without care: lost
+  await changeSave(page, (s) => { for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10; });
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByRole('heading', { name: t.gameOverTitle })).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: t.toStart }).tap();
+  await expect(page.getByRole('region', { name: t.slot(1) })).toContainText(t.lostFarm);
+  await expect(page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame })).toHaveCount(0);
+});
+
 test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');

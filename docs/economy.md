@@ -18,7 +18,7 @@ the arena is not poorer for it.
 | Target (#18) | Status |
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
-| A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met, also over 120 days: Oma Hanne helps out of a dead end (#66); the longest dead end is 6 days (without her help 25–61) |
+| A careless player gets a long chance: Oma Hanne helps out of the first dead end (all horses sick, no money for the vet, no more loans) once (#66); a second dead end that lasts 7 mornings loses the farm (#68) | met: careful never loses (120 days); careless is lost on 9 of 10 seeds between day 66 and 111 of 120, never before day 60 |
 | No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.07× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 23 (60-day run, median ≤ 30) |
 
@@ -26,23 +26,23 @@ the arena is not poorer for it.
 
 Sick days are counted in the morning, before the vet comes.
 
-| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |
+| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 615 € | 178 € | 509 € | 1655 € | 3 | 12 | 97 | 11 | 0 | 0 € | nein |
-| careful | 2 | 681 € | 298 € | 516 € | 1586 € | 3 | 12 | 97 | 8 | 0 | 0 € | nein |
-| careful | 3 | 727 € | 246 € | 575 € | 1660 € | 3 | 12 | 98 | 9 | 0 | 0 € | nein |
-| careful | 4 | 618 € | 194 € | 644 € | 1740 € | 3 | 12 | 98 | 8 | 0 | 0 € | nein |
-| careful | 5 | 656 € | 273 € | 602 € | 1655 € | 4 | 12 | 98 | 6 | 0 | 0 € | nein |
-| careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | nein |
-| careless | 2 | 534 € | 497 € | 429 € | 429 € | 3 | 18 | 43 | 10 | 14 | 0 € | nein |
-| careless | 3 | 581 € | 524 € | 328 € | 328 € | 3 | 18 | 37 | 10 | 14 | 0 € | nein |
-| careless | 4 | 524 € | 401 € | 201 € | 201 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
-| careless | 5 | 496 € | 471 € | 502 € | 502 € | 4 | 18 | 49 | 9 | 14 | 0 € | nein |
-| sport | 1 | 400 € | 548 € | 369 € | 1234 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
-| sport | 2 | 462 € | 604 € | 422 € | 1682 € | 3 | 25 | 71 | 13 | 0 | 0 € | nein |
-| sport | 3 | 404 € | 457 € | 536 € | 1352 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
-| sport | 4 | 382 € | 480 € | 351 € | 1297 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
-| sport | 5 | 421 € | 495 € | 214 € | 1254 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
+| careful | 1 | 615 € | 178 € | 509 € | 1655 € | 3 | 12 | 97 | 11 | 0 | 0 € | – |
+| careful | 2 | 681 € | 298 € | 516 € | 1586 € | 3 | 12 | 97 | 8 | 0 | 0 € | – |
+| careful | 3 | 727 € | 246 € | 575 € | 1660 € | 3 | 12 | 98 | 9 | 0 | 0 € | – |
+| careful | 4 | 618 € | 194 € | 644 € | 1740 € | 3 | 12 | 98 | 8 | 0 | 0 € | – |
+| careful | 5 | 656 € | 273 € | 602 € | 1655 € | 4 | 12 | 98 | 6 | 0 | 0 € | – |
+| careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | – |
+| careless | 2 | 534 € | 497 € | 429 € | 429 € | 3 | 18 | 43 | 10 | 14 | 0 € | – |
+| careless | 3 | 581 € | 524 € | 328 € | 328 € | 3 | 18 | 37 | 10 | 14 | 0 € | – |
+| careless | 4 | 524 € | 401 € | 201 € | 201 € | 5 | – | 35 | 9 | 14 | 0 € | – |
+| careless | 5 | 496 € | 471 € | 502 € | 502 € | 4 | 18 | 49 | 9 | 14 | 0 € | – |
+| sport | 1 | 400 € | 548 € | 369 € | 1234 € | 3 | 25 | 60 | 13 | 0 | 0 € | – |
+| sport | 2 | 462 € | 604 € | 422 € | 1682 € | 3 | 25 | 71 | 13 | 0 | 0 € | – |
+| sport | 3 | 404 € | 457 € | 536 € | 1352 € | 3 | 25 | 66 | 13 | 0 | 0 € | – |
+| sport | 4 | 382 € | 480 € | 351 € | 1297 € | 3 | 25 | 60 | 13 | 0 | 0 € | – |
+| sport | 5 | 421 € | 495 € | 214 € | 1254 € | 4 | 25 | 66 | 12 | 0 | 0 € | – |
 
 ## What changed because of it
 
@@ -71,11 +71,11 @@ Sick days are counted in the morning, before the vet comes.
 ## Open points
 
 - **Careless over a long game:** hay on credit has no limit, so a careless player's debt passes the bank's limit;
-  with every horse sick nothing earns. Oma Hanne now pays the vet and brings hay in such a dead end, at most every
-  10 days (#66). The careless player stays poor (worth around −130 to −240 € after 120 days), but can always go on.
+  with every horse sick nothing earns. Oma Hanne pays the vet and brings hay in the first such dead end (#66). In a
+  second one she only warns each morning; after 7 mornings without a healed horse the farm is lost (#68).
 - The run's jumping rounds count knocked poles only: refusals and time faults on the arena (#43) are not in the
   model, so a real child's rounds come out a little worse. The riding badge allows 2 faults (was 1) for that reason.
 - **Careless gets nowhere slowly.** About 14 sick days in 40 (a pony falls sick every few days and rests after the
   vet), so fewer lessons and a lower reputation: the inspection comes on day 18–21 or not within 40 days (2 of 5 seeds).
-  Never stuck, but a child who neglects the ponies may wait long; Oma Hanne's hints are meant to catch that.
+  A child who neglects the ponies may wait long; Oma Hanne's hints are meant to catch that before the farm is lost.
 - The riding badge comes on day 3–5 for every strategy; it could ask for more practice.

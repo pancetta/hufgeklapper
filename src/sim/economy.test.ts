@@ -23,9 +23,10 @@ describe('economy run', () => {
     expect(median(days as number[])).toBeLessThanOrEqual(30);
   });
 
-  it('never gets a careless player stuck, not even in a long game: Oma Hanne helps out of a dead end', () => {
-    for (const r of of('careless')) expect(r.stuck, `seed ${r.seed}`).toBe(false);
-    for (const seed of SEEDS) expect(play('careless', seed, 120).stuck, `seed ${seed}, 120 days`).toBe(false);
+  it('never loses a careful farm; a careless one gets a long chance (Oma helps once) before it is lost', () => {
+    for (const seed of SEEDS) expect(play('careful', seed, 120).lostDay, `careful, seed ${seed}`).toBeNull();
+    // careless reaches a second dead end in a long game; it must take about two months (66–111 on seeds 1–10)
+    for (const seed of SEEDS) expect(play('careless', seed, 120).lostDay ?? Infinity, `careless, seed ${seed}`).toBeGreaterThanOrEqual(60);
   });
 
   // careful (lessons first) reaches the Reitschule sooner and is ahead early; sport (a trained horse in the higher show
