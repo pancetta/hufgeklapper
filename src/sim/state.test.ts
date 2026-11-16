@@ -496,11 +496,16 @@ describe('Sim', () => {
 
     it('a groom, paid each morning, cares for the worst kept horses; unpaid, they stay away', () => {
       const s0 = apply(pension(), { type: 'hire' }), dirty = s0.horses.map((h) => ({ ...h, needs: { ...h.needs, fed: 20, clean: 20, happy: 20 } }));
-      expect([s0.staff, apply(apply(s0, { type: 'hire' }), { type: 'hire' }).staff]).toEqual([1, DATA.staff.max]); // at most two
+      expect([s0.staff, apply(apply(s0, { type: 'hire' }), { type: 'hire' }).staff]).toEqual([1, DATA.staff.names.length]); // at most two
       const morning = apply({ ...s0, horses: dirty }, { type: 'sleep' });
       expect(morning.today).toContainEqual({ what: 'wage', amount: -DATA.staff.wage });
-      expect(morning.night).toContainEqual({ kind: 'staffCared', count: dirty.length });
+      expect(goals(morning).find((g) => g.id === 'staff')!.done).toBe(true); // a groom counts once paid
+      expect(goals(s0).find((g) => g.id === 'staff')!.done).toBe(false); // hired, not yet paid
       expect(morning.horses.every((h) => h.needs.clean > 20)).toBe(true);
+      // the morning's income comes first: a boarder's pay can pay the wage
+      const guest = { ...dirty[0], id: 'g', owner: { name: 'Familie Weber', pay: DATA.staff.wage, unhappy: 0 } };
+      const paidByBoard = apply({ ...s0, money: 0, horses: [...dirty, guest] }, { type: 'sleep' });
+      expect(paidByBoard.today.some((e) => e.what === 'wage')).toBe(true);
       const broke = apply({ ...s0, money: DATA.staff.wage - 1, horses: dirty }, { type: 'sleep' });
       expect([broke.night.some((n) => n.kind === 'staffUnpaid'), broke.today.some((e) => e.what === 'wage')]).toEqual([true, false]);
       expect(apply(s0, { type: 'fire' }).staff).toBe(0);
@@ -541,6 +546,19 @@ describe('Sim', () => {
       const other = next.horses.find((x) => x.id !== h.id && !x.rider)!, ridden = next.horses.find((x) => x.id === h.id)!;
       expect(other.needs.energy - ridden.needs.energy).toBe(DATA.partBoard.energy);
       expect(apply(next, { type: 'endPartBoard', horse: h.id }).horses.find((x) => x.id === h.id)!.rider).toBeUndefined();
+      // a resting horse isn't ridden that morning, and its rider doesn't pay
+      const resting = apply({ ...rested, horses: rested.horses.map((x) => (x.id === h.id ? { ...x, rest: 2 } : x)) }, { type: 'sleep' });
+      expect([resting.today.some((e) => e.what === 'partBoard'), resting.horses.find((x) => x.id === h.id)!.needs.energy]).toEqual([false, other.needs.energy]);
+    });
+
+    it('boarders never bring a horse with the name of one on the farm or at the market; a name for sale is taken', () => {
+      let s = pension();
+      for (let d = 0; d < 30; d++) {
+        s = apply(s, { type: 'sleep' });
+        const names = [...s.horses, ...s.market].map((x) => x.name.toLowerCase());
+        for (const o of s.boardOffers) expect(names, `day ${s.day}`).not.toContain(o.name.toLowerCase());
+      }
+      expect(apply(s, { type: 'rename', horse: s.horses[0].id, name: s.boardOffers[0].name })).toBe(s);
     });
   });
 

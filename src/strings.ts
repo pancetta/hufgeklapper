@@ -81,9 +81,8 @@ export const t = {
   newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
   newsHayLow: 'Das Heu wird knapp.',
   newsRested: (name: string) => `${name} ist wieder fit.`,
-  newsStaffCared: (names: string, n: number, two = false) => `${names} ${two ? 'haben' : 'hat'} heute früh ${n} ${n === 1 ? 'Pferd' : 'Pferde'} geputzt, gefüttert und ausgemistet.`,
-  newsStaffUnpaid: 'Für den Lohn deines Pferdepflegers war nicht genug Geld da. Heute hilft er nicht.',
-  newsBoarderLeft: (owner: string, horse: string) => `${owner} hat ${horse} abgeholt: Das Pferd war zu lange schlecht gepflegt.`,
+  newsStaffUnpaid: 'Für den Lohn war nicht genug Geld da. Heute hilft dir niemand im Stall.',
+  newsBoarderLeft: (owner: string, horse: string) => `${owner} hat ${horse} abgeholt: Das Pferd war zu lange schlecht gepflegt. Dein Ruf sinkt.`,
   morningGo: 'Los geht’s!',
 
   // caring for a horse
@@ -107,7 +106,7 @@ export const t = {
   hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
   stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
   staffTitle: 'Pferdepfleger',
-  hire: (name: string, wage: number, horses: number) => `${name} einstellen: ${wage} € am Tag, pflegt ${horses} Pferde`,
+  hire: (name: string, wage: number, horses: number) => `${name} einstellen: ${wage} € am Tag, pflegt bis zu ${horses} Pferde`,
   hired: (names: string, two: boolean) => (two ? `Bei dir arbeiten ${names}. Jeden Morgen putzen, füttern und misten sie für dich.` : `Bei dir arbeitet ${names}. Jeden Morgen putzt, füttert und mistet ${names} für dich.`),
   fire: (name: string) => `${name} entlassen`,
   boardersTitle: 'Einsteller suchen einen Platz',
@@ -120,7 +119,7 @@ export const t = {
   boarderUnhappy: (owner: string) => `${owner} ist nicht zufrieden: Pflege das Pferd besser!`,
   riddenBy: (rider: string, pay: number) => `Reitbeteiligung: ${rider} reitet jeden Tag (${pay} € am Tag)`,
   endPart: 'Reitbeteiligung beenden',
-  guest: 'Gast',
+  endPartSure: 'Wirklich beenden?',
   boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
   owe: (n: number) => `Du schuldest ${n} €.`,
   omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
@@ -134,7 +133,7 @@ export const t = {
   diaryOut: 'Ausgegeben',
   diaryDebts: 'Schulden',
   diaryTotal: (total: number, money: number) => `Heute ${total ? (total > 0 ? '+' : '−') : ''}${Math.abs(total)} € · In der Kasse: ${money} €`,
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut' , wage: 'Lohn Pferdepfleger', board: 'Einsteller', partBoard: 'Reitbeteiligung' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut', wage: 'Lohn Pferdepfleger', board: 'Einsteller', partBoard: 'Reitbeteiligung' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,

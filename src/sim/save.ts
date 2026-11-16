@@ -8,7 +8,7 @@ import { DATA } from './data';
 import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, type State } from './state';
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
-const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1, staffCared: 1, staffUnpaid: 1, boarderLeft: 1 };
+const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1, staffUnpaid: 1, boarderLeft: 1 };
 const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1, showFee: 1, prize: 1, horse: 1, build: 1, wage: 1, board: 1, partBoard: 1 };
 const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-9-]{1,40}$/.test(p.id) && isText(p.name, 30)
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
@@ -61,7 +61,7 @@ function isOffer(x: unknown) {
 
 function isState(x: unknown): x is State {
   return isObj(x) && x.version === 11 && isAvatar(x.avatar)
-    && isInt(x.staff, 0, DATA.staff.max) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
+    && isInt(x.staff, 0, DATA.staff.names.length) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
     && (x.partOffer === null || (isObj(x.partOffer) && typeof x.partOffer.horse === 'string' && isText(x.partOffer.rider, 30) && isInt(x.partOffer.pay, 0, 1000))) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
     && Array.isArray(x.market) && x.market.length <= 10 && x.market.every(isOffer)
     && isObj(x.built) && isInt(x.built.stalls, 0, 1) && isInt(x.built.arena, 0, 1)
@@ -134,7 +134,6 @@ function fromVersion8(x: Obj): unknown {
   return { ...x, version: 9, state: { ...s, version: 9, goalsDone: [], explained: [...DATA.features] } };
 }
 
-/** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */
 /** Version 10 to 11: the Pensionsstall (no grooms, no boarders or riders yet). */
 function fromVersion10(x: Obj): unknown {
   const s = x.state;
@@ -142,6 +141,7 @@ function fromVersion10(x: Obj): unknown {
   return { ...x, version: 11, state: { ...s, version: 11, staff: 0, boardOffers: [], partOffer: null } };
 }
 
+/** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */
 function fromVersion9(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;

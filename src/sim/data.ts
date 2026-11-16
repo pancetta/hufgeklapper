@@ -145,7 +145,7 @@ export const DATA = {
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
   goals: {
     kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 25 }, { id: 'badge', need: 1 }, { id: 'savings', need: 500 }, { id: 'reputation', need: 60 }],
-    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 700 }],
+    reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
     pensionsstall: [{ id: 'boarders', need: 2 }, { id: 'staff', need: 1 }, { id: 'partBoard', need: 1 }, { id: 'reputation', need: 75 }, { id: 'savings', need: 900 }],
   } as Record<'kleinerHof' | 'reitschule' | 'pensionsstall', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses' | 'boarders' | 'staff' | 'partBoard'; need: number }[]>,
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
@@ -176,13 +176,13 @@ export const DATA = {
   build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 } },
   /**
    * The Pensionsstall (#62, #63). A groom ("Pferdepfleger") cares for `horses` horses each night for `wage` a day;
-   * at most `max` of them. Boarders ("Einsteller") bring their horse into a free stall and pay each day; badly kept
+   * one of each of `names` at most. Boarders ("Einsteller") bring their horse into a free stall and pay each day; badly kept
    * (fed, clean and happy below `keptBelow`, or sick) for `patience` nights, they leave and the reputation drops by
    * `leaveReputation`. A part-boarder ("Reitbeteiligung") rides one of your horses each day for `pay` and its energy.
    */
-  staff: { wage: 30, horses: 4, max: 2, names: ['Tom', 'Lisa'] },
+  staff: { wage: 40, horses: 4, names: ['Tom', 'Lisa'] }, // help costs: you pay for the time it saves
   boarders: {
-    offers: 2, pay: [10, 18], keptBelow: 0.5, patience: 3, leaveReputation: 10,
+    offers: 2, pay: [6, 10], keptBelow: 0.5, patience: 3, leaveReputation: 10, // modest money for a stall and care: lessons stay the main income
     owners: ['Familie Weber', 'Familie Klein', 'Frau Sommer', 'Herr Yilmaz', 'Familie Novak', 'Frau Jansen', 'Herr Becker'],
   },
   partBoard: { pay: [8, 12], energy: 25 },

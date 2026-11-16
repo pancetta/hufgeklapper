@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own,
   showWaits, stalls,
 } from './state';
 
@@ -40,7 +40,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   const best = (c: Horse[]) => [...c].sort((a, b) => b.skills.jumping - a.skills.jumping)[0];
   /** The highest class a horse may start in today: a child picks the class with the biggest prize. */
   const topClass = (h: Horse) => SHOW_CLASSES.filter((c) => !classWaits(s, h, c)).pop();
-  const fresh = (energy: number) => s.horses.filter((h) => !cantWork(h, energy)).sort((a, b) => b.needs.energy - a.needs.energy);
+  const fresh = (energy: number) => s.horses.filter((h) => own(h) && !cantWork(h, energy)) // boarders' horses aren't ours to ride.sort((a, b) => b.needs.energy - a.needs.energy);
 
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
@@ -76,7 +76,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       const first = s.pupils[0];
       for (const p of [...s.pupils]) {
         const best = fresh(DATA.lessons.energy).sort((a: Horse, b: Horse) => lessonOutcome(p, b).pay - lessonOutcome(p, a).pay)[0];
-        if (best && (strategy !== 'sport' || s.horses.length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
+        if (best && (strategy !== 'sport' || s.horses.filter(own).length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
       }
     };
     if (strategy === 'sport') { sport(); lessons(); } else { lessons(); sport(); }

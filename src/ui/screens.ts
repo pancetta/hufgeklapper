@@ -241,10 +241,9 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   }
   // the morning summary: one short line per piece of news, then on with the day
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
-  const staffNames = () => DATA.staff.names.slice(0, Math.max(1, game.get().staff)).join(' und ');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
     : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay
-    : n.kind === 'staffCared' ? t.newsStaffCared(staffNames(), n.count ?? 0, game.get().staff > 1) : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid
+    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid
     : n.kind === 'boarderLeft' ? t.newsBoarderLeft(esc(n.owner ?? ''), esc(n.horse ?? '')) : '';
   function morning(news: News[]) {
     if (!news.length) return;
@@ -469,15 +468,21 @@ export function showFarm(intro = false) {
     $('shop').querySelector('#fire')?.addEventListener('click', () => game.dispatch({ type: 'fire' }));
     $('shop').querySelectorAll<HTMLButtonElement>('[data-board]').forEach((b) => b.addEventListener('click', () => game.dispatch({ type: 'board', offer: b.dataset.board! })));
     $('shop').querySelector('#part')?.addEventListener('click', () => game.dispatch({ type: 'partBoard' }));
-    $('close-shop').addEventListener('click', () => { $('shop').hidden = true; });
+    $('close-shop').addEventListener('click', () => {
+      $('shop').hidden = true;
+      // a new groom or a boarder's horse: the map shows them at once
+      const now = game.get();
+      if (now.staff !== shopFrom.staff || now.horses.length !== shopFrom.horses) showFarm();
+    });
   }
-  function showShop() { shop(); $('shop').hidden = false; }
+  let shopFrom = { staff: 0, horses: 0 };
+  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
   /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
   function pension(s: State) {
     const S = DATA.staff, full = s.horses.length >= stalls(s), offer = s.partOffer, horse = offer && s.horses.find((h) => h.id === offer.horse);
     return `<h3>${t.staffTitle}</h3>
       ${s.staff ? `<p>${t.hired(S.names.slice(0, s.staff).join(' und '), s.staff > 1)}</p><button type="button" id="fire" class="small">${t.fire(S.names[s.staff - 1])}</button>` : ''}
-      ${s.staff < S.max ? `<button type="button" id="hire">${t.hire(S.names[s.staff], S.wage, S.horses)}</button>` : ''}
+      ${s.staff < S.names.length ? `<button type="button" id="hire">${t.hire(S.names[s.staff], S.wage, S.horses)}</button>` : ''}
       <h3>${t.boardersTitle}</h3>
       ${s.boardOffers.length ? s.boardOffers.map((o) => `<button type="button" data-board="${o.id}"${full ? ' disabled' : ''}>${t.boardOffer(esc(o.owner), esc(o.name), BREEDS[o.breed].label, o.pay)}</button>`).join('')
         + (full ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.noBoarders}</p>`}
@@ -706,7 +711,7 @@ export function showStable() {
     boxes.innerHTML = Array.from({ length: stalls(st) }, (_, i) => {
       const h = st.horses[i];
       return h
-        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}${h.owner ? ' guest' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}${h.owner ? ` · ${t.guest}` : ''}</button>
+        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}${h.owner ? ' guest' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
             <button class="horse-hit" type="button" data-horse="${h.id}" aria-label="${esc(h.name)}"></button>
             <div class="needs">${NEEDS.map((n) => needBar(h, n)).join('')}</div></div>`
         : `<div class="box" data-box="${i}"><span class="nameplate empty">${t.freeStall}</span></div>`;
@@ -747,7 +752,11 @@ export function showStable() {
     $('close-card').addEventListener('click', () => { card.hidden = true; });
     $('care').addEventListener('click', () => showCare(h.id));
     card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
-    card.querySelector('#end-part')?.addEventListener('click', () => { game.dispatch({ type: 'endPartBoard', horse: h.id }); showCard(h.id); });
+    // ending a part-board asks once more: the rider won't come back
+    card.querySelector('#end-part')?.addEventListener('click', (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      if (b.dataset.sure) { game.dispatch({ type: 'endPartBoard', horse: h.id }); showCard(h.id); } else { b.dataset.sure = '1'; b.textContent = t.endPartSure; }
+    });
     // a name of its own: the field replaces the heading; the Sim says no to an empty or taken name
     card.querySelector('#rename-start')?.addEventListener('click', () => {
       const form = $<HTMLFormElement>('rename');

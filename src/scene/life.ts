@@ -8,9 +8,8 @@ import { type Anim, COATS, type Look } from '../horses/look';
 import { canterLoop, inside, jumps, type Plot, track, waitingSpots } from './buildings';
 import { blit, type Rect, shadow } from './draw';
 import { WINDMILL } from './farm';
-import type { Kid } from '../riders/look';
 import { drawKid, drawRider } from './kids';
-import { avatarKid } from '../riders/look';
+import { avatarKid, type Kid } from '../riders/look';
 import { drawWindmill } from './windmill';
 
 export type Drawable = { y: number; draw: (ctx: CanvasRenderingContext2D, t: number) => void };

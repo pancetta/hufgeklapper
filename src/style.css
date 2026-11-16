@@ -344,5 +344,5 @@ canvas { image-rendering: pixelated; }
 .diary-bar.debt i { background: #8e8e9e; }
 .diary-total { text-align: center; font-size: calc(var(--fs) * 18px); }
 
-/* a boarder's horse in the stable: a blue nameplate, "Gast" */
+/* a boarder's horse in the stable: a blue nameplate (the card says whose it is) */
 .nameplate.guest { background: #d6e6f5; }

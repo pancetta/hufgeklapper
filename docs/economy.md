@@ -19,8 +19,8 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.10× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
-| A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 21–22 (60-day run, median ≤ 30) |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.07× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 23 (60-day run, median ≤ 30) |
 
 ## Current numbers
 
@@ -28,21 +28,21 @@ Sick days are counted in the morning, before the vet comes.
 
 | Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 632 € | 230 € | 673 € | 1853 € | 3 | 12 | 84 | 13 | 0 | 0 € | nein |
-| careful | 2 | 711 € | 212 € | 749 € | 1901 € | 3 | 12 | 88 | 12 | 0 | 0 € | nein |
-| careful | 3 | 696 € | 284 € | 698 € | 1864 € | 3 | 11 | 85 | 12 | 0 | 0 € | nein |
-| careful | 4 | 648 € | 228 € | 458 € | 1758 € | 3 | 11 | 114 | 12 | 0 | 0 € | nein |
-| careful | 5 | 676 € | 266 € | 943 € | 2086 € | 4 | 12 | 90 | 11 | 0 | 0 € | nein |
+| careful | 1 | 615 € | 178 € | 509 € | 1655 € | 3 | 12 | 97 | 11 | 0 | 0 € | nein |
+| careful | 2 | 681 € | 298 € | 516 € | 1586 € | 3 | 12 | 97 | 8 | 0 | 0 € | nein |
+| careful | 3 | 727 € | 246 € | 575 € | 1660 € | 3 | 12 | 98 | 9 | 0 | 0 € | nein |
+| careful | 4 | 618 € | 194 € | 644 € | 1740 € | 3 | 12 | 98 | 8 | 0 | 0 € | nein |
+| careful | 5 | 656 € | 273 € | 602 € | 1655 € | 4 | 12 | 98 | 6 | 0 | 0 € | nein |
 | careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | nein |
-| careless | 2 | 549 € | 513 € | 476 € | 476 € | 3 | 18 | 44 | 10 | 14 | 0 € | nein |
-| careless | 3 | 581 € | 525 € | 329 € | 329 € | 3 | 18 | 37 | 10 | 14 | 0 € | nein |
-| careless | 4 | 524 € | 402 € | 202 € | 202 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
-| careless | 5 | 514 € | 498 € | 563 € | 563 € | 4 | 21 | 49 | 9 | 14 | 0 € | nein |
-| sport | 1 | 435 € | 476 € | 442 € | 1252 € | 3 | 25 | 64 | 13 | 0 | 0 € | nein |
-| sport | 2 | 502 € | 534 € | 474 € | 1554 € | 3 | 25 | 62 | 13 | 0 | 0 € | nein |
-| sport | 3 | 429 € | 468 € | 367 € | 1297 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
-| sport | 4 | 426 € | 618 € | 513 € | 1799 € | 5 | 25 | 69 | 12 | 0 | 0 € | nein |
-| sport | 5 | 421 € | 650 € | 275 € | 1435 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
+| careless | 2 | 534 € | 497 € | 429 € | 429 € | 3 | 18 | 43 | 10 | 14 | 0 € | nein |
+| careless | 3 | 581 € | 524 € | 328 € | 328 € | 3 | 18 | 37 | 10 | 14 | 0 € | nein |
+| careless | 4 | 524 € | 401 € | 201 € | 201 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
+| careless | 5 | 496 € | 471 € | 502 € | 502 € | 4 | 18 | 49 | 9 | 14 | 0 € | nein |
+| sport | 1 | 400 € | 548 € | 369 € | 1234 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
+| sport | 2 | 462 € | 604 € | 422 € | 1682 € | 3 | 25 | 71 | 13 | 0 | 0 € | nein |
+| sport | 3 | 404 € | 457 € | 536 € | 1352 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
+| sport | 4 | 382 € | 480 € | 351 € | 1297 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
+| sport | 5 | 421 € | 495 € | 214 € | 1254 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
 
 ## What changed because of it
 
@@ -64,8 +64,9 @@ Sick days are counted in the morning, before the vet comes.
   class L from about day 47–65. The careful player buys the cheapest horse. The run doesn't model the momentum of
   A and L, so real rounds there are a little harder.
 
-- The Pensionsstall (#61–#63): boarders pay 10–18 € a day, a groom costs 30 € a day. With them the careful player
-  pulls ahead earlier; the Reitschule's savings goal went up to 700 € (was 600 €) to keep the #18 balance.
+- The Pensionsstall (#61–#63): boarders pay 6–10 € a day (modest money for a stall and care, so lessons stay the
+  main income), a groom costs 40 € a day (you pay for the time saved). Higher boarder pay let the careful player,
+  who reaches the Pensionsstall about two weeks before the sport player, run away (0.68× after 40 days).
 
 ## Open points
 

@@ -86,7 +86,7 @@ export type Care = 'groom' | 'hooves' | 'feed' | 'muck';
 export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 
 /** Morning news: data only; the screens turn it into words. */
-export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffCared' | 'staffUnpaid' | 'boarderLeft'; horse?: string; owner?: string; count?: number };
+export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
@@ -351,19 +351,22 @@ export function dayMoney(entries: Entry[]) {
 }
 
 /**
- * The Pensionsstall's morning, after the night: the riders ride (their horse's energy, their fee), the grooms care
- * for as many horses as they can (worst kept first; feeding takes hay) if their wage can be paid, the boarders pay,
- * and one badly kept too long leaves (the reputation drops). Then new offers for boarders and a rider.
+ * The Pensionsstall's morning, after the night: the riders ride (their horse's energy, their fee) and the boarders pay
+ * for the night; then the grooms, if their wage can be paid, care for as many horses as they can (worst kept first;
+ * feeding takes hay); then a boarder whose horse was badly kept too long leaves (the reputation drops). Then new
+ * offers for boarders (no name already on the farm or at the market) and a rider.
  */
 function pensionMorning(s: State): State {
-  const S = DATA.staff, B = DATA.boarders, news = [...s.night];
-  let horses = s.horses.map((h) => (h.rider && !cantWork(h, 0) ? { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.partBoard.energy) } } : h));
-  let feed = s.feed, money = s.money;
-  const today: Entry[] = [];
-  // the grooms: paid first; unpaid, they stay away today
+  const S = DATA.staff, B = DATA.boarders, news = [...s.night], ridden = s.horses.filter((h) => h.rider && !cantWork(h, 0));
+  let next: State = { ...s, today: [], horses: s.horses.map((h) => (ridden.includes(h) ? { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.partBoard.energy) } } : h)) };
+  const pay = (what: 'partBoard' | 'board', amount: number) => { const e = earn(next, amount); next = { ...e, today: [...e.today, { what, amount }] }; };
+  for (const h of ridden) pay('partBoard', h.rider!.pay);
+  for (const h of s.horses) if (h.owner) pay('board', h.owner.pay);
+  // the grooms: their wage from the morning's money; unpaid, they stay away today
+  let horses = next.horses, feed = next.feed;
   const wage = s.staff * S.wage;
-  if (s.staff && money >= wage) {
-    money -= wage; today.push({ what: 'wage', amount: -wage });
+  if (s.staff && next.money >= wage) {
+    next = { ...next, money: next.money - wage, today: [...next.today, { what: 'wage', amount: -wage }] };
     const turn = [...horses].sort((a, b) => keptShare(a) - keptShare(b)).slice(0, s.staff * S.horses).map((h) => h.id);
     horses = horses.map((h) => {
       if (!turn.includes(h.id)) return h;
@@ -374,22 +377,18 @@ function pensionMorning(s: State): State {
       }
       return { ...h, needs };
     });
-    news.push({ kind: 'staffCared', count: turn.length });
   } else if (s.staff) news.push({ kind: 'staffUnpaid' });
-  // the boarders: pay for their stall; badly kept too many nights in a row, they leave
-  let reputation = s.reputation;
+  // the boarders: badly kept too many nights in a row, they take their horse away
+  let reputation = next.reputation;
   horses = horses.flatMap((h) => {
     if (!h.owner) return [h];
     const bad = keptShare(h) < B.keptBelow || isSick(h), unhappy = bad ? h.owner.unhappy + 1 : 0;
     if (unhappy >= B.patience) { reputation = clamp(reputation - B.leaveReputation); news.push({ kind: 'boarderLeft', horse: h.name, owner: h.owner.name }); return []; }
     return [{ ...h, owner: { ...h.owner, unhappy } }];
   });
-  let next: State = { ...s, horses, feed, money, reputation, night: news, today };
-  const pay = (what: 'partBoard' | 'board', amount: number) => { const e = earn(next, amount); next = { ...e, today: [...e.today, { what, amount }] }; };
-  for (const h of s.horses) if (h.rider && !cantWork(h, 0)) pay('partBoard', h.rider.pay);
-  for (const h of horses) if (h.owner) pay('board', h.owner.pay);
-  const [boardOffers, seed1] = boardersFor(s.day, s.seed, horses.map((h) => h.name));
-  const [partOffer, seed] = partOfferFor({ ...next, horses }, seed1);
+  next = { ...next, horses, feed, reputation, night: news };
+  const [boardOffers, seed1] = boardersFor(s.day, s.seed, [...horses, ...s.market].map((h) => h.name));
+  const [partOffer, seed] = partOfferFor(next, seed1);
   return { ...next, boardOffers, partOffer, seed };
 }
 
@@ -422,7 +421,7 @@ export type Feature = (typeof DATA.features)[number];
 export function goals(s: State) {
   const have = {
     groom: s.careDone.groom, lessons: s.lessonsGiven - s.lessonsBefore, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation,
-    horses: s.horses.filter(own).length, boarders: s.horses.filter((h) => h.owner).length, staff: s.staff, partBoard: s.horses.filter((h) => h.rider).length,
+    horses: s.horses.filter(own).length, boarders: s.horses.filter((h) => h.owner).length, staff: [...s.today, ...s.bill].some((e) => e.what === 'wage') ? s.staff : 0, partBoard: s.horses.filter((h) => h.rider).length, // a groom counts once paid
   };
   return DATA.goals[s.stage].map(({ id, need }) => {
     const done = s.goalsDone.includes(id) || have[id] >= need;
@@ -465,7 +464,7 @@ function step(state: State, action: Action): State {
       // own goal list (counts like lessons given go on from where they are)
       const stage = nextStage(state)!, names = state.horses.map((h) => h.name);
       const [market, seed1] = marketFor(state.day, state.seed, names);
-      const [boardOffers, seed] = stage === 'pensionsstall' ? boardersFor(state.day, seed1, names) : [state.boardOffers, seed1];
+      const [boardOffers, seed] = stage === 'pensionsstall' ? boardersFor(state.day, seed1, [...names, ...market.map((o) => o.name)]) : [state.boardOffers, seed1];
       return { ...state, stage, market, boardOffers, seed, goalsDone: [], lessonsBefore: state.lessonsGiven };
     }
     case 'buyHorse': {
@@ -502,7 +501,7 @@ function step(state: State, action: Action): State {
       return atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning;
     }
     case 'hire': // a groom more (from the Pensionsstall on), up to the most a farm takes; or one less
-      return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.max ? { ...state, staff: state.staff + 1 } : state;
+      return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.names.length ? { ...state, staff: state.staff + 1 } : state;
     case 'fire':
       return state.staff > 0 ? { ...state, staff: state.staff - 1 } : state;
     case 'board': {
@@ -543,7 +542,7 @@ function step(state: State, action: Action): State {
       // or at the market (buying it would make two)
       const name = typeof action.name === 'string' ? action.name.trim() : '', h = state.horses.find((x) => x.id === action.horse);
       const same = (n: string) => n.toLowerCase() === name.toLowerCase();
-      if (!h || !own(h) || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && same(x.name)) || state.market.some((o) => same(o.name))) return state;
+      if (!h || !own(h) || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && same(x.name)) || [...state.market, ...state.boardOffers].some((o) => same(o.name))) return state;
       return { ...state, horses: state.horses.map((x) => (x === h ? { ...x, name } : x)) };
     }
     case 'vet': {
