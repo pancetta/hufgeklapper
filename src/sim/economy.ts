@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope,
   showWaits, stalls,
 } from './state';
 
@@ -55,7 +55,10 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     const sport = () => {
       if (s.trainings < DATA.badge.trainings || (strategy === 'sport' && s.badges)) {
         // the sport player trains their best jumper, so one horse grows into the higher classes
-        const h = strategy === 'sport' ? best(fresh(DATA.jumping.energy)) : fresh(DATA.jumping.energy)[0];
+        // (the one that can still get better, the best jumper by breed first: class L needs one)
+        const h = strategy === 'sport'
+          ? fresh(DATA.jumping.energy).filter((x) => x.skills.jumping < scope(x)).sort((a, b) => scope(b) - scope(a) || b.skills.jumping - a.skills.jumping)[0]
+          : fresh(DATA.jumping.energy)[0];
         if (h && (strategy === 'sport' || s.trainings < DATA.badge.trainings)) act({ type: 'train', horse: h.id, faults: faults(h) });
       }
       if (!badgeWaits(s)) {
@@ -81,7 +84,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     if (canInspect(s)) { act({ type: 'inspection', answers: ALL_RIGHT }); if (s.stage === 'reitschule') inspectionDay = s.day; }
     if (s.stage === 'reitschule' && strategy !== 'careless') {
       if (!buildWaits(s, 'stalls') && s.money > DATA.build.stalls.cost + 200) act({ type: 'build', what: 'stalls' });
-      const offer = s.market.filter((o) => o.price + 150 < s.money).sort((a, b) => a.price - b.price)[0];
+      // the careful player buys the cheapest horse, the sport player the best jumper it can afford (class L needs one)
+      const offer = s.market.filter((o) => o.price + 150 < s.money).sort((a, b) => (strategy === 'sport' ? scope(b) - scope(a) : 0) || a.price - b.price)[0];
       if (offer && s.horses.length < stalls(s)) act({ type: 'buyHorse', offer: offer.id });
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }

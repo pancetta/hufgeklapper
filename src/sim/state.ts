@@ -182,8 +182,16 @@ export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWind
  * What "Hopp!" `offset` seconds from the perfect take-off does: too early to count yet, a clear jump, or a knocked
  * pole. Without it the horse refuses (see round.ts).
  */
-export const takeOff = (h: Horse, offset: number): 'early' | 'clear' | 'fault' =>
-  offset < -DATA.jumping.early ? 'early' : clears(h, offset) ? 'clear' : 'fault';
+export const takeOff = (h: Horse, offset: number, held = Infinity, need = 0): 'early' | 'clear' | 'fault' =>
+  offset < -DATA.jumping.early ? 'early' : clears(h, offset) && held >= need ? 'clear' : 'fault';
+/**
+ * Higher jumps (classes A and L, #58) need momentum: the finger held down for `need` seconds before letting go at
+ * take-off. A well-trained horse needs less of it. 0: a tap is enough (class E).
+ */
+export const holdNeed = (h: Horse, hold: number) => hold * (1 - DATA.jumping.holdSkill * (h.skills.jumping / 100));
+/** Why a take-off knocked the pole: not enough momentum (held too briefly) with the timing right, else too soon or late. */
+export const faultWhy = (h: Horse, offset: number, held = Infinity, need = 0): 'soon' | 'late' | 'power' =>
+  clears(h, offset) && held < need ? 'power' : offset < 0 ? 'soon' : 'late';
 
 /**
  * Why the riding badge can't be tried now: passed already, more practice first, tomorrow after a failed try, or every
@@ -206,16 +214,23 @@ export function showWaits(s: State): 'badge' | 'notToday' | 'money' | null {
 }
 export type ShowClass = keyof typeof DATA.shows.classes;
 export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
-/** Why horse `h` can't start in class `c` today: not skilled enough, or the entry fee is too much; null if it can. */
-export const classWaits = (s: State, h: Horse, c: ShowClass): 'skill' | 'money' | null =>
-  h.skills.jumping < DATA.shows.classes[c].minSkill ? 'skill' : s.money < DATA.shows.classes[c].fee ? 'money' : null;
+/** How far horse `h` can come in jumping: its breed's limit for the skill. */
+export const scope = (h: { breed: Breed }) => DATA.jumping.scope[h.breed];
+/** The highest class horse `h` can ever start in, with enough practice. */
+export const topClass = (h: { breed: Breed }) => SHOW_CLASSES.filter((c) => DATA.shows.classes[c].minSkill <= scope(h)).pop()!;
+/**
+ * Why horse `h` can't start in class `c` today: it can never jump that high (its breed), not skilled enough yet,
+ * or the entry fee is too much; null if it can.
+ */
+export const classWaits = (s: State, h: Horse, c: ShowClass): 'scope' | 'skill' | 'money' | null =>
+  scope(h) < DATA.shows.classes[c].minSkill ? 'scope' : h.skills.jumping < DATA.shows.classes[c].minSkill ? 'skill' : s.money < DATA.shows.classes[c].fee ? 'money' : null;
 /**
  * Why class `c` is shut today for every horse, the nearest reason first (the fee, then a skilled horse that can't
  * work today, then no horse skilled enough); null if some horse can start there.
  */
-export function classShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | null {
+export function classShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | 'scope' | null {
   const w = s.horses.map((h) => classWaits(s, h, c) ?? (cantWork(h, DATA.jumping.energy) ? 'tired' : null));
-  return w.includes(null) ? null : (['money', 'tired', 'skill'] as const).find((r) => w.includes(r)) ?? 'skill';
+  return w.includes(null) ? null : (['money', 'tired', 'skill', 'scope'] as const).find((r) => w.includes(r)) ?? 'scope';
 }
 const showScore = (faults: number, skill: number) => 100 - DATA.shows.faultPoints * faults + Math.round(skill * DATA.shows.skillPoints);
 
@@ -423,7 +438,7 @@ function step(state: State, action: Action): State {
       const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
       if (!h || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
       const trained: Horse = {
-        ...h, skills: { ...h.skills, jumping: clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)) },
+        ...h, skills: { ...h.skills, jumping: Math.max(h.skills.jumping, Math.min(scope(h), clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)))) }, // up to the breed's limit, never down
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
       };
       return { ...state, trainings: state.trainings + 1, horses: state.horses.map((x) => (x === h ? trained : x)) };

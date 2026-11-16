@@ -9,7 +9,7 @@ import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
-import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, touchDown } from '../sim/round';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, takeOffOffset, touchDown } from '../sim/round';
 import { blit, pole, shadow, standard } from './draw';
 import { drawRider } from './kids';
 import { seat } from './life';
@@ -19,7 +19,9 @@ export type JumpingOptions = {
   kid: Kid;
   course: Course;
   window: number; // seconds; drawn as the green take-off patch
-  judge: (offset: number) => 'early' | 'clear' | 'fault'; // the Sim's `takeOff` for this horse
+  judge: (offset: number, held?: number) => 'early' | 'clear' | 'fault'; // the Sim's `takeOff` for this horse (held: seconds of momentum)
+  hold: number; // seconds of momentum this horse needs on this course (#58); 0: a tap takes off
+  onKnock?: (offset: number, held: number) => void; // a knocked pole: when, and how long the finger was held, to say why
   onChange?: (r: Round) => void; // for the round's counters (jump, faults, time)
   onWaiting?: (waiting: 'first' | 'more' | null) => void; // the horse stands for a (first) way to ride; null: it rides
 };
@@ -86,12 +88,17 @@ function plate(ctx: CanvasRenderingContext2D, j: CourseJump, n: number, next: bo
 }
 
 /** For the next jump: the green take-off patch, as wide as the window, and two arrows showing the way to jump it. */
-function guide(ctx: CanvasRenderingContext2D, j: CourseJump, window: number, t: number) {
-  const a = ANGLE[j.dir], ux = Math.cos(a), uy = Math.sin(a), w = window * R.speed;
-  // jumps face N, E, S or W, so the patch is a plain rectangle
-  const [s0, s1, l] = [-R.takeoff - w / 2, -R.takeoff + w / 2, R.half - 3], xs = [j.x + ux * s0 - uy * l, j.x + ux * s1 + uy * l], ys = [j.y + uy * s0 + ux * l, j.y + uy * s1 - ux * l];
-  ctx.fillStyle = 'rgba(120, 220, 90, 0.5)';
-  ctx.fillRect(Math.round(Math.min(...xs)), Math.round(Math.min(...ys)), Math.round(Math.abs(xs[1] - xs[0])), Math.round(Math.abs(ys[1] - ys[0])));
+function guide(ctx: CanvasRenderingContext2D, j: CourseJump, window: number, hold: number, t: number) {
+  const a = ANGLE[j.dir], ux = Math.cos(a), uy = Math.sin(a), w = window * R.speed, l = R.half - 3;
+  // jumps face N, E, S or W, so a patch is a plain rectangle along the run-in, from s0 to s1
+  const patch = (s0: number, s1: number, colour: string) => {
+    const xs = [j.x + ux * s0 - uy * l, j.x + ux * s1 + uy * l], ys = [j.y + uy * s0 + ux * l, j.y + uy * s1 - ux * l];
+    ctx.fillStyle = colour;
+    ctx.fillRect(Math.round(Math.min(...xs)), Math.round(Math.min(...ys)), Math.round(Math.abs(xs[1] - xs[0])), Math.round(Math.abs(ys[1] - ys[0])));
+  };
+  // with momentum needed: a lighter run-up strip before the take-off patch, as long as the finger must be held
+  if (hold) patch(-R.takeoff - w / 2 - hold * R.speed, -R.takeoff - w / 2, 'rgba(255, 236, 140, 0.45)');
+  patch(-R.takeoff - w / 2, -R.takeoff + w / 2, 'rgba(120, 220, 90, 0.5)');
   ctx.fillStyle = `rgba(255, 255, 255, ${0.55 + 0.35 * Math.sin(t * 5)})`;
   for (const s of [-R.takeoff - 30, -R.takeoff - 42]) for (let k = 0; k < 5; k++) for (const side of [-1, 1]) {
     // a chevron pointing the way to ride: its tip at the centre line
@@ -160,7 +167,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     ctx.drawImage(arena, 0, 0);
     gate(ctx, c.start, false); gate(ctx, c.finish, true);
     const next = c.jumps[r.next];
-    if (next && !r.air) guide(ctx, next, o.window, t);
+    if (next && !r.air) guide(ctx, next, o.window, o.hold, t);
     // while the horse waits for a way: pulsing dots from it towards the next jump (or the finish), where to draw
     if (waiting && !path.length) {
       const [gx, gy, gd] = next ? [next.x, next.y, next.dir] : c.finish, a = ANGLE[gd as Dir], tx = gx - Math.cos(a) * 50, ty = gy - Math.sin(a) * 50;
@@ -177,6 +184,13 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     const items = c.jumps.map((j, i) => ({ y: j.y - (across(j.dir) ? R.half : 0), draw: () => jump(j, i) }));
     items.push({ y: r.air ? Infinity : r.y, draw: () => {
       drawHorse(t);
+      // the finger held for momentum: a gauge above the horse fills up, green once there is enough
+      if (o.hold && touch && !touch.drawing && running) {
+        const k = Math.min(1, (performance.now() - touch.at) / 1000 / o.hold), gx = Math.round(r.x - 12), gy = Math.round(r.y - 84);
+        ctx.fillStyle = '#2a1a10'; ctx.fillRect(gx - 1, gy - 1, 26, 6);
+        ctx.fillStyle = '#6b5844'; ctx.fillRect(gx, gy, 24, 4);
+        ctx.fillStyle = k >= 1 ? '#5cb85c' : '#f2c14e'; ctx.fillRect(gx, gy, Math.round(24 * k), 4);
+      }
       c.jumps.forEach((j, i) => {
         if (r.air || !across(j.dir) || r.y < j.y - R.half || r.y > j.y + R.half) return;
         ctx.save(); ctx.beginPath(); ctx.rect(0, r.y, A.w, A.h); ctx.clip(); jump(j, i); ctx.restore();
@@ -191,6 +205,8 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     if (waiting && !canvas.dataset.route) canvas.dataset.route = route(r, c).map(screenPoint).join(' ');
     if (!waiting) delete canvas.dataset.route;
     canvas.dataset.hopp = autopilot(r, c, o.window * 0.4).hopp ? '1' : '';
+    const off = takeOffOffset(r, c);
+    canvas.dataset.press = o.hold && off !== null && off > -o.hold - 0.25 && off < -o.hold ? '1' : ''; // the run-up strip begins
   }
 
   function frame(now: number) {
@@ -199,6 +215,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     while (running && acc >= STEP) {
       acc -= STEP;
       const before = r;
+      // momentum held until past the take-off: the horse jumps late (a knocked pole) rather than refusing
+      const late = takeOffOffset(r, c);
+      if (o.hold && touch && !touch.drawing && r.v && late !== null && late > o.window / 2 + 0.05) takeoff(0, (performance.now() - touch.at) / 1000); // (a standing horse: a new way, not a jump)
       // the horse sets off once the first way is drawn and the finger lifts: there is time to draw it
       const f = go ? follow(r, path) : { target: null, path };
       path = f.path;
@@ -218,15 +237,26 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   // short tap without moving is "Hopp!" too, judged from the touch
   const TAP = { ms: 350, px: 10 };
   const judged = (next: Round) => { if (next !== r) { r = next; o.onChange?.(r); } };
+  /** "Hopp!" `lag` seconds after the moment it counts for, with the finger held `held` seconds; says why if a pole falls. */
+  const takeoff = (lag: number, held = Infinity) => {
+    if (!running) return;
+    const off = takeOffOffset(r, c), next = hopp(r, c, (x) => o.judge(x, held), lag);
+    if (next.air?.down && !r.air && off !== null) o.onKnock?.(off - (lag * Math.max(r.v, 1)) / R.speed, held); // as hopp judges it
+    judged(next);
+  };
   canvas.addEventListener('pointerdown', (e) => {
     if (touch) return; // a second finger or a palm doesn't take over
     touch = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now(), t: r.t, drawing: false };
     try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows: drawing still works on the canvas */ }
-    if (running) judged(touchDown(r, c, o.judge));
+    // a tap takes off at once if on time (class E); with momentum needed, holding starts the run-up instead
+    if (running && !o.hold) { const off = takeOffOffset(r, c), next = touchDown(r, c, o.judge); if (next.air?.down && !r.air && off !== null) o.onKnock?.(off, Infinity); judged(next); }
   });
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== touch?.id) return;
     if (!touch.drawing && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px) return;
+    // held for momentum near a jump: a finger that drifts a little stays a hold, it doesn't start a new way
+    const near = takeOffOffset(r, c);
+    if (o.hold && !touch.drawing && near !== null && near > -o.hold - o.window - 0.3) return;
     const p = toArena(e);
     if (!touch.drawing || !path.length) { touch.drawing = true; path = [{ x: r.x, y: r.y }]; } // a new stroke, or after a refusal
     const last = path[path.length - 1];
@@ -234,11 +264,12 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   });
   const lift = (e: PointerEvent) => {
     if (e.pointerId !== touch?.id) return;
-    const tap = !touch.drawing && performance.now() - touch.at < TAP.ms && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px;
-    const lag = r.t - touch.t;
+    const still = !touch.drawing && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px, held = (performance.now() - touch.at) / 1000;
+    const tap = still && held < TAP.ms / 1000, lag = r.t - touch.t;
     if (touch.drawing && path.length > 1) go = true;
     touch = null;
-    if (tap && running) judged(hopp(r, c, o.judge, lag)); // nothing if the touch already took off
+    // class E: a tap, judged from the touch; with momentum: letting go is the take-off, judged now
+    if (o.hold ? still : tap) takeoff(o.hold ? 0 : lag, o.hold ? held : Infinity); // nothing if the touch already took off
   };
   canvas.addEventListener('pointerup', lift);
   canvas.addEventListener('pointercancel', (e) => { if (e.pointerId === touch?.id) touch = null; });
@@ -251,7 +282,8 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     /** Starts the canter; resolves with the faults once the horse is through the finish. */
     run() { running = true; last = performance.now(); acc = 0; return result; },
     /** "Hopp!": take off, if the horse is lined up for the next jump. */
-    hopp() { if (running) judged(hopp(r, c, o.judge)); },
+    /** "Hopp!" from the keyboard: the space bar, held `held` seconds (its momentum, like a finger). */
+    hopp(held = Infinity) { takeoff(0, held); },
     stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }

@@ -20,7 +20,7 @@ import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -369,8 +369,8 @@ export function showFarm(intro = false) {
    */
   function enterShow() {
     const s = game.get(), C = DATA.shows.classes, ride = (c: ShowClass, title: string, note?: string) =>
-      pickHorse(title, (id) => showJumping(id, 'show', c), (h) => (classWaits(s, h, c) === 'skill' ? t.notSkilled : null), note);
-    if (SHOW_CLASSES.slice(1).every((c) => classShut(s, c) === 'skill')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
+      pickHorse(title, (id) => showJumping(id, 'show', c), (h) => ({ skill: t.notSkilled, scope: t.notScope, money: null, ok: null })[classWaits(s, h, c) ?? 'ok'], note);
+    if (SHOW_CLASSES.slice(1).every((c) => classShut(s, c) === 'skill' || classShut(s, c) === 'scope')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${t.whichClass}</h2><p class="oma">${t.classesHow}</p>
       ${SHOW_CLASSES.map((c) => {
@@ -433,7 +433,7 @@ export function showFarm(intro = false) {
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${s.stage === 'reitschule' ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
         const full = s.horses.length >= stalls(s), poor = s.money < o.price;
-        return `<button type="button" data-offer="${o.id}"${full || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)}${!full && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
+        return `<button type="button" data-offer="${o.id}"${full || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))}${!full && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
       }).join('') + (s.horses.length >= stalls(s) ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.marketEmpty}</p>`}` : ''}
       <button type="button" id="close-shop">${t.close}</button>`;
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
@@ -517,23 +517,40 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   // each round its own course: from the day and the practice so far (the same again after a reload)
   const s0 = game.get(), course = courseFor(kind, showClass, s0.day * 1009 + s0.trainings * 31 + s0.badgeFailedDay), allowed = timeAllowed(course);
   const hud = (r: Round) => { $('jump-hud').textContent = t.jumpHud(Math.min(r.next + 1, course.jumps.length), course.jumps.length, r.faults, Math.floor(r.t), allowed); };
+  // higher classes need momentum: how long this horse needs the finger held before letting go (0: a tap)
+  const need = holdNeed(h, course.hold ?? 0), tip = $('jump-tip');
+  if (need) $('jump-start').querySelector('p')!.textContent = t.jumpHow(h.look.build === 'pony', true); // Oma explains the momentum instead of the tap
+  let waitTip = '', knockTimer = 0;
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
-    look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), judge: (o) => takeOff(h, o), onChange: hud,
-    onWaiting: (w) => { $('jump-tip').hidden = !w; if (w) $('jump-tip').textContent = t.drawTip(w, h.look.build === 'pony'); },
+    look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), hold: need, judge: (o, held) => takeOff(h, o, held, need), onChange: hud,
+    onWaiting: (w) => { waitTip = w ? t.drawTip(w, h.look.build === 'pony') : ''; if (!knockTimer) { tip.hidden = !w; tip.textContent = waitTip; } },
+    // a knocked pole: say why for a moment (too soon, too late, not enough momentum), then back to any waiting tip
+    onKnock: (o, held) => {
+      tip.textContent = t.knock[faultWhy(h, o, held, need)]; tip.hidden = false;
+      clearTimeout(knockTimer);
+      knockTimer = window.setTimeout(() => { knockTimer = 0; tip.textContent = waitTip; tip.hidden = !waitTip; }, 1800);
+    },
   });
   hud(newRound(course));
   // on the arena a tap is "Hopp!" (the scene); on a keyboard the space bar is too, unless a button has the focus
+  // held down for momentum like a finger: the take-off when it is let go
+  let spaceAt = 0;
   const key = (e: KeyboardEvent) => {
     if (e.code !== 'Space' || e.target instanceof HTMLButtonElement) return;
-    e.preventDefault(); round.then((r) => r.hopp());
+    e.preventDefault();
+    if (e.type === 'keydown') { if (!e.repeat) spaceAt = performance.now(); return; }
+    const held = (performance.now() - spaceAt) / 1000;
+    round.then((r) => r.hopp(held));
   };
   addEventListener('keydown', key);
+  addEventListener('keyup', key);
   // two fingers on the arena must not zoom the page (iPadOS pinches even over touch-action: none)
   const noZoom = (e: Event) => e.preventDefault();
   document.addEventListener('gesturestart', noZoom);
   $('jump-go').addEventListener('click', async () => { // once: a second click (or the space bar) must not ride it again
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
+    clearTimeout(knockTimer); tip.hidden = true; // no tip over the result
     if (kind === 'show') {
       // the podium: the first three on their steps, then everyone with their points
       const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name, showClass);
@@ -561,7 +578,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   }, { once: true });
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
-  leave = () => { removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
+  leave = () => { removeEventListener('keydown', key); removeEventListener('keyup', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
 }
 
 /**
@@ -678,7 +695,8 @@ export function showStable() {
       <form id="rename" class="rename"><h2>${esc(h.name)}</h2><button type="button" id="rename-start" class="small">${t.rename}</button></form>
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
-      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill"><i style="width:${h.skills.jumping}%"></i></span></div>
+      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
+      <p>${t.jumpsUpTo(topClass(h))}</p>
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
       <button id="care" type="button">${t.care}</button>
