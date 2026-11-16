@@ -94,17 +94,28 @@ const sprite = (name: keyof typeof SPRITES, x: number, y: number, img: Images): 
 };
 
 /** A show jump (our own drawing): two white standards with striped poles. */
-function jump(x: number, y: number, colour: string): Drawable {
-  return { y, draw: (ctx) => {
-    shadow(ctx, x, y + 1, 26, 3, 0.2);
-    for (const sx of [x - 26, x + 22]) {
-      ctx.fillStyle = '#6b5a4a'; ctx.fillRect(sx, y - 20, 5, 21);
-      ctx.fillStyle = '#f7f3ea'; ctx.fillRect(sx + 1, y - 20, 3, 20);
-      ctx.fillStyle = colour; ctx.fillRect(sx + 1, y - 22, 3, 3);
-    }
-    for (const py of [y - 15, y - 8]) for (let i = 0; i < 44; i++) { ctx.fillStyle = Math.floor(i / 6) % 2 ? '#f4efe2' : colour; ctx.fillRect(x - 21 + i, py, 1, 3); }
-    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x - 21, y - 12, 44, 1); ctx.fillRect(x - 21, y - 5, 44, 1);
-  } };
+/**
+ * A show jump across the canter lane (which runs left and right), seen from above like the jumping arena's: a white
+ * standard at each end, the striped pole between them, its shadow on the sand. The far standard and the pole stand
+ * behind a horse on the lane, the near standard in front of it.
+ */
+function jump(x: number, y: number, colour: string): Drawable[] {
+  const h = 11, lift = 6; // short enough that a lesson's quiet round (see `track`) passes below the lower jump
+  const standard = (ctx: CanvasRenderingContext2D, sy: number) => {
+    ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x - 1, sy, 5, 2);
+    ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, sy - 11, 5, 12);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, sy - 10, 3, 10);
+    ctx.fillStyle = colour; ctx.fillRect(x - 1, sy - 8, 3, 2); ctx.fillRect(x - 1, sy - 4, 3, 2);
+  };
+  return [
+    { y: y - h, draw: (ctx) => {
+      standard(ctx, y - h);
+      ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x + 1, y - h + 2, 2, 2 * h); // the pole's shadow on the sand
+      ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 1, y - h - lift - 1, 3, 2 * h + 2);
+      for (let i = 0; i <= 2 * h; i++) { ctx.fillStyle = Math.floor(i / 5) % 2 ? colour : '#ffffff'; ctx.fillRect(x, y - h - lift + i, 1, 1); }
+    } },
+    { y: y + h, draw: (ctx) => standard(ctx, y + h) },
+  ];
 }
 
 /** An open shelter with two more stall places (our own drawing, in the barn's colours): red planks, a grey roof, straw. */
@@ -208,7 +219,7 @@ export function plotDrawables(p: Plot, img: Images): Drawable[] {
     }
     case 'feedStore': return [sprite('hayShed', cx, b.y1 - 6, img)];
     case 'pasture': return [...fence(p, [0, 0], img, p.c0 + 1), sprite('troughWater', b.x0 + 88, b.y0 + 86, img), sprite('hayRoll', b.x1 - 50, b.y0 + 166, img)];
-    case 'arena': return [...fence(p, [384, 0], img), ...jumps(p).map((j) => jump(j.x, j.y, j.colour)),
+    case 'arena': return [...fence(p, [384, 0], img), ...jumps(p).flatMap((j) => jump(j.x, j.y, j.colour)),
       ...(p.flags ? [pennants(p)] : []), ...(p.level ? flowerBoxes(p) : [])];
     case 'shelter': return [shelter(p)];
     default: return freePlot(p);
