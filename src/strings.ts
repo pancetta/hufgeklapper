@@ -5,7 +5,7 @@ export const t = {
   rotate: 'Bitte dreh dein iPad quer.',
   credits: 'Wer hat mitgemalt?',
   creditsTitle: 'Danke!',
-  creditsIntro: 'Diese Bilder und die Schrift haben andere Menschen gemacht und frei verschenkt. Danke!',
+  creditsIntro: 'Diese Bilder und die Schrift haben andere Menschen gemacht und frei verschenkt. Danke! Die Reiterkinder, Oma Hanne, die Windmühle, die Hindernisse und vieles mehr haben wir selbst gezeichnet.',
   creditsBy: 'Von',
   creditsLicence: 'Lizenz',
   creditsSource: 'Quelle',
