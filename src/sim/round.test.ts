@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { autopilot, type Course, hopp, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
+import { autopilot, type Course, follow, hopp, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
 
 const R = DATA.jumping.ride, DT = 1 / 60, E = DATA.jumping.courses.E;
 const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
@@ -33,6 +33,26 @@ describe('a round on the show-jumping arena', () => {
       }
   });
 
+  it('rides the drawn path: reached points drop off, passed ones too, then it steers to the next', () => {
+    const r: Round = { ...newRound(E), x: 100, y: 100 };
+    const path = [{ x: 60, y: 100 }, { x: 95, y: 100 }, { x: 105, y: 100 }, { x: 140, y: 100 }, { x: 140, y: 140 }];
+    expect(follow(r, path)).toEqual({ target: { x: 140, y: 100 }, path: path.slice(3) }); // 60 lies behind, 95 and 105 are reached
+    expect(follow(r, [{ x: 200, y: 100 }])).toEqual({ target: { x: 200, y: 100 }, path: [{ x: 200, y: 100 }] });
+    expect(follow(r, [{ x: 104, y: 100 }]).target).toBeNull(); // used up: straight on
+    // a drawn curve is ridden closely: an L-shaped path, the horse ends near its corner's leg
+    let h: Round = { ...newRound(E), x: 100, y: 200, heading: 0 }, p = [...Array(40)].map((_, i) => (i < 20 ? { x: 100 + i * 4, y: 200 } : { x: 180, y: 200 - (i - 19) * 4 }));
+    let far = 0;
+    while (p.length && h.t < 3) { const f = follow(h, p); p = f.path; h = step(h, E, DT, f.target); far = Math.max(far, Math.min(...[...Array(40)].map((_, i) => (i < 20 ? Math.hypot(h.x - 100 - i * 4, h.y - 200) : Math.hypot(h.x - 180, h.y - 200 + (i - 19) * 4))))); }
+    expect(far).toBeLessThan(25); // never more than a pony's width off the line
+  });
+
+  it('a tap counts from when the finger touched down', () => {
+    // lined up for jump 1, the tap's touch exactly at the perfect take-off, lifted 0.1 s later
+    const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0 };
+    expect(hopp(at, E, judge, 0.1).air?.down).toBe(false);
+    expect(hopp(at, E, judge).air?.down).toBe(true); // judged at the lift it would be late
+  });
+
   it('with no finger down, the horse does not stay in a corner', () => {
     let r: Round = { ...newRound(E), x: 455, y: 279, heading: 0 };
     for (let i = 0; i < 120; i++) r = step(r, E, DT, null);
@@ -63,7 +83,9 @@ describe('a round on the show-jumping arena', () => {
 
   it('a jump out of turn stops the horse without a fault', () => {
     // in front of jump 2 while jump 1 is next
-    const j = E.jumps[1], r = ride(E, { ...newRound(E), x: j.x - 30, y: j.y }, () => false, (x) => x.refused !== null);
+    const j = E.jumps[1];
+    let r: Round = { ...newRound(E), x: j.x - 30, y: j.y };
+    while (r.refused === null && r.t < 2) r = step(r, E, DT, null); // straight on, no finger
     expect([r.refused, r.faults]).toEqual([1, 0]);
   });
 

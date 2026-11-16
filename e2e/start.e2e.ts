@@ -4,22 +4,27 @@ import { timeAllowed } from '../src/sim/round';
 import { t } from '../src/strings';
 
 /**
- * Rides the course like a rider who knows the way: the finger follows the point the scene says (its autopilot),
- * "Hopp!" when it says so, until the round's result shows.
+ * Rides the course like a rider who knows the way: draws the path with one finger towards the point the scene says
+ * (its autopilot), lifts it and taps once for "Hopp!" when it says so, until the round's result shows.
  */
 async function rideCourse(page: Page) {
   const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
   let down = false;
   while (await end.isHidden()) {
-    if (Date.now() > until) throw new Error('the round did not end in 40 s: the autopilot is lost');
+    if (Date.now() > until) throw new Error(`the round did not end in 40 s: the autopilot is lost (${await page.locator('#jump-hud').textContent()})`);
     const [aim, hopp] = await canvas.evaluate((c) => [c.dataset.aim ?? '', c.dataset.hopp ?? '']);
     if (!aim) continue; // the first frame of the round is still to come
     const [x, y] = aim.split(',').map(Number);
-    await page.mouse.move(x, y);
-    if (!down) { await page.mouse.down(); down = true; }
-    if (hopp) await page.locator('#hopp').dispatchEvent('pointerdown');
+    if (hopp) {
+      if (down) { await page.mouse.up(); down = false; }
+      await page.mouse.click(x, y); // a tap: "Hopp!"
+      continue;
+    }
+    // a stroke starts a little off the target, so it is drawing (not a tap) even when the target stands still
+    if (!down) { await page.mouse.move(x - 20, y - 20); await page.mouse.down(); await page.mouse.move(x, y, { steps: 2 }); down = true; }
+    else await page.mouse.move(x, y, { steps: 2 });
   }
-  await page.mouse.up();
+  if (down) await page.mouse.up();
 }
 
 /**
@@ -299,7 +304,7 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.getByRole('status')).toHaveText(t.noPupils);
 });
 
-test('jumping practice: the avatar steers round the course, "Hopp!" takes off, the pony trains', async ({ page }) => {
+test('jumping practice: the avatar draws the way round the course, a tap takes off, the pony trains', async ({ page }) => {
   test.setTimeout(60_000); // the round runs in real time (about 12 s), slower on a busy runner
   await page.goto('./');
   await newGame(page, 'Sonnenhof');

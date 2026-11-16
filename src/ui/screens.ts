@@ -504,7 +504,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.showClassName(showClass) : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
-    <p id="jump-hud" class="jump-hud" aria-live="off"></p><button type="button" id="hopp" class="hopp">${t.hopp}</button>
+    <p id="jump-hud" class="jump-hud" aria-live="off"></p>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
   // practice and the riding badge ride the E course, a show its class's
   const course = courseFor(kind, showClass), allowed = timeAllowed(course);
@@ -513,13 +513,15 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
     look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), judge: (o) => takeOff(h, o), onChange: hud,
   });
   hud(newRound(course));
-  // pointerdown, not click: the take-off timing should not wait for the finger to lift; the space bar on a keyboard
-  $('hopp').addEventListener('pointerdown', (e) => { e.preventDefault(); round.then((r) => r.hopp()); });
+  // on the arena a tap is "Hopp!" (the scene); on a keyboard the space bar is too, unless a button has the focus
   const key = (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || (e.target instanceof HTMLButtonElement && e.target.id !== 'hopp')) return; // other buttons keep their space bar
+    if (e.code !== 'Space' || e.target instanceof HTMLButtonElement) return;
     e.preventDefault(); round.then((r) => r.hopp());
   };
   addEventListener('keydown', key);
+  // two fingers on the arena must not zoom the page (iPadOS pinches even over touch-action: none)
+  const noZoom = (e: Event) => e.preventDefault();
+  document.addEventListener('gesturestart', noZoom);
   $('jump-go').addEventListener('click', async () => { // once: a second click (or the space bar) must not ride it again
     $('jump-start').hidden = true;
     const faults = await (await round).run(), end = $('jump-end');
@@ -550,7 +552,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   }, { once: true });
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
-  leave = () => { removeEventListener('keydown', key); round.then((r) => r.stop()); };
+  leave = () => { removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
 }
 
 /**

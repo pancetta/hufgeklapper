@@ -103,15 +103,33 @@ export function takeOffOffset(r: Round, c: Course) {
   return (s + R.takeoff) / R.speed;
 }
 
-/** "Hopp!": takes off for the next jump if the horse is lined up and the judge (the Sim's take-off window) says so. */
-export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | 'clear' | 'fault'): Round {
+/**
+ * "Hopp!": takes off for the next jump if the horse is lined up and the judge (the Sim's take-off window) says so.
+ * `lag`: seconds since the finger touched down (a tap is known only once it lifts); the judge hears the touch.
+ */
+export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | 'clear' | 'fault', lag = 0): Round {
   const offset = takeOffOffset(r, c);
   if (offset === null) return r;
-  const what = judge(offset);
+  const what = judge(offset - lag);
   if (what === 'early') return r;
   const j = c.jumps[r.next], { s } = rel(r.x, r.y, [j.x, j.y], j.dir);
   // straight over the jump, landing as far behind the pole as the hooves left the ground before it
   return { ...r, heading: ANGLE[j.dir], air: { jump: r.next, from: r.t, to: r.t + (R.takeoff - s) / R.speed, down: what === 'fault' } };
+}
+
+export type Point = { x: number; y: number };
+/**
+ * The path the child drew, as the horse rides it: the points it has reached or passed drop off (the nearest point
+ * and all before it, once within reach, and any within reach after it), and it steers to the next one; null when
+ * the path is used up.
+ */
+export function follow(r: Round, path: Point[]): { target: Point | null; path: Point[] } {
+  const d = (p: Point) => Math.hypot(p.x - r.x, p.y - r.y);
+  let near = -1;
+  for (let i = 0; i < path.length; i++) if (near < 0 || d(path[i]) < d(path[near])) near = i;
+  let rest = near >= 0 && d(path[near]) < R.reach ? path.slice(near + 1) : path;
+  while (rest.length && d(rest[0]) < R.reach) rest = rest.slice(1);
+  return { target: rest[0] ?? null, path: rest };
 }
 
 /**
@@ -119,7 +137,7 @@ export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | '
  * jump from a point straight in front of it. For the tests and the Playwright round; the child steers themselves.
  */
 export function autopilot(r: Round, c: Course, window = 0.03) {
-  const j = c.jumps[r.next];
+  const j = c.jumps[r.air ? r.air.jump + 1 : r.next]; // in the air: already on to the next one
   if (!j) { const [fx, fy, fd] = c.finish; return { x: fx + Math.cos(ANGLE[fd]) * 30, y: fy + Math.sin(ANGLE[fd]) * 30, hopp: false }; }
   const a = ANGLE[j.dir], { s, lat } = rel(r.x, r.y, [j.x, j.y], j.dir), offset = takeOffOffset(r, c);
   const ux = Math.cos(a), uy = Math.sin(a), along = (d: number, side = 0) => ({ x: j.x + ux * d - uy * side, y: j.y + uy * d + ux * side });
