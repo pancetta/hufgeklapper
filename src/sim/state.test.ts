@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -423,6 +423,16 @@ describe('Sim', () => {
   it('says how many nights the hay lasts: one bale per horse a night', () => {
     const s = newGame(1); // two ponies
     expect([hayNights({ ...s, feed: 10 }), hayNights({ ...s, feed: 5 }), hayNights({ ...s, feed: 1 }), hayNights({ ...s, feed: 0 })]).toEqual([5, 2, 0, 0]);
+  });
+
+  it('sums the day\'s money for the diary: in and out apart, by kind, the biggest first', () => {
+    const day = dayMoney([{ what: 'lesson', amount: 20 }, { what: 'hay', amount: -25 }, { what: 'lesson', amount: 28 }, { what: 'prize', amount: 60 }, { what: 'showFee', amount: -15 }]);
+    expect(day).toEqual({ income: [{ what: 'prize', amount: 60 }, { what: 'lesson', amount: 48 }], costs: [{ what: 'hay', amount: -25 }, { what: 'showFee', amount: -15 }], debts: [], total: 68 });
+    expect(dayMoney([])).toEqual({ income: [], costs: [], debts: [], total: 0 });
+    // debts apart; the total is exactly how the money changed: 100 lent, 60 prize of which 30 paid debt back, and
+    // hay on credit, which doesn't touch the money
+    const d = dayMoney([{ what: 'loan', amount: 100 }, { what: 'hayOnCredit', amount: -25 }, { what: 'prize', amount: 60 }, { what: 'repay', amount: -30 }]);
+    expect([d.income, d.debts.map((r) => r.what), d.total]).toEqual([[{ what: 'prize', amount: 60 }], ['loan', 'hayOnCredit', 'repay'], 130]);
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {

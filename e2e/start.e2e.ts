@@ -133,11 +133,16 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   const fed = page.getByRole('meter', { name: t.needs.fed }).first();
   const before = Number(await fed.getAttribute('aria-valuenow'));
   await page.getByRole('button', { name: t.sleep }).tap();
+  // the farm diary first: today's hay as a red bar, the day's total and the money
+  const diary = page.locator('.diary');
+  await expect(diary.getByRole('heading', { name: t.diaryTitle(1) })).toBeVisible();
+  await expect(diary.locator('.diary-row', { hasText: t.billWhat.hay })).toContainText(t.euros(-25));
+  await expect(diary.locator('.diary-bar.out')).toHaveCount(1);
+  await expect(diary).toContainText(t.diaryTotal(-25, 275));
+  await page.screenshot({ path: test.info().outputPath('diary.png') });
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
   expect(Number(await page.getByRole('meter', { name: t.needs.fed }).first().getAttribute('aria-valuenow'))).toBeLessThan(before);
-  // the morning bill shows yesterday's hay
-  await expect(page.getByText(`${t.billWhat.hay} ${t.euros(-25)}`)).toBeVisible();
-  await page.getByRole('button', { name: t.morningGo }).tap();
   // back to the farm
   await page.getByRole('button', { name: t.toFarm }).tap();
   await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
@@ -222,8 +227,9 @@ test('a sick pony: red name plate, the vet heals it for money; no hay shows in t
   await expect(page.getByText(t.resting('Kiwi'))).toBeVisible();
   await expect(page.getByText(t.money(260))).toBeVisible();
   await page.getByRole('button', { name: t.close }).tap();
-  // a night without hay: the morning says so
+  // a night without hay: the morning says so (after the diary of the vet's bill)
   await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.getByText(t.newsNoHay)).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: t.morningGo }).tap();
   await expect(page.getByText(t.newsNoHay)).toBeHidden();
