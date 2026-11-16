@@ -9,7 +9,7 @@ import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
-import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, step, touchDown } from '../sim/round';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, touchDown } from '../sim/round';
 import { blit, pole, shadow, standard } from './draw';
 import { drawRider } from './kids';
 import { seat } from './life';
@@ -184,11 +184,13 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     } });
     c.jumps.forEach((j, i) => plate(ctx, j, i + 1, i === r.next, t)); // signs on the sand, under a jumping horse
     for (const it of items.sort((a, b) => a.y - b.y)) it.draw();
-    // for the Playwright round: where a rider who knows the way would point, and whether to press "Hopp!" now
+    // for the Playwright round: while the horse waits, the whole way a rider who knows it would draw (screen
+    // pixels); while it rides, whether to tap "Hopp!" now
     if (!running) return;
-    const a = autopilot(r, c, o.window * 0.4);
-    canvas.dataset.aim = `${Math.round(box.left + (ox + a.x) * S)},${Math.round(box.top + (oy + a.y) * S)}`;
-    canvas.dataset.hopp = a.hopp ? '1' : '';
+    const screenPoint = (p: Point) => `${Math.round(box.left + (ox + p.x) * S)},${Math.round(box.top + (oy + p.y) * S)}`;
+    if (waiting && !canvas.dataset.route) canvas.dataset.route = route(r, c).map(screenPoint).join(' ');
+    if (!waiting) delete canvas.dataset.route;
+    canvas.dataset.hopp = autopilot(r, c, o.window * 0.4).hopp ? '1' : '';
   }
 
   function frame(now: number) {

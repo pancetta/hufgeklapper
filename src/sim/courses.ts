@@ -69,7 +69,7 @@ export function build(cls: ShowClass, seed: number): [Course | null, number] {
   return [{ start: [sx, sy, dir0], finish, jumps }, seed];
 }
 
-/** Whether the autopilot rides `c` clean, without a refusal (no jump in the way), in at most `share` of the time allowed. */
+/** Whether the autopilot rides `c` clean, without a refusal or a jump out of turn in its way, in at most `share` of the time allowed. */
 export function rideable(c: Course, share = G.share) {
   let r = newRound(c);
   const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
@@ -77,7 +77,7 @@ export function rideable(c: Course, share = G.share) {
     const a = autopilot(r, c);
     if (a.hopp) r = hopp(r, c, judge);
     r = step(r, c, 1 / 60, a);
-    if (r.refused !== null) return false;
+    if (r.refused !== null || (r.air && !r.air.counts)) return false; // a jump in its way: not a good course
   }
   return r.done && r.faults === 0 && r.t <= timeAllowed(c) * share;
 }
