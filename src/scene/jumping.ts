@@ -218,16 +218,17 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
       // momentum held until past the take-off: the horse jumps late (a knocked pole) rather than refusing
       const late = takeOffOffset(r, c);
       if (o.hold && touch && !touch.drawing && r.v && late !== null && late > o.window / 2 + 0.05) takeoff(0, (performance.now() - touch.at) / 1000); // (a standing horse: a new way, not a jump)
-      // the horse sets off once the first way is drawn and the finger lifts: there is time to draw it
-      const f = go ? follow(r, path) : { target: null, path };
+      // a standing horse (before the first way, after a refusal or at the end of a way) sets off only once the
+      // finger lifts: there is time to draw the whole way; a horse on the move follows the new way at once
+      const f = !go || (touch?.drawing && !r.v && !r.air) ? { target: null, path } : follow(r, path);
       path = f.path;
       r = step(r, c, STEP, f.target);
       if (r.stopped && !before.stopped) path = []; // a refusal: the horse turns round, the child draws a new way
       if (r.next !== before.next || r.faults !== before.faults || Math.floor(r.t) !== Math.floor(before.t)) o.onChange?.(r);
       if (r.done) { running = false; done(r.faults); }
     }
-    // standing for a way to ride (before the first, or at the end of one): say so once it changes
-    const now_ = !running ? null : !go ? 'first' : !r.air && !r.stopped && !r.v && !path.length && !touch?.drawing ? 'more' : null;
+    // standing for a way to ride (before the first, or at the end of one; also while it is drawn): say so once it changes
+    const now_ = !running ? null : !go ? 'first' : !r.air && !r.stopped && !r.v && (!path.length || touch?.drawing) ? 'more' : null;
     if (now_ !== waiting) { waiting = now_; o.onWaiting?.(waiting); }
     draw();
     requestAnimationFrame(frame);
