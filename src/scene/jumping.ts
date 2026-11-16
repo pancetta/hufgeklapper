@@ -11,7 +11,7 @@ import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
 import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, takeOffOffset, touchDown } from '../sim/round';
 import { blit, pole, shadow, standard } from './draw';
-import { drawRider } from './kids';
+import { drawKid, drawRider, type Gear } from './kids';
 import { seat } from './life';
 
 export type JumpingOptions = {
@@ -24,6 +24,8 @@ export type JumpingOptions = {
   onKnock?: (offset: number, held: number) => void; // a knocked pole: when, and how long the finger was held, to say why
   onChange?: (r: Round) => void; // for the round's counters (jump, faults, time)
   onWaiting?: (waiting: 'first' | 'more' | null) => void; // the horse stands for a (first) way to ride; null: it rides
+  lead?: boolean; // the child walks beside and leads the horse (the care course's warm-up, #72) instead of riding it
+  gear?: Gear; // what the child wears (the care course: what was put on)
 };
 
 const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand, unless the course says
@@ -150,7 +152,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     const fps = c.pace ? 7 : 11, f = phase < 0 || !side ? Math.floor(t * fps) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
     const [sheet, frame] = r.stopped || !running || (!r.air && !r.v) ? [idle, [ROW[dir] * 128, 0, 128, 128] as const] : [gallop, [f * 128, ROW[dir] * 128, 128, 128] as const];
     blit(ctx, sheet, frame, r.x - 64, r.y - 93);
-    drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir);
+    if (o.lead) { // on foot, beside the horse's shoulder on our side of it, a step with each beat
+      const [dx, dy] = dir === 'E' ? [12, 7] : dir === 'W' ? [-12, 7] : dir === 'S' ? [12, 0] : [12, -4];
+      drawKid(ctx, o.kid, r.x + dx, r.y + dy, dir, r.v ? Math.floor(t * 4) : 0, o.gear);
+    } else drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir, o.gear);
     if (dir === 'S') { // coming towards us, the head and neck are in front of the child
       ctx.beginPath(); ctx.rect(r.x - 64, r.y - 93, 128, 93 + s.dy - 2); ctx.clip();
       blit(ctx, sheet, frame, r.x - 64, r.y - 93);

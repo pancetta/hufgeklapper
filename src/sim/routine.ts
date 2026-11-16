@@ -30,7 +30,7 @@ export const STEPS = [
   step('bridleGet', 'bridle', 'tack', GROOM),
   step('saddleOn', 'saddle', 'body', ['saddleGet']),
   step('girth', 'hand', 'belly', ['saddleOn']),
-  step('stirrups', 'hand', 'body', ['saddleOn']),
+  step('stirrups', 'hand', 'body', ['girth']),
   step('helmet', 'helmet', 'rider'),
   step('vest', 'vest', 'rider'),
   step('gloves', 'gloves', 'rider'),
@@ -38,9 +38,10 @@ export const STEPS = [
   step('reins', 'bridle', 'neck', ['halterNeck']),
   step('bridleOn', 'bridle', 'head', ['reins']),
   step('straps', 'hand', 'head', ['bridleOn']),
-  step('untie', 'rope', 'ring', ['straps']),
+  step('tighten', 'hand', 'belly', ['straps']),
+  step('untie', 'rope', 'ring', ['tighten']),
   step('halterOff', 'halter', 'neck', ['untie']),
-  step('whip', 'whip', 'tack', ['tie']),
+  step('whip', 'whip', 'tack'),
   step('toArena', 'hand', 'arena', ['halterOff', 'whip', 'helmet', 'vest', 'gloves']),
   step('ride', null, 'arena', ['toArena']),
   step('back', 'hand', 'ring', ['ride']),
@@ -49,10 +50,11 @@ export const STEPS = [
   step('bridleOff', 'hand', 'head', ['tie2']),
   step('wash', 'bridle', 'tap', ['bridleOff']),
   step('halterOn', 'halter', 'head', ['bridleOff']),
+  step('hooves2', 'hoofpick', 'legs', ['tie2']),
   step('girthOff', 'hand', 'belly', ['tie2']),
   step('saddleOff', 'saddle', 'tack', ['girthOff']),
   step('bridleAway', 'bridle', 'tack', ['wash']),
-  step('untie2', 'rope', 'ring', ['halterOn', 'saddleOff', 'bridleAway']),
+  step('untie2', 'rope', 'ring', ['halterOn', 'saddleOff', 'bridleAway', 'hooves2']),
   step('toBox', 'hand', 'box', ['untie2']),
   step('halterOff2', 'halter', 'head', ['toBox']),
   step('close', 'hand', 'box', ['halterOff2']),
@@ -61,18 +63,33 @@ export const STEPS = [
 ] as const;
 export type StepId = (typeof STEPS)[number]['id'];
 /** Steps the scene finishes with a gesture (brush strokes, each hoof, each buckle) before they count. */
-export const GESTURE: Partial<Record<StepId, 'brush' | 'hooves' | 'buckles'>> = { kardaetsche: 'brush', magic: 'brush', root: 'brush', face: 'brush', hooves: 'hooves', straps: 'buckles', bridleOff: 'buckles' };
+export const GESTURE: Partial<Record<StepId, 'brush' | 'hooves' | 'buckles'>> = { kardaetsche: 'brush', magic: 'brush', root: 'brush', face: 'brush', hooves: 'hooves', hooves2: 'hooves', straps: 'buckles', bridleOff: 'buckles' };
+
+/** Body brushes work on the whole body: the neck and belly are body too (the Magic Brush also does the legs). */
+const ALIAS: Partial<Record<Thing, Spot[]>> = { kardaetsche: ['neck', 'belly'], magic: ['neck', 'belly', 'legs'] };
 
 /**
- * What a thing on a spot does now: the step it is, or why not — the step that has to wait (its `why`), `done` when
- * every step with it is done, or `none` when it does nothing here.
+ * What a thing on a spot does now: the step it is, or why not. A step that must wait is `why` with `first`, the step
+ * to do before it (the earliest one that can be done now). `done` when its step is done (a second tap, too), `none`
+ * when the thing does nothing here.
  */
-export function tryStep(done: readonly StepId[], thing: Thing, at: Spot): { step: StepId } | { why: StepId | 'done' | 'none' } {
+export function tryStep(done: readonly StepId[], thing: Thing, at: Spot): { step: StepId } | { why: StepId; first: StepId } | { why: 'done' | 'none' } {
+  if (ALIAS[thing]?.includes(at)) at = 'body';
   const same = STEPS.filter((s) => s.thing === thing && s.at === at);
   if (!same.length) return { why: 'none' };
   const next = same.find((s) => !done.includes(s.id));
   if (!next) return { why: 'done' };
-  return next.after.every((a) => done.includes(a as StepId)) ? { step: next.id } : { why: next.id };
+  if (next.after.every((a) => done.includes(a as StepId))) return { step: next.id };
+  // the same thing again on the same place, right after it was used there: already done, not the later step
+  if (same.indexOf(next) > 0) return { why: 'done' };
+  return { why: next.id, first: firstFor(done, next.id) };
+}
+
+/** The earliest step in the usual order that can be done now and is needed (directly or not) before `id`. */
+function firstFor(done: readonly StepId[], id: StepId): StepId {
+  const need = new Set<string>(), add = (x: string) => { for (const a of STEPS.find((s) => s.id === x)!.after) if (!done.includes(a as StepId) && !need.has(a)) { need.add(a); add(a); } };
+  add(id);
+  return STEPS.find((s) => need.has(s.id) && s.after.every((a) => done.includes(a as StepId)))!.id;
 }
 
 /** The step that comes after `done` in the usual order: Oma's tip when the child doesn't know on. */
@@ -80,5 +97,5 @@ export const nextStep = (done: readonly StepId[]) => STEPS.find((s) => !done.inc
 export const finished = (done: readonly StepId[]) => STEPS.every((s) => done.includes(s.id));
 
 const A = DATA.jumping.arena;
-/** The walk ride on the arena: no jumps, from the lower left round to a finish line at the top, at a walk. */
-export const WALK: Course = { start: [A.fence + 40, A.h - A.fence - 50, 'E'], finish: [A.fence + 110, A.fence + 50, 'W'], jumps: [], pace: DATA.routine.pace };
+/** Leading at a walk on the arena (the warm-up before the lesson): no jumps, from the lower left up over a line at the top. */
+export const WALK: Course = { start: [A.fence + 40, A.h - A.fence - 50, 'E'], finish: [A.w / 2, A.fence + 50, 'N'], jumps: [], pace: DATA.routine.pace };

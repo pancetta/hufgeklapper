@@ -18,9 +18,9 @@ function shade(hex: string, f: number) {
  * Draws the figure (or only its upper body, for a rider) into a fresh canvas; the feet sit on its bottom row.
  * Chibi proportions like the LPC figures: a big head under the helmet, a short jacket, breeches and boots.
  */
-/** What a rider wears over the jacket: the riding helmet, a body protector, gloves (all, unless said otherwise). */
+/** What a rider wears over the jacket: the riding helmet, a body protector, gloves. */
 export type Gear = { helmet: boolean; vest: boolean; gloves: boolean };
-const ALL: Gear = { helmet: true, vest: false, gloves: false }; // as riders look everywhere else
+const DEFAULT: Gear = { helmet: true, vest: false, gloves: false }; // as riders look everywhere outside the care course
 
 function paint(kid: Kid, view: View, step: number, upper: boolean, gear: Gear) {
   const big = kid.size === 'big', side = view === 'W' || view === 'E';
@@ -104,7 +104,7 @@ function paint(kid: Kid, view: View, step: number, upper: boolean, gear: Gear) {
 }
 
 const cache = new Map<string, HTMLCanvasElement>();
-function figure(kid: Kid, view: View, step: number, upper = false, gear = ALL) {
+function figure(kid: Kid, view: View, step: number, upper = false, gear = DEFAULT) {
   const key = `${JSON.stringify(kid)}:${view}:${step % 2}:${upper}:${JSON.stringify(gear)}`;
   let c = cache.get(key);
   if (!c) cache.set(key, (c = paint(kid, view, step % 2, upper, gear)));
@@ -120,7 +120,7 @@ export function drawKid(ctx: CanvasRenderingContext2D, kid: Kid, x: number, y: n
 }
 
 /** A child sitting on a horse, its seat at (x, y): the body above, the legs down the horse's sides. */
-export function drawRider(ctx: CanvasRenderingContext2D, kid: Kid, x: number, y: number, view: View) {
-  const c = figure(kid, view, 0, true), legs = kid.size === 'big' ? 8 : 6;
+export function drawRider(ctx: CanvasRenderingContext2D, kid: Kid, x: number, y: number, view: View, gear?: Gear) {
+  const c = figure(kid, view, 0, true, gear), legs = kid.size === 'big' ? 8 : 6;
   ctx.drawImage(c, Math.round(x - c.width / 2), Math.round(y - c.height + legs + 1));
 }

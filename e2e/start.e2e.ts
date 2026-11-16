@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DATA } from '../src/sim/data';
 import { GESTURE, STEPS } from '../src/sim/routine';
+import { lessonOutcome, type State } from '../src/sim/state';
 import { t } from '../src/strings';
 
 /**
@@ -43,7 +44,8 @@ async function playRoutine(page: Page) {
       await page.mouse.move(points[0][0], points[0][1]); await page.mouse.down();
       for (const [x, y] of points.slice(1)) await page.mouse.move(x, y);
       await page.mouse.up();
-      await expect(page.locator('#ride')).toBeHidden({ timeout: 30_000 });
+      await page.getByRole('button', { name: t.next }).tap({ timeout: 30_000 }); // the lesson, then back in the aisle
+      await expect(page.locator('#ride')).toBeHidden();
       continue;
     }
     await page.getByRole('button', { name: t.things[s.thing], exact: true }).tap();
@@ -281,7 +283,8 @@ test('caring for a pony with gestures: brush, hooves, hay, manure; quick care af
     const r = c.getBoundingClientRect();
     return { left: r.left, top: r.top, S: r.width / c.width, W: c.width, H: c.height };
   });
-  const foot = Math.round(g.H * 0.72), cx = Math.round(g.W * 0.36);
+  const lay = JSON.parse((await page.locator('#care-scene').getAttribute('data-layout'))!) as { cx: number; foot: number; hay: number[]; trough: number[] };
+  const { foot, cx } = lay;
   const at = (x: number, y: number) => [g.left + x * g.S, g.top + y * g.S] as const;
   const swipe = async (x0: number, x1: number, ys: number[]) => {
     for (const y of ys) { await page.mouse.move(...at(x0, y)); await page.mouse.down(); await page.mouse.move(...at(x1, y), { steps: 12 }); await page.mouse.up(); }
@@ -294,10 +297,10 @@ test('caring for a pony with gestures: brush, hooves, hay, manure; quick care af
   await page.getByRole('button', { name: t.tools.hooves }).tap();
   for (let x = cx - 60; x <= cx + 60; x += 3) await page.mouse.click(...at(x, foot + 1));
   await expect(page.getByText(t.doneCare.hooves())).toBeVisible();
-  // hay: drag the bale from the corner into the manger
+  // hay: drag a bundle from the bale in the corner into the trough
   await page.getByRole('button', { name: t.tools.feed }).tap();
-  await page.mouse.move(...at(24, 40)); await page.mouse.down();
-  await page.mouse.move(...at(Math.round(g.W * 0.62) + 39, foot - 16), { steps: 15 }); await page.mouse.up();
+  await page.mouse.move(...at(lay.hay[0], lay.hay[1])); await page.mouse.down();
+  await page.mouse.move(...at(lay.trough[0], lay.trough[1]), { steps: 15 }); await page.mouse.up();
   await expect(fed).toBeVisible();
   // pitchfork: swipe the straw clean
   await page.getByRole('button', { name: t.tools.muck }).tap();
@@ -406,12 +409,14 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.locator('#lesson [data-horse="kiwi"]')).toContainText(`${name} wäre`);
   await expect(page.locator('#lesson .choice.best')).toHaveCount(1);
   await expect(page.locator('#lesson .choice.best')).toContainText(t.bestChoice);
-  // the pupil may get the pony ready step by step: yes opens the care course, stopping it leaves the pupil waiting
+  // the pupil may get the pony ready step by step: yes opens the care course, stopping it (asked twice) leaves the
+  // pupil waiting
   await page.locator('#lesson [data-horse="kiwi"]').tap();
-  await expect(page.getByText(t.routineAsk(name, true))).toBeVisible();
+  await expect(page.getByText(t.routineAsk(name, 'Kiwi'))).toBeVisible();
   await page.getByRole('button', { name: t.routineYes }).tap();
-  await expect(page.locator('#say')).toHaveText(t.routineIntroPupil(name));
+  await expect(page.locator('#say')).toHaveText(t.routineIntroPupil(name, 'Kiwi'));
   await page.getByRole('button', { name: t.routineLeave }).tap();
+  await page.getByRole('button', { name: t.routineLeaveSure }).tap();
   await expect(pupil).toHaveCount(1);
   await pupil.tap();
   await page.locator('#lesson [data-horse="kiwi"]').tap();
@@ -427,6 +432,23 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.getByRole('status')).toHaveText(t.noPupils);
 });
 
+test('a lesson prepared in the care course: the pupil gets the pony ready, it is led, the lesson pays its tip', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { (s.pupils as { size: string }[])[0].size = 'small'; });
+  const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state as State);
+  const before = await state(), pay = lessonOutcome(before.pupils[0], before.horses.find((h) => h.id === 'kiwi')!).pay, pupil = page.locator('.label.pupil');
+  await pupil.tap();
+  await page.locator('#lesson [data-horse="kiwi"]').tap();
+  await page.getByRole('button', { name: t.routineYes }).tap();
+  await playRoutine(page);
+  await expect(page.locator('#routine-end')).toContainText(t.routineDone('Kiwi', true));
+  expect((await state()).money).toBe(before.money + pay + DATA.routine.tipClean);
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await expect(pupil).toHaveCount(0);
+});
+
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('./');
@@ -436,14 +458,14 @@ test('the care course from the stable: a step out of turn: Oma says why; every s
   await page.getByRole('button', { name: t.places.stall }).tap();
   await page.locator('.nameplate[data-horse="kiwi"]').tap();
   await page.getByRole('button', { name: t.routine }).tap();
-  await expect(page.locator('#say')).toHaveText(t.routineIntro('Kiwi', true));
+  await expect(page.locator('#say')).toHaveText(t.routineIntro('Kiwi'));
   // tied up before it is out of the box: Oma says what comes first
   await page.getByRole('button', { name: t.things.rope, exact: true }).tap();
   const ring = (JSON.parse((await page.locator('#routine').getAttribute('data-spots'))!).ring as string).split(',').map(Number);
   await page.mouse.click(ring[0], ring[1]);
-  await expect(page.locator('#say')).toHaveText(t.routineWhy.tie);
+  await expect(page.locator('#say')).toHaveText(t.routineFirst(t.steps.open));
   await playRoutine(page);
-  await expect(page.locator('#routine-end')).toContainText(t.routineDone('Kiwi', 1));
+  await expect(page.locator('#routine-end')).toContainText(t.routineDone('Kiwi', false));
   const after = await kiwi();
   expect(after.cared).toEqual(['groom', 'hooves']);
   expect(after.needs.happy).toBeGreaterThan(before.needs.happy);
