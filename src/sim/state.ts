@@ -15,12 +15,18 @@ export type Horse = {
   id: string; name: string; breed: Breed; look: Look; needs: Needs; skills: { jumping: number };
   rest: number; // days the horse must still rest after the vet (no riding, no lessons)
   cared: Care[]; // care actions it had today; each once a day
+  /** A boarder's horse ("Einsteller", #63): whose it is, what they pay a day, nights in a row it was badly kept. */
+  owner?: { name: string; pay: number; unhappy: number };
+  /** A part-boarder ("Reitbeteiligung") rides this horse each day for `pay`. */
+  rider?: { name: string; pay: number };
 };
 
-export type FarmStage = 'kleinerHof' | 'reitschule';
+export type FarmStage = (typeof DATA.stages)[number];
+/** A boarder looking for a stall: their horse and what they would pay a day. */
+export type BoardOffer = { id: string; owner: string; name: string; breed: Breed; look: Look; pay: number };
 
 export type State = {
-  version: 10;
+  version: 11;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -54,6 +60,10 @@ export type State = {
   lessonsBefore: number;
   market: Offer[];
   built: { stalls: number; arena: number };
+  /** The Pensionsstall: grooms hired, boarders looking for a stall today, a rider who would like one of your horses. */
+  staff: number;
+  boardOffers: BoardOffer[];
+  partOffer: { horse: string; rider: string; pay: number } | null;
   badgeQuizDay: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
@@ -61,7 +71,7 @@ export type State = {
 };
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
-export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize' | 'horse' | 'build'; amount: number };
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize' | 'horse' | 'build' | 'wage' | 'board' | 'partBoard'; amount: number };
 
 /** A horse for sale at the Reitschule's market. */
 export type Offer = { id: string; name: string; breed: Breed; look: Look; price: number };
@@ -76,7 +86,7 @@ export type Care = 'groom' | 'hooves' | 'feed' | 'muck';
 export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 
 /** Morning news: data only; the screens turn it into words. */
-export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill'; horse?: string };
+export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
@@ -84,7 +94,8 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
   | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
   | { type: 'explained'; what: Feature } | { type: 'rename'; horse: string; name: string }
-  | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: 'stalls' | 'arena' };
+  | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: 'stalls' | 'arena' }
+  | { type: 'hire' } | { type: 'fire' } | { type: 'board'; offer: string } | { type: 'partBoard' } | { type: 'endPartBoard'; horse: string };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -130,20 +141,49 @@ export function marketFor(day: number, seed: number, taken: string[] = []): [Off
   return [offers, seed];
 }
 
-/** The farm inspection can come once every goal of the Kleiner Hof is met (not again on the day it failed). */
-export const canInspect = (s: State) => s.stage === 'kleinerHof' && allGoalsDone(s) && s.inspectionFailedDay !== s.day;
+/** Whether the farm has come to stage `stage` (or further). */
+export const atLeast = (s: State, stage: FarmStage) => DATA.stages.indexOf(s.stage) >= DATA.stages.indexOf(stage);
+/** The stage the next farm inspection opens, or null at the last one. */
+export const nextStage = (s: State): FarmStage | null => DATA.stages[DATA.stages.indexOf(s.stage) + 1] ?? null;
+/** The farm inspection can come once every goal of the stage is met, if there is a next stage (not again on the day it failed). */
+export const canInspect = (s: State) => nextStage(s) !== null && allGoalsDone(s) && s.inspectionFailedDay !== s.day;
+/** A horse of the farm's own (not a boarder's): only these give lessons, jump and start in shows. */
+export const own = (h: Horse) => !h.owner;
+
+/** Boarders looking for a stall this morning: their horses (names not taken on the farm) and the pay. */
+export function boardersFor(day: number, seed: number, taken: string[]): [BoardOffer[], number] {
+  const B = DATA.boarders, [horses, next] = marketFor(day, seed, taken);
+  let r: number;
+  seed = next;
+  const offers = horses.slice(0, B.offers).map((o, i): BoardOffer => {
+    [r, seed] = roll(seed); const owner = B.owners[Math.floor(r * B.owners.length)];
+    [r, seed] = roll(seed); const pay = Math.round(B.pay[0] + r * (B.pay[1] - B.pay[0]));
+    return { id: `b${day}-${i}`, owner, name: o.name, breed: o.breed, look: o.look, pay };
+  });
+  return [offers, seed];
+}
+/** A rider who would like one of your horses this morning (one without a rider yet), or none. */
+function partOfferFor(s: State, seed: number): [State['partOffer'], number] {
+  const P = DATA.partBoard, free = s.horses.filter((h) => own(h) && !h.rider);
+  let r: number;
+  if (!free.length) return [null, seed];
+  [r, seed] = roll(seed); const h = free[Math.floor(r * free.length)];
+  [r, seed] = roll(seed); const rider = DATA.pupilNames[Math.floor(r * DATA.pupilNames.length)];
+  [r, seed] = roll(seed);
+  return [{ horse: h.id, rider, pay: Math.round(P.pay[0] + r * (P.pay[1] - P.pay[0])) }, seed];
+}
 const isQuiz = (a: unknown, q: { questions: number; answers: number }) =>
   Array.isArray(a) && a.length === q.questions && a.every((x) => Number.isInteger(x) && x >= 0 && x < q.answers);
 /** Why a building can't be built now: not yet a Reitschule, built already, or too little money. */
 export function buildWaits(s: State, what: 'stalls' | 'arena'): 'stage' | 'built' | 'money' | null {
-  return s.stage !== 'reitschule' ? 'stage' : s.built[what] >= 1 ? 'built' : s.money < DATA.build[what].cost ? 'money' : null;
+  return !atLeast(s, 'reitschule') ? 'stage' : s.built[what] >= 1 ? 'built' : s.money < DATA.build[what].cost ? 'money' : null;
 }
 
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 10, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 11, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -229,7 +269,7 @@ export const classWaits = (s: State, h: Horse, c: ShowClass): 'scope' | 'skill' 
  * work today, then no horse skilled enough); null if some horse can start there.
  */
 export function classShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | 'scope' | null {
-  const w = s.horses.map((h) => classWaits(s, h, c) ?? (cantWork(h, DATA.jumping.energy) ? 'tired' : null));
+  const w = s.horses.filter(own).map((h) => classWaits(s, h, c) ?? (cantWork(h, DATA.jumping.energy) ? 'tired' : null));
   return w.includes(null) ? null : (['money', 'tired', 'skill', 'scope'] as const).find((r) => w.includes(r)) ?? 'scope';
 }
 const showScore = (faults: number, skill: number) => 100 - DATA.shows.faultPoints * faults + Math.round(skill * DATA.shows.skillPoints);
@@ -310,6 +350,48 @@ export function dayMoney(entries: Entry[]) {
   };
 }
 
+/**
+ * The Pensionsstall's morning, after the night: the riders ride (their horse's energy, their fee) and the boarders pay
+ * for the night; then the grooms, if their wage can be paid, care for as many horses as they can (worst kept first;
+ * feeding takes hay); then a boarder whose horse was badly kept too long leaves (the reputation drops). Then new
+ * offers for boarders (no name already on the farm or at the market) and a rider.
+ */
+function pensionMorning(s: State): State {
+  const S = DATA.staff, B = DATA.boarders, news = [...s.night], ridden = s.horses.filter((h) => h.rider && !cantWork(h, 0));
+  let next: State = { ...s, today: [], horses: s.horses.map((h) => (ridden.includes(h) ? { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.partBoard.energy) } } : h)) };
+  const pay = (what: 'partBoard' | 'board', amount: number) => { const e = earn(next, amount); next = { ...e, today: [...e.today, { what, amount }] }; };
+  for (const h of ridden) pay('partBoard', h.rider!.pay);
+  for (const h of s.horses) if (h.owner) pay('board', h.owner.pay);
+  // the grooms: their wage from the morning's money; unpaid, they stay away today
+  let horses = next.horses, feed = next.feed;
+  const wage = s.staff * S.wage;
+  if (s.staff && next.money >= wage) {
+    next = { ...next, money: next.money - wage, today: [...next.today, { what: 'wage', amount: -wage }] };
+    const turn = [...horses].sort((a, b) => keptShare(a) - keptShare(b)).slice(0, s.staff * S.horses).map((h) => h.id);
+    horses = horses.map((h) => {
+      if (!turn.includes(h.id)) return h;
+      const needs = { ...h.needs };
+      for (const what of CARE) {
+        if (what === 'feed') { if (feed < 1) continue; feed--; }
+        for (const [n, v] of Object.entries(DATA.care[what]) as [Need, number][]) needs[n] = clamp(needs[n] + v);
+      }
+      return { ...h, needs };
+    });
+  } else if (s.staff) news.push({ kind: 'staffUnpaid' });
+  // the boarders: badly kept too many nights in a row, they take their horse away
+  let reputation = next.reputation;
+  horses = horses.flatMap((h) => {
+    if (!h.owner) return [h];
+    const bad = keptShare(h) < B.keptBelow || isSick(h), unhappy = bad ? h.owner.unhappy + 1 : 0;
+    if (unhappy >= B.patience) { reputation = clamp(reputation - B.leaveReputation); news.push({ kind: 'boarderLeft', horse: h.name, owner: h.owner.name }); return []; }
+    return [{ ...h, owner: { ...h.owner, unhappy } }];
+  });
+  next = { ...next, horses, feed, reputation, night: news };
+  const [boardOffers, seed1] = boardersFor(s.day, s.seed, [...horses, ...s.market].map((h) => h.name));
+  const [partOffer, seed] = partOfferFor(next, seed1);
+  return { ...next, boardOffers, partOffer, seed };
+}
+
 /** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
 export function earn(s: State, amount: number): State {
   const repay = Math.min(s.debt, Math.round(amount * DATA.repayShare));
@@ -317,7 +399,7 @@ export function earn(s: State, amount: number): State {
   return { ...s, money: s.money + amount - repay, debt: s.debt - repay, today };
 }
 export const stalls = (s: State) => DATA.stalls[s.stage] + s.built.stalls * DATA.build.stalls.places;
-export const canBuild = (s: State) => s.stage === DATA.freePlotsFrom;
+export const canBuild = (s: State) => atLeast(s, DATA.freePlotsFrom);
 /** How many nights the hay in store feeds every horse. */
 export const hayNights = (s: State) => Math.floor(s.feed / Math.max(1, s.horses.length * DATA.hayPerNight));
 
@@ -337,7 +419,10 @@ export type Feature = (typeof DATA.features)[number];
 
 /** How far each goal of the farm stage has come; a goal once reached stays done. */
 export function goals(s: State) {
-  const have = { groom: s.careDone.groom, lessons: s.lessonsGiven - s.lessonsBefore, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation, horses: s.horses.length };
+  const have = {
+    groom: s.careDone.groom, lessons: s.lessonsGiven - s.lessonsBefore, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation,
+    horses: s.horses.filter(own).length, boarders: s.horses.filter((h) => h.owner).length, staff: [...s.today, ...s.bill].some((e) => e.what === 'wage') ? s.staff : 0, partBoard: s.horses.filter((h) => h.rider).length, // a groom counts once paid
+  };
   return DATA.goals[s.stage].map(({ id, need }) => {
     const done = s.goalsDone.includes(id) || have[id] >= need;
     return { id, need, have: done ? need : Math.max(0, have[id]), done };
@@ -375,9 +460,12 @@ function step(state: State, action: Action): State {
       const I = DATA.inspection;
       if (!canInspect(state) || !isQuiz(action.answers, I)) return state;
       if (quizScore(action.answers) < I.pass) return { ...state, inspectionFailedDay: state.day };
-      const [market, seed] = marketFor(state.day, state.seed, state.horses.map((h) => h.name));
-      // the new stage starts its own goal list (counts like lessons given go on from where they are)
-      return { ...state, stage: 'reitschule', market, seed, goalsDone: [], lessonsBefore: state.lessonsGiven };
+      // the next stage: the Reitschule opens the horse market, the Pensionsstall the boarders; the new stage starts its
+      // own goal list (counts like lessons given go on from where they are)
+      const stage = nextStage(state)!, names = state.horses.map((h) => h.name);
+      const [market, seed1] = marketFor(state.day, state.seed, names);
+      const [boardOffers, seed] = stage === 'pensionsstall' ? boardersFor(state.day, seed1, [...names, ...market.map((o) => o.name)]) : [state.boardOffers, seed1];
+      return { ...state, stage, market, boardOffers, seed, goalsDone: [], lessonsBefore: state.lessonsGiven };
     }
     case 'buyHorse': {
       const o = state.market.find((x) => x.id === action.offer);
@@ -408,8 +496,32 @@ function step(state: State, action: Action): State {
       if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
       if (state.today.length) news.push({ kind: 'bill' });
       const [pupils, seed1] = pupilsFor(state.day + 1, state.reputation, state.seed, state.built.arena * DATA.build.arena.pupils);
-      const [market, seed] = state.stage === 'reitschule' ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
-      return { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed };
+      const [market, seed2] = atLeast(state, 'reitschule') ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
+      const morning: State = { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed: seed2 };
+      return atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning;
+    }
+    case 'hire': // a groom more (from the Pensionsstall on), up to the most a farm takes; or one less
+      return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.names.length ? { ...state, staff: state.staff + 1 } : state;
+    case 'fire':
+      return state.staff > 0 ? { ...state, staff: state.staff - 1 } : state;
+    case 'board': {
+      // a boarder's horse moves into a free stall; it pays each morning from tomorrow on
+      const o = state.boardOffers.find((x) => x.id === action.offer);
+      if (!o || state.horses.length >= stalls(state) || state.horses.some((h) => h.id === o.id)) return state;
+      const guest: Horse = { ...horse(o.id, o.name, o.breed, o.look), owner: { name: o.owner, pay: o.pay, unhappy: 0 } };
+      return { ...state, horses: [...state.horses, guest], boardOffers: state.boardOffers.filter((x) => x !== o) };
+    }
+    case 'partBoard': {
+      // the rider offered this morning rides that horse from now on, each day, for their fee
+      const p = state.partOffer, h = p && state.horses.find((x) => x.id === p.horse);
+      if (!p || !h || !own(h) || h.rider) return state;
+      return { ...state, partOffer: null, horses: state.horses.map((x) => (x === h ? { ...h, rider: { name: p.rider, pay: p.pay } } : x)) };
+    }
+    case 'endPartBoard': {
+      const h = state.horses.find((x) => x.id === action.horse);
+      if (!h?.rider) return state;
+      const { rider: _, ...free } = h;
+      return { ...state, horses: state.horses.map((x) => (x === h ? free : x)) };
     }
     case 'care': {
       const h = state.horses.find((x) => x.id === action.horse);
@@ -430,7 +542,7 @@ function step(state: State, action: Action): State {
       // or at the market (buying it would make two)
       const name = typeof action.name === 'string' ? action.name.trim() : '', h = state.horses.find((x) => x.id === action.horse);
       const same = (n: string) => n.toLowerCase() === name.toLowerCase();
-      if (!h || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && same(x.name)) || state.market.some((o) => same(o.name))) return state;
+      if (!h || !own(h) || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && same(x.name)) || [...state.market, ...state.boardOffers].some((o) => same(o.name))) return state;
       return { ...state, horses: state.horses.map((x) => (x === h ? { ...x, name } : x)) };
     }
     case 'vet': {
@@ -453,7 +565,7 @@ function step(state: State, action: Action): State {
     case 'train': {
       // a jumping round as training: skill grows (more for a clear round), the horse gets tired and enjoys it
       const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
-      if (!h || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      if (!h || !own(h) || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
       const trained: Horse = {
         ...h, skills: { ...h.skills, jumping: Math.max(h.skills.jumping, Math.min(scope(h), clamp(h.skills.jumping + (action.faults ? J.gain.faults : J.gain.clear)))) }, // up to the breed's limit, never down
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
@@ -463,7 +575,7 @@ function step(state: State, action: Action): State {
     case 'show': {
       // the entry fee, the round (the horse tires like practice), the prize for the first three; one show a day
       const h = state.horses.find((x) => x.id === action.horse), c = action.showClass;
-      if (!h || !SHOW_CLASSES.includes(c) || showWaits(state) || classWaits(state, h, c) || cantWork(h, DATA.jumping.energy)
+      if (!h || !own(h) || !SHOW_CLASSES.includes(c) || showWaits(state) || classWaits(state, h, c) || cantWork(h, DATA.jumping.energy)
         || !Number.isInteger(action.faults) || action.faults < 0) return state;
       const fee = DATA.shows.classes[c].fee, { prize, seed } = showResult(state, h, action.faults, state.avatar.name, c);
       const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.jumping.energy) } };
@@ -479,14 +591,14 @@ function step(state: State, action: Action): State {
     case 'badge': {
       // the badge's jumping round, after today's passed quiz, tires the horse like practice; few poles down pass it
       const h = state.horses.find((x) => x.id === action.horse), J = DATA.jumping;
-      if (!h || badgeWaits(state) || state.badgeQuizDay !== state.day || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      if (!h || !own(h) || badgeWaits(state) || state.badgeQuizDay !== state.day || cantWork(h, J.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
       const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy) } };
       const passed = action.faults <= DATA.badge.maxFaults;
       return { ...state, horses: state.horses.map((x) => (x === h ? ridden : x)), badgeQuizDay: 0, badges: passed ? 1 : state.badges, badgeFailedDay: passed ? 0 : state.day };
     }
     case 'lesson': {
       const p = state.pupils.find((x) => x.id === action.pupil), h = state.horses.find((x) => x.id === action.horse);
-      if (!p || !h || cantWork(h, DATA.lessons.energy)) return state;
+      if (!p || !h || !own(h) || cantWork(h, DATA.lessons.energy)) return state;
       const { happy, pay } = lessonOutcome(p, h);
       const worked = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.lessons.energy) } };
       const after = earn({ ...state, today: [...state.today, { what: 'lesson', amount: pay }] }, pay);

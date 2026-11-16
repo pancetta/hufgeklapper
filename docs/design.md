@@ -47,7 +47,10 @@ The MVP covers two farm stages and one riding badge, so both career tracks and a
 6. Horse looks: 2 **Builds** (pony, big horse), about 6 coats, 3 markings, mane colour, tack.
 7. Credits screen, home-screen app, offline.
 
-Out of the MVP (later phases, rough order): more farm stages (Pensionsstall with boarders and part-time riders, staff; Zuchthof with breeding), dressage, cross-country, races, carriage races, own shows, trading with other farms (horses, feed, manure), vehicles, time budget, free play, difficulty levels, sound.
+After the MVP: a farm diary at the end of each day (#60), and farm stage 3, the **Pensionsstall** (#61–#63): a second
+farm inspection, **Boarders**, **Part-boarders** and a **Groom** who takes over the daily care.
+
+Still later (rough order): more farm stages (Zuchthof with breeding), dressage, cross-country, races, carriage races, own shows, trading with other farms (horses, feed, manure), vehicles, time budget, free play, difficulty levels, sound.
 
 ## Economy
 
@@ -76,7 +79,6 @@ Top-down pixel art in a 16-bit RPG style, 32px grid, from the LPC collection plu
 
 ## Ideas for later
 
-- A farm diary at the end of each day: money in and out as simple bars.
 - Manure as trade goods (fertiliser for the neighbour farmer).
 - A horse passport or album to collect.
 - Seasons that change the pasture.

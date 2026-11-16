@@ -34,6 +34,16 @@ At the Reitschule, the notice board offers a few horses and ponies each morning;
 **Stall place** ("Stallplatz"):
 Room for one horse. The Kleiner Hof has two; at the Reitschule an open shelter ("Offenstall") on the free **Plot** adds two more.
 
+**Boarder** ("Einsteller"):
+From the **Pensionsstall** on: someone whose horse lives in one of your stalls for a fee each day. Their horse is
+cared for like yours but isn't yours (no lessons, no shows); badly kept too long, they take it away.
+
+**Part-boarder** ("Reitbeteiligung"):
+Someone who rides one of your horses each day for a fee; it costs the horse energy.
+
+**Groom** ("Pferdepfleger"):
+Staff from the **Pensionsstall** on: for a wage each day, they care for a few horses every morning.
+
 **Inspector** ("Prüferin", Frau Berger):
 Holds the **Farm inspection**'s quiz.
 

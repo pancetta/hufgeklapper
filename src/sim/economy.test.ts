@@ -17,6 +17,12 @@ describe('economy run', () => {
     expect(day).toBeLessThanOrEqual(15);
   });
 
+  it('brings a careful player on to the Pensionsstall about ten days after the Reitschule', () => {
+    const days = SEEDS.map((seed) => play('careful', seed, 60).pensionDay);
+    for (const d of days) expect(d).not.toBeNull();
+    expect(median(days as number[])).toBeLessThanOrEqual(30);
+  });
+
   it('never gets a careless player stuck', () => {
     for (const r of of('careless')) expect(r.stuck, `seed ${r.seed}`).toBe(false);
   });

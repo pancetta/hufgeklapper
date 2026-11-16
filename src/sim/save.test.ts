@@ -1,7 +1,7 @@
 import { DATA } from './data';
 import { describe, expect, it } from 'vitest';
 import { parseSave, SAVE_VERSION, toSave } from './save';
-import { apply, newGame } from './state';
+import { apply, boardersFor, newGame, type State } from './state';
 
 const played = () => apply(newGame(7), { type: 'sleep' });
 const text = (x: unknown) => JSON.stringify(x);
@@ -45,6 +45,23 @@ describe('save files', () => {
     s = apply(apply(s, { type: 'buyHorse', offer: s.market[0].id }), { type: 'sleep' });
     expect(s.stage).toBe('reitschule');
     const save = toSave(s, 'Hof');
+    expect(parseSave(text(save))).toEqual({ ok: true, save });
+  });
+
+  it('gives a save from version 10 (before the Pensionsstall) no grooms, boarders or riders', () => {
+    const now = toSave(played(), 'Hof');
+    const { staff: _a, boardOffers: _b, partOffer: _c, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 10, state: { ...old, version: 10 } }));
+    expect(p.ok && [p.save.state.staff, p.save.state.boardOffers, p.save.state.partOffer]).toEqual([0, [], null]);
+  });
+
+  it('keeps a Pensionsstall with a groom, a boarder\'s horse and a rider', () => {
+    let s: State = { ...played(), stage: 'pensionsstall', money: 2000 };
+    s = apply(s, { type: 'hire' });
+    s = apply({ ...s, boardOffers: boardersFor(s.day, s.seed, [])[0] }, { type: 'board', offer: boardersFor(s.day, s.seed, [])[0][0].id });
+    s = apply(s, { type: 'sleep' });
+    const save = toSave(s, 'Hof');
+    expect([s.staff, s.horses.some((h) => h.owner)]).toEqual([1, true]);
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 

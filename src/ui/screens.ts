@@ -20,7 +20,7 @@ import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -242,7 +242,9 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   // the morning summary: one short line per piece of news, then on with the day
   const nameOf = (id?: string) => esc(game.get().horses.find((h) => h.id === id)?.name ?? '');
   const line = (n: News) => n.kind === 'sick' ? t.newsSick(nameOf(n.horse)) : n.kind === 'rested' ? t.newsRested(nameOf(n.horse))
-    : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay : '';
+    : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay
+    : n.kind === 'staffUnpaid' ? t.newsStaffUnpaid
+    : n.kind === 'boarderLeft' ? t.newsBoarderLeft(esc(n.owner ?? ''), esc(n.horse ?? '')) : '';
   function morning(news: News[]) {
     if (!news.length) return;
     const lines = [...new Set(news.map(line).filter(Boolean))]; // "no hay" comes once per horse; say it once; the money was in the diary
@@ -347,7 +349,7 @@ export function showFarm(intro = false) {
     $('goal-list').innerHTML = list.map((g) => `<li class="${g.done ? 'done' : ''}">${t.goalText[g.id](g.need)}${g.need > 1 ? ` <span>${g.have}/${g.need}</span>` : ''}</li>`).join('')
       + (allGoalsDone(s) && list.length ? `<li class="all">${t.allGoals[s.stage]}</li>` : '')
       + (canInspect(s) ? `<li class="all"><button type="button" id="inspect">${t.startInspection}</button></li>`
-        : s.stage === 'kleinerHof' && allGoalsDone(s) ? `<li class="all">${t.inspectionTomorrow}</li>` : '');
+        : nextStage(s) && allGoalsDone(s) ? `<li class="all">${t.inspectionTomorrow}</li>` : '');
     $('goal-list').querySelector('#inspect')?.addEventListener('click', showInspection);
     const h = hint(s), name = (id: string) => s.horses.find((x) => x.id === id)?.name ?? '';
     const text = !h ? '' : h.kind === 'hay' ? t.hints.hay : t.hints[h.kind](name(h.horse));
@@ -367,7 +369,7 @@ export function showFarm(intro = false) {
       ${wait?.why === 'passed' ? `<button type="button" id="show"${show ? ' disabled aria-describedby="show-why"' : ''}>${t.show}</button>${showWhy ? `<p class="oma" id="show-why">${showWhy}</p>` : ''}`
         : `<button type="button" id="badge"${wait ? ' disabled aria-describedby="badge-why"' : ''}>${t.ridingBadge}</button>
       ${wait ? `<p class="oma" id="badge-why">${wait.why === 'practise' ? t.badgeWaits.practise(wait.rounds) : t.badgeWaits[wait.why]}</p>` : ''}`}
-      ${s.stage === 'reitschule' && !s.built.arena ? `<button type="button" id="upgrade">${t.upgradeArena(DATA.build.arena.cost)}</button>` : ''}
+      ${atLeast(s, 'reitschule') && !s.built.arena ? `<button type="button" id="upgrade">${t.upgradeArena(DATA.build.arena.cost)}</button>` : ''}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelector('#badge')?.addEventListener('click', showBadge);
     sheet.querySelector('#upgrade')?.addEventListener('click', () => build('arena', t.upgradeArena(DATA.build.arena.cost), t.builtArena));
@@ -405,7 +407,7 @@ export function showFarm(intro = false) {
   function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string) {
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>${note ? `<p class="oma">${note}</p>` : ''}
-      ${game.get().horses.map((h) => {
+      ${game.get().horses.filter(own).map((h) => {
         const tired = cantWork(h, DATA.jumping.energy), why = tired ? t.cantWork[tired] : not?.(h);
         return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${why}` : ''}</button>`;
       }).join('')}
@@ -417,10 +419,10 @@ export function showFarm(intro = false) {
   function chooseHorse(p: Pupil) {
     const s = game.get(), sheet = $('lesson');
     // the first time no horse is the right one, Oma Hanne says which fits whom
-    if (!s.explained.includes('fit') && fitsNone(p, s.horses)) { explain('fit').then(() => chooseHorse(p)); return; }
+    if (!s.explained.includes('fit') && fitsNone(p, s.horses.filter(own))) { explain('fit').then(() => chooseHorse(p)); return; }
     sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
       <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
-      ${lessonChoices(p, s.horses).map((c) => {
+      ${lessonChoices(p, s.horses.filter(own)).map((c) => {
         // why it fits or not, in words, then how the lesson would go; the best horse is marked
         const name = esc(p.name);
         const how = c.why ? t.cantWork[c.why] : [t.fitWhy(name, c.fit), ...(c.unkempt ? [t.needsCare] : []), t.wouldBe(name, c.mood, c.pay)].join(' · ');
@@ -444,11 +446,12 @@ export function showFarm(intro = false) {
   function shop() {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
-      ${!s.debt && !s.badges && !(s.money < DATA.vet.cost && canLoan(s)) && s.stage !== 'reitschule' ? `<p>${t.boardEmpty}</p>` : ''}
+      ${!s.debt && !s.badges && !(s.money < DATA.vet.cost && canLoan(s)) && !atLeast(s, 'reitschule') ? `<p>${t.boardEmpty}</p>` : ''}
       ${s.debt ? `<p>${t.owe(s.debt)}</p>` : ''}
       ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
-      ${s.stage === 'reitschule' ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
+      ${atLeast(s, 'pensionsstall') ? pension(s) : ''}
+      ${atLeast(s, 'reitschule') ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
         const full = s.horses.length >= stalls(s), poor = s.money < o.price;
         return `<button type="button" data-offer="${o.id}"${full || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))}${!full && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
       }).join('') + (s.horses.length >= stalls(s) ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.marketEmpty}</p>`}` : ''}
@@ -460,9 +463,31 @@ export function showFarm(intro = false) {
       if (game.get().horses.some((h) => h.id === o.id)) { showFarm(); omaSays(t.boughtHorse(o.name)); } // the new horse joins the herd on the map
     }));
     $('shop').querySelector('#loan')?.addEventListener('click', () => { game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount)); });
-    $('close-shop').addEventListener('click', () => { $('shop').hidden = true; });
+    // the Pensionsstall: grooms, boarders, a rider; the screen redraws itself on every change (wireTopBar)
+    $('shop').querySelector('#hire')?.addEventListener('click', () => game.dispatch({ type: 'hire' }));
+    $('shop').querySelector('#fire')?.addEventListener('click', () => game.dispatch({ type: 'fire' }));
+    $('shop').querySelectorAll<HTMLButtonElement>('[data-board]').forEach((b) => b.addEventListener('click', () => game.dispatch({ type: 'board', offer: b.dataset.board! })));
+    $('shop').querySelector('#part')?.addEventListener('click', () => game.dispatch({ type: 'partBoard' }));
+    $('close-shop').addEventListener('click', () => {
+      $('shop').hidden = true;
+      // a new groom or a boarder's horse: the map shows them at once
+      const now = game.get();
+      if (now.staff !== shopFrom.staff || now.horses.length !== shopFrom.horses) showFarm();
+    });
   }
-  function showShop() { shop(); $('shop').hidden = false; }
+  let shopFrom = { staff: 0, horses: 0 };
+  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
+  /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
+  function pension(s: State) {
+    const S = DATA.staff, full = s.horses.length >= stalls(s), offer = s.partOffer, horse = offer && s.horses.find((h) => h.id === offer.horse);
+    return `<h3>${t.staffTitle}</h3>
+      ${s.staff ? `<p>${t.hired(S.names.slice(0, s.staff).join(' und '), s.staff > 1)}</p><button type="button" id="fire" class="small">${t.fire(S.names[s.staff - 1])}</button>` : ''}
+      ${s.staff < S.names.length ? `<button type="button" id="hire">${t.hire(S.names[s.staff], S.wage, S.horses)}</button>` : ''}
+      <h3>${t.boardersTitle}</h3>
+      ${s.boardOffers.length ? s.boardOffers.map((o) => `<button type="button" data-board="${o.id}"${full ? ' disabled' : ''}>${t.boardOffer(esc(o.owner), esc(o.name), BREEDS[o.breed].label, o.pay)}</button>`).join('')
+        + (full ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.noBoarders}</p>`}
+      ${offer && horse ? `<h3>${t.partTitle}</h3><p>${t.partOffer(esc(offer.rider), esc(horse.name), offer.pay)}</p><button type="button" id="part">${t.partYes}</button>` : ''}`;
+  }
   /** Builds on a plot after asking: the price and what it brings, or why not now; the map shows it at once. */
   function build(what: 'stalls' | 'arena', label: string, built: string) {
     const sheet = $('lesson'), why = buildWaits(game.get(), what);
@@ -517,7 +542,7 @@ export function showFarm(intro = false) {
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {
-    herd: game.get().horses.map((h) => h.look), canter: false, onTap: tap, onLayout: place, plots: farmPlots(game.get()),
+    herd: game.get().horses.map((h) => h.look), canter: false, onTap: tap, onLayout: place, plots: farmPlots(game.get()), staff: game.get().staff,
   });
   pupils();
   leave = () => { bar.unsubscribe(); farm.then((f) => f.stop()); };
@@ -608,7 +633,7 @@ function showBadge() {
     const s = game.get(), right = quizScore(picked);
     if (s.badgeQuizDay !== s.day) return ui.end(t.quizFailed(right));
     ui.say(t.quizDone(right));
-    ui.buttons(game.get().horses.map((h) => {
+    ui.buttons(game.get().horses.filter(own).map((h) => {
       const why = cantWork(h, DATA.jumping.energy);
       return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
     }).join('') + `<button type="button" data-back>${t.back}</button>`, (b) => (b.dataset.horse ? showJumping(b.dataset.horse, 'badge') : showFarm()));
@@ -617,9 +642,11 @@ function showBadge() {
 
 /** The farm inspection: Frau Berger asks five questions; enough right ones make the farm a Reitschule. */
 function showInspection() {
-  quizScreen('inspector', t.inspectionIntro, t.inspectionQuiz, (picked, ui) => {
+  // the first inspection makes a Reitschule, the second a Pensionsstall: each with its own questions
+  const before = game.get().stage, second = before === 'reitschule';
+  quizScreen('inspector', second ? t.inspectionIntro2 : t.inspectionIntro, second ? t.inspectionQuiz2 : t.inspectionQuiz, (picked, ui) => {
     game.dispatch({ type: 'inspection', answers: picked });
-    ui.end(game.get().stage === 'reitschule' ? t.inspectionPassed : t.inspectionFailed(quizScore(picked)));
+    ui.end(game.get().stage !== before ? (second ? t.inspectionPassed2 : t.inspectionPassed) : t.inspectionFailed(quizScore(picked)));
   });
 }
 
@@ -663,7 +690,7 @@ function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: str
 
 /** The farm's plots as built: the shelter on the free plot, the arena's upgrade, the Reitschule's pennants. */
 const farmPlots = (s: State): Plot[] => PLOTS.map((p) => p.id === 'free' && s.built.stalls ? { ...p, building: 'shelter' }
-  : p.id === 'arena' ? { ...p, level: s.built.arena, flags: s.stage === 'reitschule' } : p);
+  : p.id === 'arena' ? { ...p, level: s.built.arena, flags: atLeast(s, 'reitschule') } : p);
 
 /** One need as icon + bar; the bar is green, yellow or red by how full it is. */
 const needBar = (h: Horse, n: (typeof NEEDS)[number], withLabel = false) => {
@@ -684,7 +711,7 @@ export function showStable() {
     boxes.innerHTML = Array.from({ length: stalls(st) }, (_, i) => {
       const h = st.horses[i];
       return h
-        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
+        ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}${h.owner ? ' guest' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
             <button class="horse-hit" type="button" data-horse="${h.id}" aria-label="${esc(h.name)}"></button>
             <div class="needs">${NEEDS.map((n) => needBar(h, n)).join('')}</div></div>`
         : `<div class="box" data-box="${i}"><span class="nameplate empty">${t.freeStall}</span></div>`;
@@ -709,8 +736,10 @@ export function showStable() {
     const h = game.get().horses.find((x) => x.id === id)!, card = $('card');
     card.innerHTML = `<div class="sheet horse-card">
       <canvas id="portrait" width="96" height="72"></canvas>
-      <form id="rename" class="rename"><h2>${esc(h.name)}</h2><button type="button" id="rename-start" class="small">${t.rename}</button></form>
+      <form id="rename" class="rename"><h2>${esc(h.name)}</h2>${h.owner ? '' : `<button type="button" id="rename-start" class="small">${t.rename}</button>`}</form>
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
+      ${h.owner ? `<p>${t.ownedBy(esc(h.owner.name), h.owner.pay)}</p>${h.owner.unhappy ? `<p class="status sick">${t.boarderUnhappy(esc(h.owner.name))}</p>` : ''}` : ''}
+      ${h.rider ? `<p>${t.riddenBy(esc(h.rider.name), h.rider.pay)}</p><button type="button" id="end-part" class="small">${t.endPart}</button>` : ''}
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
       <p>${t.jumpsUpTo(topClass(h))}</p>
@@ -723,8 +752,13 @@ export function showStable() {
     $('close-card').addEventListener('click', () => { card.hidden = true; });
     $('care').addEventListener('click', () => showCare(h.id));
     card.querySelector('#vet')?.addEventListener('click', () => { game.dispatch({ type: 'vet', horse: h.id }); showCard(h.id); });
+    // ending a part-board asks once more: the rider won't come back
+    card.querySelector('#end-part')?.addEventListener('click', (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      if (b.dataset.sure) { game.dispatch({ type: 'endPartBoard', horse: h.id }); showCard(h.id); } else { b.dataset.sure = '1'; b.textContent = t.endPartSure; }
+    });
     // a name of its own: the field replaces the heading; the Sim says no to an empty or taken name
-    $('rename-start').addEventListener('click', () => {
+    card.querySelector('#rename-start')?.addEventListener('click', () => {
       const form = $<HTMLFormElement>('rename');
       form.innerHTML = `<input id="horse-name" maxlength="${DATA.horseName.max}" autocomplete="off" enterkeyhint="done" aria-label="${t.newName}">
         <button type="submit" class="small">${t.done}</button><p class="oma" id="rename-why" hidden>${t.nameTaken}</p>`;

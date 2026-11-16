@@ -567,6 +567,53 @@ test('the farm inspection makes a Reitschule: buy a horse into the free stall, b
   await expect(page.getByText(t.builtArena)).toBeVisible();
 });
 
+test('the second inspection makes a Pensionsstall: a groom, a boarder in the stable, both in the diary and the morning', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // as if the Reitschule's goals were all met
+  await changeSave(page, (s) => { Object.assign(s, { stage: 'reitschule', goalsDone: DATA.goals.reitschule.map((g) => g.id), money: 2000 }); });
+  await page.getByRole('button', { name: t.startInspection }).tap();
+  await expect(page.getByText(t.inspectionIntro2)).toBeVisible();
+  await page.getByRole('button', { name: t.next }).tap();
+  for (const q of t.inspectionQuiz2) {
+    await expect(page.getByText(q.q)).toBeVisible();
+    await page.getByRole('button', { name: q.a[0].text }).tap();
+    await page.getByRole('button', { name: t.next }).tap();
+  }
+  await expect(page.getByText(t.inspectionPassed2)).toBeVisible();
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await expect(page.getByText(t.goalText.boarders(2))).toBeVisible();
+  // the notice board: hire a groom, take in a boarder
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await page.getByRole('button', { name: t.hire(DATA.staff.names[0], DATA.staff.wage, DATA.staff.horses) }).tap();
+  await expect(page.getByRole('button', { name: t.fire(DATA.staff.names[0]) })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('pension-board.png') });
+  const offer = page.locator('[data-board]').first(), horse = (await offer.textContent())!.split(' · ')[1].split(' (')[0];
+  await offer.tap();
+  await page.getByRole('button', { name: t.close }).tap();
+  // two more stall places on the free plot: seven in all
+  await page.getByRole('button', { name: t.places.free }).tap();
+  await page.getByRole('button', { name: t.buildStalls(DATA.build.stalls.cost) }).tap();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  // the boarder's horse in the stable, a guest
+  await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
+  await expect(page.locator('.nameplate.guest', { hasText: horse })).toBeVisible();
+  await expect(page.locator('.box')).toHaveCount(DATA.stalls.pensionsstall + DATA.build.stalls.places);
+  await page.screenshot({ path: test.info().outputPath('stable-seven.png') });
+  await page.locator('.nameplate.guest', { hasText: horse }).tap();
+  await expect(page.locator('.horse-card')).toContainText('zahlt');
+  await page.getByRole('button', { name: t.close }).tap();
+  // a night: the groom is paid and cares, the boarder pays (no morning news for that); the next day's diary shows both
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap(); // the diary: the stall places built
+  await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
+  await page.getByRole('button', { name: t.sleep }).tap();
+  const diary = page.locator('.diary');
+  await expect(diary.locator('.diary-row', { hasText: t.billWhat.wage })).toContainText(t.euros(-DATA.staff.wage));
+  await expect(diary.locator('.diary-row', { hasText: t.billWhat.board })).toBeVisible();
+});
+
 test('the credits name the artists and close again', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: t.credits }).tap();
