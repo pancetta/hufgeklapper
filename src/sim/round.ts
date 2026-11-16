@@ -41,6 +41,10 @@ export function timeAllowed(c: Course) {
 }
 const timeFaults = (t: number, allowed: number) => (t > allowed ? Math.ceil((t - allowed) / R.timeFault) : 0);
 
+/** Practice and the riding badge ride the E course, a show its class's. */
+export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: keyof typeof DATA.jumping.courses = 'E') =>
+  DATA.jumping.courses[kind === 'show' ? showClass : 'E'];
+
 export function newRound(c: Course): Round {
   const [x, y, dir] = c.start;
   return { x, y, heading: ANGLE[dir], t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, done: false };
@@ -65,6 +69,7 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
   const lo = A.fence + 6, hx = A.w - A.fence - 6, hy = A.h - A.fence - 6;
   if (x < lo || x > hx) { x = Math.max(lo, Math.min(hx, x)); heading = Math.sin(heading) >= 0 ? ANGLE.S : ANGLE.N; }
   if (y < lo || y > hy) { y = Math.max(lo, Math.min(hy, y)); heading = Math.cos(heading) >= 0 ? ANGLE.E : ANGLE.W; }
+  if ((x === lo || x === hx) && (y === lo || y === hy)) heading = Math.atan2(A.h / 2 - y, A.w / 2 - x); // a corner: out towards the middle
   let next: Round = { ...r, x, y, heading, t };
   if (r.air) {
     if (t < r.air.to) return next;
@@ -118,9 +123,12 @@ export function autopilot(r: Round, c: Course, window = 0.03) {
   if (!j) { const [fx, fy, fd] = c.finish; return { x: fx + Math.cos(ANGLE[fd]) * 30, y: fy + Math.sin(ANGLE[fd]) * 30, hopp: false }; }
   const a = ANGLE[j.dir], { s, lat } = rel(r.x, r.y, [j.x, j.y], j.dir), offset = takeOffOffset(r, c);
   const ux = Math.cos(a), uy = Math.sin(a), along = (d: number, side = 0) => ({ x: j.x + ux * d - uy * side, y: j.y + uy * d + ux * side });
-  // first to a point well in front of the jump, then from near its line straight over it; too close or past it:
-  // round in a wide loop
-  const near = s < 0 && s > -95 && Math.abs(lat) < 25;
-  const p = near ? along(40) : s < -30 ? along(-80) : along(-140, lat >= 0 ? 70 : -70);
+  // on the jump's line and pointing its way: along the line and over it; otherwise first to an entry point well in
+  // front of it (from there along the line); too close or past it: round in a wide loop
+  const entry = along(-90), atEntry = Math.hypot(entry.x - r.x, entry.y - r.y) < 25;
+  const onLine = s < 0 && Math.abs(lat) < 20 && Math.cos(r.heading - a) > 0.5;
+  const p = onLine || atEntry ? along(Math.min(s + 50, 40)) : s < -60 ? entry : along(-150, lat >= 0 ? 60 : -60);
+  const lo = A.fence + 10; // loop points stay inside the fence
+  p.x = Math.max(lo, Math.min(A.w - lo, p.x)); p.y = Math.max(lo, Math.min(A.h - lo, p.y));
   return { ...p, hopp: offset !== null && Math.abs(offset) <= window };
 }

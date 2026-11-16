@@ -108,9 +108,10 @@ function plate(ctx: CanvasRenderingContext2D, j: CourseJump, n: number, next: bo
 /** For the next jump: the green take-off patch, as wide as the window, and two arrows showing the way to jump it. */
 function guide(ctx: CanvasRenderingContext2D, j: CourseJump, window: number, t: number) {
   const a = ANGLE[j.dir], ux = Math.cos(a), uy = Math.sin(a), w = window * R.speed;
+  // jumps face N, E, S or W, so the patch is a plain rectangle
+  const [s0, s1, l] = [-R.takeoff - w / 2, -R.takeoff + w / 2, R.half - 3], xs = [j.x + ux * s0 - uy * l, j.x + ux * s1 + uy * l], ys = [j.y + uy * s0 + ux * l, j.y + uy * s1 - ux * l];
   ctx.fillStyle = 'rgba(120, 220, 90, 0.5)';
-  for (let s = -R.takeoff - w / 2; s <= -R.takeoff + w / 2; s++)
-    for (let l = -R.half + 3; l <= R.half - 3; l++) ctx.fillRect(Math.round(j.x + ux * s - uy * l), Math.round(j.y + uy * s + ux * l), 1, 1);
+  ctx.fillRect(Math.round(Math.min(...xs)), Math.round(Math.min(...ys)), Math.round(Math.abs(xs[1] - xs[0])), Math.round(Math.abs(ys[1] - ys[0])));
   ctx.fillStyle = `rgba(255, 255, 255, ${0.55 + 0.35 * Math.sin(t * 5)})`;
   for (const s of [-R.takeoff - 30, -R.takeoff - 42]) for (let k = 0; k < 5; k++) for (const side of [-1, 1]) {
     // a chevron pointing the way to ride: its tip at the centre line
@@ -135,7 +136,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
-  let target: { x: number; y: number } | null = null, finger: number | null = null;
+  let target: { x: number; y: number } | null = null, finger: number | null = null, box = canvas.getBoundingClientRect();
   let done = (_faults: number) => {};
   const result = new Promise<number>((ok) => { done = ok; });
 
@@ -146,6 +147,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
     // the arena on the left, room on the right for "Hopp!"
     ox = Math.max(0, Math.min(8, W - A.w)); oy = Math.max(0, Math.floor((H - A.h) / 2));
+    box = canvas.getBoundingClientRect();
   }
   const toArena = (e: PointerEvent) => { const b = canvas.getBoundingClientRect(); return { x: (e.clientX - b.left) / S - ox, y: (e.clientY - b.top) / S - oy }; };
 
@@ -193,8 +195,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     c.jumps.forEach((j, i) => plate(ctx, j, i + 1, i === r.next, t)); // signs on the sand, under a jumping horse
     for (const it of items.sort((a, b) => a.y - b.y)) it.draw();
     // for the Playwright round: where a rider who knows the way would point, and whether to press "Hopp!" now
-    const a = autopilot(r, c, o.window * 0.4), b = canvas.getBoundingClientRect();
-    canvas.dataset.aim = `${Math.round(b.left + (ox + a.x) * S)},${Math.round(b.top + (oy + a.y) * S)}`;
+    if (!running) return;
+    const a = autopilot(r, c, o.window * 0.4);
+    canvas.dataset.aim = `${Math.round(box.left + (ox + a.x) * S)},${Math.round(box.top + (oy + a.y) * S)}`;
     canvas.dataset.hopp = a.hopp ? '1' : '';
   }
 

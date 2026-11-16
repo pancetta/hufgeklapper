@@ -88,11 +88,11 @@ export const DATA = {
         ],
       },
       L: {
-        start: [40, 250, 'E'], finish: [440, 150, 'E'],
+        start: [40, 250, 'E'], finish: [445, 210, 'E'],
         jumps: [
-          { x: 130, y: 250, dir: 'E', kind: 'upright' }, { x: 250, y: 250, dir: 'E', kind: 'oxer' }, { x: 400, y: 150, dir: 'N', kind: 'oxer' },
-          { x: 300, y: 45, dir: 'W', kind: 'upright' }, { x: 180, y: 45, dir: 'W', kind: 'oxer' }, { x: 60, y: 140, dir: 'S', kind: 'upright' },
-          { x: 170, y: 150, dir: 'E', kind: 'oxer' }, { x: 300, y: 150, dir: 'E', kind: 'upright' },
+          { x: 130, y: 250, dir: 'E', kind: 'upright' }, { x: 250, y: 250, dir: 'E', kind: 'oxer' }, { x: 400, y: 130, dir: 'N', kind: 'oxer' },
+          { x: 300, y: 45, dir: 'W', kind: 'upright' }, { x: 180, y: 45, dir: 'W', kind: 'oxer' }, { x: 60, y: 165, dir: 'S', kind: 'upright' },
+          { x: 200, y: 210, dir: 'E', kind: 'oxer' }, { x: 330, y: 210, dir: 'E', kind: 'upright' },
         ],
       },
     } as Record<'E' | 'A' | 'L', import('./round').Course>,
@@ -101,7 +101,7 @@ export const DATA = {
     happy: 5,
   },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
-  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 1 },
+  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
   /**
    * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
    * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their

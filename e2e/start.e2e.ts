@@ -8,10 +8,12 @@ import { t } from '../src/strings';
  * "Hopp!" when it says so, until the round's result shows.
  */
 async function rideCourse(page: Page) {
-  const canvas = page.locator('#jumping'), end = page.locator('#jump-end');
+  const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
   let down = false;
   while (await end.isHidden()) {
+    if (Date.now() > until) throw new Error('the round did not end in 40 s: the autopilot is lost');
     const [aim, hopp] = await canvas.evaluate((c) => [c.dataset.aim ?? '', c.dataset.hopp ?? '']);
+    if (!aim) continue; // the first frame of the round is still to come
     const [x, y] = aim.split(',').map(Number);
     await page.mouse.move(x, y);
     if (!down) { await page.mouse.down(); down = true; }

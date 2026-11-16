@@ -23,6 +23,22 @@ describe('a round on the show-jumping arena', () => {
     }
   });
 
+  it('a rider who misses "Hopp!" once, at any jump, still gets round long before the round is given up', () => {
+    for (const [name, c] of Object.entries(DATA.jumping.courses))
+      for (let miss = 0; miss < c.jumps.length; miss++) {
+        let missed = false;
+        const r = ride(c, newRound(c), (a, x) => { if (a.hopp && x.next === miss && !missed) { missed = takeOffOffset(x, c)! > 0; return false; } return a.hopp; });
+        expect([name, miss, r.done, r.next]).toEqual([name, miss, true, c.jumps.length]);
+        expect(r.t, `${name} jump ${miss + 1}`).toBeLessThan(timeAllowed(c) + 15);
+      }
+  });
+
+  it('with no finger down, the horse does not stay in a corner', () => {
+    let r: Round = { ...newRound(E), x: 455, y: 279, heading: 0 };
+    for (let i = 0; i < 120; i++) r = step(r, E, DT, null);
+    expect(Math.hypot(r.x - 460, r.y - 280)).toBeGreaterThan(40);
+  });
+
   it('a late "Hopp!" knocks the pole: a fault, the jump still counts', () => {
     let late = false;
     const r = ride(E, newRound(E), (_a, x) => { const o = takeOffOffset(x, E); if (x.next === 0 && o !== null && o > 0.15 && !late) return (late = true); return _a.hopp && x.next > 0; });

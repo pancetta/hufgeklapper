@@ -30,7 +30,7 @@ Sick days are counted in the morning, before the vet comes.
 | careful | 1 | 632 € | 230 € | 823 € | 1953 € | 3 | 12 | 121 | 13 | 0 | 0 € | nein |
 | careful | 2 | 711 € | 212 € | 921 € | 2021 € | 3 | 12 | 121 | 12 | 0 | 0 € | nein |
 | careful | 3 | 696 € | 284 € | 973 € | 2093 € | 3 | 11 | 124 | 12 | 0 | 0 € | nein |
-| careful | 4 | 640 € | 198 € | 1002 € | 2082 € | 5 | 12 | 121 | 11 | 0 | 0 € | nein |
+| careful | 4 | 648 € | 228 € | 1028 € | 2098 € | 3 | 11 | 123 | 12 | 0 | 0 € | nein |
 | careful | 5 | 676 € | 266 € | 957 € | 2047 € | 4 | 12 | 124 | 11 | 0 | 0 € | nein |
 | careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | nein |
 | careless | 2 | 549 € | 513 € | 476 € | 476 € | 3 | 18 | 44 | 10 | 14 | 0 € | nein |
@@ -59,6 +59,8 @@ Sick days are counted in the morning, before the vet comes.
 
 ## Open points
 
+- The run's jumping rounds count knocked poles only: refusals and time faults on the arena (#43) are not in the
+  model, so a real child's rounds come out a little worse. The riding badge allows 2 faults (was 1) for that reason.
 - **Careless gets nowhere slowly.** About 14 sick days in 40 (a pony falls sick every few days and rests after the
   vet), so fewer lessons and a lower reputation: the inspection comes on day 18–21 or not within 40 days (2 of 5 seeds).
   Never stuck, but a child who neglects the ponies may wait long; Oma Hanne's hints are meant to catch that.
