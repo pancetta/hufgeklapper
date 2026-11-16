@@ -60,6 +60,11 @@ export const DATA = {
   /** The jumping minigame ("Springen"): course, take-off window (seconds) and what training does. */
   jumping: {
     window: { base: 0.12, skill: 0.2, kept: 0.1 },
+    /** How far a breed can come in jumping (#58): practice raises a horse's skill up to this, so higher classes need the right horse. */
+    scope: { islaender: 50, haflinger: 60, quarter: 75, reitpony: 80, warmblut: 100 },
+    /** Momentum for higher jumps (#58): seconds the finger is held before letting go at take-off, by class; a skilled horse needs up to `holdSkill` less. */
+    hold: { E: 0, A: 0.35, L: 0.55 },
+    holdSkill: 0.4,
     /** A tap more than this many seconds early is not yet a take-off. */
     early: 0.6,
     /**

@@ -107,6 +107,14 @@ how high (practice and the riding badge ride E courses).
 **Fault** ("Fehler"):
 What a round costs: a knocked pole, a **Refusal**, or each started few seconds over the time allowed.
 
+**Jumping ability** ("Springvermögen"):
+How far a horse can come in jumping, by its breed: practice raises its skill up to that, so class L needs a horse
+that can jump that high (Warmblut, Deutsches Reitpony, Quarter Horse), not a Haflinger or Isländer.
+
+**Momentum** ("Schwung"):
+Higher jumps (classes A and L) need it: the finger held on the run-up strip, then let go at take-off. Held too
+briefly, the pole falls; a well-trained horse needs less.
+
 **Refusal** ("Verweigerung"):
 The horse stops in front of the next jump: ridden at it too askew, or without a take-off. A fault; then it turns round.
 

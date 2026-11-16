@@ -325,3 +325,7 @@ canvas { image-rendering: pixelated; }
   position: fixed; left: 0; right: 0; top: 12px; margin: 0 auto; width: fit-content; max-width: 60vw; text-align: center; z-index: 2;
   font-size: calc(var(--fs) * 18px); background: var(--sun); color: var(--ink); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 6px 12px;
 }
+
+/* the jumping bar shows how far this horse can come: a mark at its breed's limit */
+.bar.skill { position: relative; }
+.bar.skill::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: var(--scope, 100%); width: 2px; background: var(--wood-dark); }

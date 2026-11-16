@@ -86,9 +86,9 @@ export function courseOf(cls: ShowClass, seed: number): Course {
   for (let i = 0; i < G.tries; i++) {
     const [c, next] = build(cls, seed);
     seed = next;
-    if (c && rideable(c)) return { ...c, height: DATA.jumping.height[cls] };
+    if (c && rideable(c)) return { ...c, height: DATA.jumping.height[cls], hold: DATA.jumping.hold[cls] };
   }
-  return { ...DATA.jumping.courses[cls], height: DATA.jumping.height[cls] };
+  return { ...DATA.jumping.courses[cls], height: DATA.jumping.height[cls], hold: DATA.jumping.hold[cls] };
 }
 
 /** Practice and the riding badge ride an E course, a show its class's; `seed` makes each round's course its own. */

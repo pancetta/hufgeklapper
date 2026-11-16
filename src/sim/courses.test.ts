@@ -19,6 +19,7 @@ describe('courses that change', () => {
         for (const [x, y] of [c.start, c.finish]) expect(c.jumps.every((j) => Math.hypot(j.x - x, j.y - y) >= DATA.jumping.build.apart), name).toBe(true);
         expect(rideable(c), name).toBe(true);
         expect(c.height).toBe(DATA.jumping.height[cls]);
+        expect(c.hold).toBe(DATA.jumping.hold[cls]);
         if (JSON.stringify(c.jumps) === JSON.stringify(DATA.jumping.courses[cls].jumps)) fixed++;
       }
       expect(fixed, `${cls}: rides the fixed course`).toBeLessThan(4); // the fallback stays rare

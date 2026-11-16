@@ -10,11 +10,14 @@ import { t } from '../src/strings';
 async function rideCourse(page: Page) {
   const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
   const box = (await canvas.boundingBox())!;
+  let holding = false;
   while (await end.isHidden()) {
     if (Date.now() > until) throw new Error(`the round did not end in 40 s: the autopilot is lost (${await page.locator('#jump-hud').textContent()})`);
-    const [way, hopp] = await canvas.evaluate((c) => [c.dataset.route ?? '', c.dataset.hopp ?? '']);
-    if (hopp) { await page.mouse.click(box.x + 20, box.y + 20); continue; } // a tap anywhere: "Hopp!"
-    if (!way) continue;
+    const [way, hopp, press] = await canvas.evaluate((c) => [c.dataset.route ?? '', c.dataset.hopp ?? '', c.dataset.press ?? '']);
+    // higher classes: hold the finger on the run-up strip for momentum, let go at take-off
+    if (press && !holding) { await page.mouse.move(box.x + 20, box.y + 20); await page.mouse.down(); holding = true; continue; }
+    if (hopp) { if (holding) { await page.mouse.up(); holding = false; } else await page.mouse.click(box.x + 20, box.y + 20); continue; } // a tap anywhere: "Hopp!"
+    if (!way || holding) continue;
     const points = way.split(' ').map((p) => p.split(',').map(Number));
     await page.mouse.move(points[0][0], points[0][1]);
     await page.mouse.down();

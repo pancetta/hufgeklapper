@@ -9,8 +9,11 @@ import { DATA } from './data';
 
 export type Dir = 'N' | 'E' | 'S' | 'W';
 export type CourseJump = { x: number; y: number; dir: Dir; kind: 'cross' | 'upright' | 'oxer' };
-/** A course; `height`: how high its poles rest, in arena pixels (higher classes, higher jumps; drawing only). */
-export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number };
+/**
+ * A course; `height`: how high its poles rest, in arena pixels (drawing); `hold`: seconds of momentum its jumps need
+ * (0 or none: a tap takes off).
+ */
+export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number; hold?: number };
 
 export type Round = {
   x: number; y: number; heading: number; // radians: 0 east, π/2 south (the screen's y points down)
