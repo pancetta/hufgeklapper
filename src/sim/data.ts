@@ -68,6 +68,22 @@ export const DATA = {
   },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
   badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 1 },
+  /**
+   * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
+   * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their
+   * jumps falls with a chance that shrinks with skill.
+   */
+  shows: {
+    every: 3,
+    fee: 15,
+    prizes: [60, 35, 20],
+    faultPoints: 20,
+    skillPoints: 0.1,
+    rivalSkill: [10, 50], // the first shows: a clear round usually reaches the podium
+    rivalFaultChance: 0.5,
+    rivals: [['Lotta', 'Sternchen'], ['Jonas', 'Blitz'], ['Emil', 'Fanny'], ['Hanna', 'Moritz'], ['Ella', 'Pünktchen'], ['Ole', 'Wirbelwind']],
+    rivalsPerShow: 4,
+  },
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],

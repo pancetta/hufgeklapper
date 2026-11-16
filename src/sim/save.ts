@@ -9,12 +9,12 @@ import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, t
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1 };
-const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1 };
+const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1, showFee: 1, prize: 1 };
 const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-9-]{1,40}$/.test(p.id) && isText(p.name, 30)
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -51,7 +51,7 @@ function isAvatar(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 7 && isAvatar(x.avatar) && isInt(x.trainings, 0) && isInt(x.badges, 0, 1) && isInt(x.badgeFailedDay, 0) && isInt(x.badgeQuizDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+  return isObj(x) && x.version === 8 && isAvatar(x.avatar) && isInt(x.lastShowDay, 0) && isInt(x.trainings, 0) && isInt(x.badges, 0, 1) && isInt(x.badgeFailedDay, 0) && isInt(x.badgeQuizDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
     && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40)))
     && isObj(x.careDone) && CARE.every((c) => isInt((x.careDone as Obj)[c], 0))
@@ -104,6 +104,13 @@ function fromVersion6(x: Obj): unknown {
   return { ...x, version: 7, state: { ...s, version: 7, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0 } };
 }
 
+/** Version 7 (before shows): no show ridden yet. */
+function fromVersion7(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 8, state: { ...s, version: 8, lastShowDay: 0 } };
+}
+
 /** Reads a save file's text: the save if it is a valid Hufgeklapper save, else why not. */
 export function parseSave(text: string): Parsed {
   let x: unknown;
@@ -116,6 +123,7 @@ export function parseSave(text: string): Parsed {
   if (isObj(x) && x.version === 4) x = fromVersion4(x);
   if (isObj(x) && x.version === 5) x = fromVersion5(x);
   if (isObj(x) && x.version === 6) x = fromVersion6(x);
+  if (isObj(x) && x.version === 7) x = fromVersion7(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

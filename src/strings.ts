@@ -112,7 +112,7 @@ export const t = {
   lent: (n: number) => `Du hast ${n} € geliehen.`,
   askBank: 'Am Schwarzen Brett kann dir die Bank Geld leihen.',
   billTitle: 'Gestern:',
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
@@ -153,6 +153,18 @@ export const t = {
   quizFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht diesmal nicht. Morgen kannst du es noch einmal versuchen.`,
   badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
   badgeFailed: 'Zu viele Stangen sind gefallen. Morgen kannst du es noch einmal versuchen.',
+  // jumping shows
+  show: 'Turnier',
+  showWaits: {
+    badge: 'Für Turniere brauchst du erst das Reitabzeichen.',
+    notToday: (day: number) => `Das nächste Turnier ist an Tag ${day}.`,
+    money: (fee: number) => `Das Startgeld kostet ${fee} €. So viel hast du gerade nicht.`,
+  },
+  showEnter: (fee: number) => `Heute ist Turnier! Startgeld: ${fee} €. Mit welchem Pferd reitest du?`,
+  nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
+  podium: 'Siegerehrung',
+  points: (n: number) => `${n} Punkte`,
+  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // the player card
   playerCard: 'Meine Figur',
   badges: 'Reitabzeichen',
