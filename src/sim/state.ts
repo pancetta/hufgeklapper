@@ -294,17 +294,19 @@ export const fitsNone = (p: Pupil, horses: Horse[]) => !lessonChoices(p, horses)
 export const mood = (happy: number): 'delighted' | 'happy' | 'unhappy' => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';
 
 /**
- * The day's money for the diary: the entries summed by what they were for, money in (positive) and out
- * (negative) apart, the biggest first, and the day's total.
+ * The day's money for the diary: the entries summed by what they were for, earned and spent apart (the biggest
+ * first), debts on their own (a loan, hay on credit, debt paid back), and the total: exactly how the money changed
+ * (hay on credit doesn't touch it).
  */
 export function dayMoney(entries: Entry[]) {
-  const by = new Map<Entry['what'], number>();
+  const DEBT: Entry['what'][] = ['loan', 'repay', 'hayOnCredit'], by = new Map<Entry['what'], number>();
   for (const e of entries) by.set(e.what, (by.get(e.what) ?? 0) + e.amount);
-  const rows = [...by].map(([what, amount]) => ({ what, amount })).filter((r) => r.amount);
+  const rows = [...by].map(([what, amount]) => ({ what, amount })).filter((r) => r.amount), debt = (r: { what: Entry['what'] }) => DEBT.includes(r.what);
   return {
-    income: rows.filter((r) => r.amount > 0).sort((a, b) => b.amount - a.amount),
-    costs: rows.filter((r) => r.amount < 0).sort((a, b) => a.amount - b.amount),
-    total: entries.reduce((n, e) => n + e.amount, 0),
+    income: rows.filter((r) => r.amount > 0 && !debt(r)).sort((a, b) => b.amount - a.amount),
+    costs: rows.filter((r) => r.amount < 0 && !debt(r)).sort((a, b) => a.amount - b.amount),
+    debts: rows.filter(debt),
+    total: entries.filter((e) => e.what !== 'hayOnCredit').reduce((n, e) => n + e.amount, 0),
   };
 }
 

@@ -215,18 +215,19 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   $('sleep').addEventListener('click', () => {
     // the farm diary first: today's money as bars, then good night
     const day = dayMoney(game.get().today);
-    if (!day.income.length && !day.costs.length) return goodNight();
-    const most = Math.max(...[...day.income, ...day.costs].map((r) => Math.abs(r.amount)));
-    const bar = (r: { what: Entry['what']; amount: number }) => `<div class="diary-row"><span>${t.billWhat[r.what]}</span>
-      <span class="diary-bar ${r.amount > 0 ? 'in' : 'out'}"><i style="width:${Math.max(4, Math.round((Math.abs(r.amount) / most) * 100))}%"></i></span><b>${t.euros(r.amount)}</b></div>`;
+    if (!day.income.length && !day.costs.length && !day.debts.length) return goodNight();
+    const most = Math.max(...[...day.income, ...day.costs, ...day.debts].map((r) => Math.abs(r.amount)));
+    const bar = (kind: string) => (r: { what: Entry['what']; amount: number }) => `<div class="diary-row"><span>${t.billWhat[r.what]}</span>
+      <span class="diary-bar ${kind}"><i style="width:${Math.max(4, Math.round((Math.abs(r.amount) / most) * 100))}%"></i></span><b>${t.euros(r.amount)}</b></div>`;
     const box = $('morning');
+    box.firstElementChild!.className = 'sheet ask diary';
     box.firstElementChild!.innerHTML = `<h2>${t.diaryTitle(game.get().day)}</h2>
-      ${day.income.length ? `<h3>${t.diaryIn}</h3>${day.income.map(bar).join('')}` : ''}
-      ${day.costs.length ? `<h3>${t.diaryOut}</h3>${day.costs.map(bar).join('')}` : ''}
+      ${day.income.length ? `<h3>${t.diaryIn}</h3>${day.income.map(bar('in')).join('')}` : ''}
+      ${day.costs.length ? `<h3>${t.diaryOut}</h3>${day.costs.map(bar('out')).join('')}` : ''}
+      ${day.debts.length ? `<h3>${t.diaryDebts}</h3>${day.debts.map(bar('debt')).join('')}` : ''}
       <p class="diary-total">${t.diaryTotal(day.total, game.get().money)}</p><button type="button">${t.goodNight}</button>`;
-    box.firstElementChild!.classList.add('diary');
     box.hidden = false;
-    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; box.firstElementChild!.classList.remove('diary'); goodNight(); });
+    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; goodNight(); });
   });
   function goodNight() {
     const night = $('night');
@@ -244,9 +245,10 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     : n.kind === 'hayLow' ? t.newsHayLow : n.kind === 'noHay' ? t.newsNoHay : '';
   function morning(news: News[]) {
     if (!news.length) return;
-    const lines = [...new Set(news.filter((n) => n.kind !== 'bill').map(line))]; // "no hay" comes once per horse; say it once
-    if (!lines.length) return; // yesterday's money was in the diary
+    const lines = [...new Set(news.map(line).filter(Boolean))]; // "no hay" comes once per horse; say it once; the money was in the diary
+    if (!lines.length) return;
     const box = $('morning');
+    box.firstElementChild!.className = 'sheet ask';
     box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
     box.hidden = false;
     box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; });

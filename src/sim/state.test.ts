@@ -427,8 +427,12 @@ describe('Sim', () => {
 
   it('sums the day\'s money for the diary: in and out apart, by kind, the biggest first', () => {
     const day = dayMoney([{ what: 'lesson', amount: 20 }, { what: 'hay', amount: -25 }, { what: 'lesson', amount: 28 }, { what: 'prize', amount: 60 }, { what: 'showFee', amount: -15 }]);
-    expect(day).toEqual({ income: [{ what: 'prize', amount: 60 }, { what: 'lesson', amount: 48 }], costs: [{ what: 'hay', amount: -25 }, { what: 'showFee', amount: -15 }], total: 68 });
-    expect(dayMoney([])).toEqual({ income: [], costs: [], total: 0 });
+    expect(day).toEqual({ income: [{ what: 'prize', amount: 60 }, { what: 'lesson', amount: 48 }], costs: [{ what: 'hay', amount: -25 }, { what: 'showFee', amount: -15 }], debts: [], total: 68 });
+    expect(dayMoney([])).toEqual({ income: [], costs: [], debts: [], total: 0 });
+    // debts apart; the total is exactly how the money changed: 100 lent, 60 prize of which 30 paid debt back, and
+    // hay on credit, which doesn't touch the money
+    const d = dayMoney([{ what: 'loan', amount: 100 }, { what: 'hayOnCredit', amount: -25 }, { what: 'prize', amount: 60 }, { what: 'repay', amount: -30 }]);
+    expect([d.income, d.debts.map((r) => r.what), d.total]).toEqual([[{ what: 'prize', amount: 60 }], ['loan', 'hayOnCredit', 'repay'], 130]);
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {

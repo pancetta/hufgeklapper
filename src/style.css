@@ -341,4 +341,5 @@ canvas { image-rendering: pixelated; }
 .diary-bar i { display: block; height: 100%; }
 .diary-bar.in i { background: #5cb85c; }
 .diary-bar.out i { background: #d9534f; }
+.diary-bar.debt i { background: #8e8e9e; }
 .diary-total { text-align: center; font-size: calc(var(--fs) * 18px); }
