@@ -471,9 +471,17 @@ export function showFarm(intro = false) {
   /** Puts every label over its world point, centred (set here, not with a CSS transform: WebKit then misses taps on it). */
   const place = () => farm.then((f) => {
     labels.hidden = false; // shown once placed, not stacked in a corner while the farm loads
+    const placed: HTMLElement[] = [];
     labels.querySelectorAll<HTMLElement>('[data-x]').forEach((el) => {
       const p = f.toScreen(Number(el.dataset.x), Number(el.dataset.y));
-      el.style.left = `${p.left - el.offsetWidth / 2}px`; el.style.top = `${p.top - el.offsetHeight / 2}px`;
+      let left = p.left - el.offsetWidth / 2, top = p.top - el.offsetHeight / 2;
+      // labels grow with the interface, the map with the screen: one that would overlap a placed one moves below it
+      for (const o of placed) {
+        const ol = parseFloat(o.style.left), ot = parseFloat(o.style.top);
+        if (left < ol + o.offsetWidth && ol < left + el.offsetWidth && top < ot + o.offsetHeight && ot < top + el.offsetHeight) top = ot + o.offsetHeight + 2;
+      }
+      el.style.left = `${left}px`; el.style.top = `${top}px`;
+      placed.push(el);
     });
   });
   const spots = waitingSpots(PLOTS.find((p) => p.building === 'arena')!);

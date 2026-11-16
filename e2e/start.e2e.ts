@@ -86,6 +86,19 @@ test('the farm comes alive behind the title', async ({ page }) => {
   await expect.poll(() => farm.evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3])).toBe(255);
 });
 
+test('no two labels on the farm overlap, on the smallest and the largest iPad', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  for (const size of [{ width: 1024, height: 768 }, { width: 1366, height: 1024 }]) {
+    await page.setViewportSize(size);
+    await page.waitForTimeout(300); // placed again after the resize
+    const boxes = await page.locator('.label').evaluateAll((els) => els.map((e) => [e.textContent, e.getBoundingClientRect().toJSON()] as const));
+    for (const [i, [a, ra]] of boxes.entries())
+      for (const [b, rb] of boxes.slice(i + 1))
+        expect(ra.left < rb.right && rb.left < ra.right && ra.top < rb.bottom && rb.top < ra.bottom, `${a} × ${b} at ${size.width}×${size.height}`).toBe(false);
+  }
+});
+
 test('a new game: farm map, stable, horse card, then sleeping through the night', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
