@@ -1,0 +1,31 @@
+src/sim/round.test.ts
+  s_7657db1b41ed88::t_8178d887e30540 144,147-149
+src/sim/courses.ts
+  s_7657db1b41ed88::t_49d098b56b4826 72,80
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_c50c875db85bec 6-8,12,15-23
+  s_7657db1b41ed88::t_10f964b01a99e2 359-361,365
+src/scene/jumping.ts
+  s_7657db1b41ed88::t_c50c875db85bec 12,187-188,190-193
+src/sim/round.ts
+  s_7657db1b41ed88::t_10f964b01a99e2 182
+  s_7657db1b41ed88::t_c50c875db85bec 161-176
+  s_7657db1b41ed88::t_49d098b56b4826 6,22,86-88,91,95-96,138,183
+  s_7657db1b41ed88::t_1b7df2872c4288 160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18910c81145d7a74e2e84aebdf7d4577230e74ab",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
