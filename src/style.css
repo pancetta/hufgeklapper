@@ -313,3 +313,9 @@ canvas { image-rendering: pixelated; }
 .store-panel #stock { font-size: calc(var(--fs) * 18px); }
 .store-panel button { font-size: calc(var(--fs) * 18px); }
 .store-panel .answers { display: grid; gap: 8px; }
+
+/* a choice with its reason under the name: the lesson's horse list */
+.choice { display: grid; gap: 2px; text-align: left; }
+.choice small { font-size: calc(var(--fs) * 13px); opacity: 0.9; }
+.choice i { font-style: normal; color: var(--sun); }
+.choice.best { box-shadow: 0 0 0 3px var(--sun); }

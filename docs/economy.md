@@ -19,7 +19,7 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player never gets stuck (all horses sick, no money for the vet, no more loans) | met |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.87× careful's after 40 days and 1.14× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.92× careful's after 40 days and 1.18× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 
 ## Current numbers
 
@@ -27,21 +27,21 @@ Sick days are counted in the morning, before the vet comes.
 
 | Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 632 € | 230 € | 823 € | 1953 € | 3 | 12 | 121 | 13 | 0 | 0 € | nein |
-| careful | 2 | 711 € | 212 € | 921 € | 2021 € | 3 | 12 | 121 | 12 | 0 | 0 € | nein |
-| careful | 3 | 696 € | 284 € | 973 € | 2093 € | 3 | 11 | 124 | 12 | 0 | 0 € | nein |
-| careful | 4 | 648 € | 228 € | 1028 € | 2098 € | 3 | 11 | 123 | 12 | 0 | 0 € | nein |
-| careful | 5 | 676 € | 266 € | 957 € | 2047 € | 4 | 12 | 124 | 11 | 0 | 0 € | nein |
+| careful | 1 | 632 € | 230 € | 391 € | 1831 € | 3 | 12 | 112 | 13 | 0 | 0 € | nein |
+| careful | 2 | 711 € | 212 € | 323 € | 1653 € | 3 | 12 | 111 | 12 | 0 | 0 € | nein |
+| careful | 3 | 696 € | 284 € | 535 € | 1655 € | 3 | 11 | 113 | 12 | 0 | 0 € | nein |
+| careful | 4 | 648 € | 228 € | 458 € | 1758 € | 3 | 11 | 114 | 12 | 0 | 0 € | nein |
+| careful | 5 | 676 € | 266 € | 368 € | 1728 € | 4 | 12 | 112 | 11 | 0 | 0 € | nein |
 | careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | nein |
 | careless | 2 | 549 € | 513 € | 476 € | 476 € | 3 | 18 | 44 | 10 | 14 | 0 € | nein |
 | careless | 3 | 581 € | 525 € | 329 € | 329 € | 3 | 18 | 37 | 10 | 14 | 0 € | nein |
 | careless | 4 | 524 € | 402 € | 202 € | 202 € | 5 | – | 35 | 9 | 14 | 0 € | nein |
 | careless | 5 | 514 € | 498 € | 563 € | 563 € | 4 | 21 | 49 | 9 | 14 | 0 € | nein |
-| sport | 1 | 435 € | 476 € | 535 € | 1395 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
-| sport | 2 | 502 € | 534 € | 669 € | 1779 € | 3 | 25 | 70 | 13 | 0 | 0 € | nein |
-| sport | 3 | 429 € | 468 € | 668 € | 1858 € | 3 | 25 | 70 | 13 | 0 | 0 € | nein |
-| sport | 4 | 426 € | 618 € | 735 € | 1815 € | 5 | 25 | 77 | 12 | 0 | 0 € | nein |
-| sport | 5 | 421 € | 650 € | 233 € | 1003 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
+| sport | 1 | 435 € | 476 € | 220 € | 1340 € | 3 | 25 | 60 | 13 | 0 | 0 € | nein |
+| sport | 2 | 502 € | 534 € | 398 € | 1478 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
+| sport | 3 | 429 € | 468 € | 310 € | 1680 € | 3 | 25 | 66 | 13 | 0 | 0 € | nein |
+| sport | 4 | 426 € | 618 € | 251 € | 1531 € | 5 | 25 | 70 | 12 | 0 | 0 € | nein |
+| sport | 5 | 421 € | 650 € | 223 € | 993 € | 4 | 25 | 66 | 12 | 0 | 0 € | nein |
 
 ## What changed because of it
 
@@ -51,11 +51,12 @@ Sick days are counted in the morning, before the vet comes.
 
 - Careful used to beat sport on every seed: practice earned nothing by itself. Now shows have classes (E, A, L):
   a horse may start in A from jumping skill 40 and in L from 70, with bigger fees, stronger rivals and much bigger
-  prizes (first place 60 €, 160 €, 240 €). Practice also brings more skill (+4 for a clear round, +2 with faults;
+  prizes (first place 60 €, 160 €, 220 €). Practice also brings more skill (+4 for a clear round, +2 with faults;
   was +3 and +1), so daily practice reaches class A in about two weeks. Lower thresholds made sport *worse*: a horse
   starting early meets rivals it can't beat. A first prize of 300 € in L made sport win every seed after 60 days,
   so the test checks a 40-day and an 80-day game. With the arena's courses (#43: 6, 7 and 8 jumps instead of 5)
-  more poles fall, so A and L pay a little more (were 150 € and 220 €).
+  more poles fall, so A pays a little more (160 €, was 150 €). Since the Reitschule starts with a free stall (#50)
+  a horse from the market comes earlier, which helps sport most: L stays at 220 €.
 
 ## Open points
 
