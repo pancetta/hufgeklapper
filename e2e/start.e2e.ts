@@ -413,9 +413,11 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await draw((await routeNow()).slice(0, 3));
   await page.mouse.up();
   await expect(tip).toHaveText(t.drawTip('more', true), { timeout: 5000 });
+  const way = (await canvas.getAttribute('data-route'))!;
   await draw((await routeNow()).slice(0, 3));
   await page.waitForTimeout(1000);
   await expect(tip).toHaveText(t.drawTip('more', true)); // still standing: the finger is down
+  await expect(canvas).toHaveAttribute('data-route', way); // (a horse that moved gets a new route)
   await page.mouse.up();
   await expect(tip).toBeHidden(); // off it goes
   await rideCourse(page);

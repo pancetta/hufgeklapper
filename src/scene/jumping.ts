@@ -124,7 +124,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
   let path: Point[] = [], box = canvas.getBoundingClientRect(), go = false, waiting: 'first' | 'more' | null = null; // go: the first way is drawn
-  let touch: { id: number; x: number; y: number; at: number; t: number; drawing: boolean } | null = null; // the finger down now
+  let touch: { id: number; x: number; y: number; at: number; t: number; drawing: boolean; ride?: boolean } | null = null; // the finger down now; ride: its way began on a moving horse
   let done = (_faults: number) => {};
   const result = new Promise<number>((ok) => { done = ok; });
 
@@ -220,7 +220,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
       if (o.hold && touch && !touch.drawing && r.v && late !== null && late > o.window / 2 + 0.05) takeoff(0, (performance.now() - touch.at) / 1000); // (a standing horse: a new way, not a jump)
       // a standing horse (before the first way, after a refusal or at the end of a way) sets off only once the
       // finger lifts: there is time to draw the whole way; a horse on the move follows the new way at once
-      const f = !go || (touch?.drawing && !r.v && !r.air) ? { target: null, path } : follow(r, path);
+      const f = !go || (touch?.drawing && !touch.ride) ? { target: null, path } : follow(r, path);
       path = f.path;
       r = step(r, c, STEP, f.target);
       if (r.stopped && !before.stopped) path = []; // a refusal: the horse turns round, the child draws a new way
@@ -228,7 +228,7 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
       if (r.done) { running = false; done(r.faults); }
     }
     // standing for a way to ride (before the first, or at the end of one; also while it is drawn): say so once it changes
-    const now_ = !running ? null : !go ? 'first' : !r.air && !r.stopped && !r.v && (!path.length || touch?.drawing) ? 'more' : null;
+    const now_ = !running ? null : !go ? 'first' : !r.air && !r.stopped && !r.v && (!path.length || (touch?.drawing && !touch.ride)) ? 'more' : null;
     if (now_ !== waiting) { waiting = now_; o.onWaiting?.(waiting); }
     draw();
     requestAnimationFrame(frame);
@@ -257,9 +257,9 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     if (!touch.drawing && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) < TAP.px) return;
     // held for momentum near a jump: a finger that drifts a little stays a hold, it doesn't start a new way
     const near = takeOffOffset(r, c);
-    if (o.hold && !touch.drawing && near !== null && near > -o.hold - o.window - 0.3) return;
+    if (o.hold && !touch.drawing && r.v && near !== null && near > -o.hold - o.window - 0.3) return; // (standing: a new way)
     const p = toArena(e);
-    if (!touch.drawing || !path.length) { touch.drawing = true; path = [{ x: r.x, y: r.y }]; } // a new stroke, or after a refusal
+    if (!touch.drawing || !path.length) { touch.drawing = true; touch.ride = r.v > 0; path = [{ x: r.x, y: r.y }]; } // a new stroke, or after a refusal
     const last = path[path.length - 1];
     if (Math.hypot(p.x - last.x, p.y - last.y) >= 4) path.push(p);
   });
