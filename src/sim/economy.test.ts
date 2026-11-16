@@ -21,6 +21,13 @@ describe('economy run', () => {
     for (const r of of('careless')) expect(r.stuck, `seed ${r.seed}`).toBe(false);
   });
 
-  // target 3 of #18 is not met yet: careful (lessons and shows) beats sport on every seed, see docs/economy.md
-  it.todo('has no single best way to play');
+  // careful (lessons first) reaches the Reitschule sooner; sport (a trained horse in the higher show classes) catches up in money
+  it('has no single best way to play: careful and sport each end with the more valuable farm on some seeds', () => {
+    const worth = (strategy: Strategy) => of(strategy).map((r) => r.worth);
+    const careful = worth('careful'), sport = worth('sport');
+    expect(careful.some((w, i) => w > sport[i]), 'careful never ahead').toBe(true);
+    expect(sport.some((w, i) => w > careful[i]), 'sport never ahead').toBe(true);
+    expect(median(sport) / median(careful)).toBeGreaterThan(0.8);
+    expect(median(sport) / median(careful)).toBeLessThan(1.25);
+  });
 });

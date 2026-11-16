@@ -343,7 +343,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.show, exact: true }).tap();
-  await expect(page.getByText(t.showEnter(DATA.shows.fee))).toBeVisible();
+  await expect(page.getByText(t.showEnter(DATA.shows.classes.E.fee))).toBeVisible();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await tapTakeOffs(page);
@@ -354,12 +354,37 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   // the money moved as the bill says: the fee out, a prize in if placed
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
   const prize = s.today.find((e: { what: string }) => e.what === 'prize')?.amount ?? 0;
-  expect(s.money).toBe(300 - DATA.shows.fee + prize);
+  expect(s.money).toBe(300 - DATA.shows.classes.E.fee + prize);
   await expect(end).toContainText(prize ? `+${prize} € Preisgeld` : 'Beim nächsten Turnier');
   await page.getByRole('button', { name: t.toFarm }).tap();
   await page.getByRole('button', { name: t.places.arena }).tap();
   await expect(page.getByRole('button', { name: t.show, exact: true })).toBeDisabled();
   await expect(page.getByText(t.showWaits.notToday(2 * DATA.shows.every))).toBeVisible();
+});
+
+test('show classes: a trained horse opens class A; the untrained one may not start there; class A\'s fee', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  const A = DATA.shows.classes.A;
+  await changeSave(page, (s) => {
+    Object.assign(s, { badges: 1, trainings: 3, day: DATA.shows.every });
+    (s.horses as { name: string; skills: { jumping: number } }[]).find((h) => h.name === 'Kiwi')!.skills.jumping = A.minSkill;
+  });
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.show, exact: true }).tap();
+  await expect(page.getByText(t.classesHow)).toBeVisible();
+  await expect(page.getByRole('button', { name: t.showClass('E', DATA.shows.classes.E.fee, DATA.shows.classes.E.prizes[0]) })).toBeEnabled();
+  await expect(page.getByRole('button', { name: t.showClass('L', DATA.shows.classes.L.fee, DATA.shows.classes.L.prizes[0]) })).toBeDisabled();
+  await page.getByRole('button', { name: t.showClass('A', A.fee, A.prizes[0]) }).tap();
+  await expect(page.getByText(t.showEnterClass('A', A.fee))).toBeVisible();
+  await expect(page.getByRole('button', { name: `Luna · ${t.notSkilled}` })).toBeDisabled();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.go }).tap();
+  await tapTakeOffs(page);
+  await expect(page.locator('#jump-end').getByRole('heading', { name: t.podium })).toBeVisible({ timeout: 15_000 });
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  expect(s.today[0]).toEqual({ what: 'showFee', amount: -A.fee });
 });
 
 test('the task list and Oma Hanne: she explains a place once, and says when a pony is hungry', async ({ page }) => {

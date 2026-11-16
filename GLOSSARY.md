@@ -104,6 +104,10 @@ Riding the **Jumping** minigame at home: raises the horse's skill, uses **Energi
 **Show** ("Turnier"):
 A competition against AI rivals with prize money ("Preisgeld"); opened by a **Riding badge**.
 
+**Show class** ("Klasse"):
+The level a horse starts at in a **Show**: E, A or L. A horse may start in a class once its jumping skill is high
+enough; higher classes cost more and pay more.
+
 ### Economy
 
 **Money** ("Geld"):

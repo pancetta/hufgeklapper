@@ -5,7 +5,7 @@
  */
 import { DATA } from './data';
 import {
-  type Action, apply, badgeWaits, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
+  type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll,
   showWaits, stalls,
 } from './state';
 
@@ -13,6 +13,8 @@ export type Strategy = 'careful' | 'careless' | 'sport';
 export type Report = {
   strategy: Strategy; seed: number; days: number;
   money: number[]; // at the end of each day
+  /** What the farm is worth at the end: money minus debt, plus what was spent on horses and building. */
+  worth: number;
   badgeDay: number | null; inspectionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number; stuck: boolean;
 };
@@ -34,6 +36,10 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     for (let i = 0; i < DATA.jumping.jumps; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
     return n;
   };
+  let invested = 0;
+  const best = (c: Horse[]) => [...c].sort((a, b) => b.skills.jumping - a.skills.jumping)[0];
+  /** The highest class a horse may start in today: a child picks the class with the biggest prize. */
+  const topClass = (h: Horse) => SHOW_CLASSES.filter((c) => !classWaits(s, h, c)).pop();
   const fresh = (energy: number) => s.horses.filter((h) => !cantWork(h, energy)).sort((a, b) => b.needs.energy - a.needs.energy);
 
   for (let d = 0; d < days; d++) {
@@ -48,7 +54,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     // sport first for the sport player, lessons first for the others
     const sport = () => {
       if (s.trainings < DATA.badge.trainings || (strategy === 'sport' && s.badges)) {
-        const h = fresh(DATA.jumping.energy)[0];
+        // the sport player trains their best jumper, so one horse grows into the higher classes
+        const h = strategy === 'sport' ? best(fresh(DATA.jumping.energy)) : fresh(DATA.jumping.energy)[0];
         if (h && (strategy === 'sport' || s.trainings < DATA.badge.trainings)) act({ type: 'train', horse: h.id, faults: faults(h) });
       }
       if (!badgeWaits(s)) {
@@ -58,8 +65,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
         if (s.badges && badgeDay === null) badgeDay = s.day;
       }
       if (!showWaits(s)) {
-        const h = fresh(DATA.jumping.energy)[0];
-        if (h) { act({ type: 'show', horse: h.id, faults: faults(h) }); shows++; }
+        const h = best(fresh(DATA.jumping.energy)), c = h && topClass(h);
+        if (h && c) { act({ type: 'show', horse: h.id, faults: faults(h), showClass: c }); shows++; }
       }
     };
     const lessons = () => {
@@ -78,18 +85,19 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (offer && s.horses.length < stalls(s)) act({ type: 'buyHorse', offer: offer.id });
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }
+    invested -= s.today.filter((e) => e.what === 'horse' || e.what === 'build').reduce((n, e) => n + e.amount, 0);
     maxDebt = Math.max(maxDebt, s.debt);
     money.push(s.money);
     act({ type: 'sleep' });
   }
   // stuck: every horse sick, no money for the vet and no more loans
   const stuck = s.horses.every((h) => isSick(h)) && s.money < DATA.vet.cost && s.debt + DATA.loan.amount > DATA.loan.debtLimit;
-  return { strategy, seed, days, money, badgeDay, inspectionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, stuck };
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, stuck };
 }
 
 /** One line per run, for docs/economy.md and the console. */
 export function summary(r: Report) {
   const at = (d: number) => r.money[Math.min(d, r.money.length) - 1];
-  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.stuck ? 'ja' : 'nein'} |`;
+  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.stuck ? 'ja' : 'nein'} |`;
 }
-export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |\n|---|---|---|---|---|---|---|---|---|---|---|---|';
+export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | festgefahren |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|';

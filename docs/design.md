@@ -42,7 +42,7 @@ The MVP covers two farm stages and one riding badge, so both career tracks and a
 1. **New game**: choose a slot, build the avatar, Oma Hanne's intro.
 2. **Kleiner Hof** (farm stage 1): 2 ponies, stable screen with care gestures, needs falling over days, feed bought and used up, sickness and vet, lessons as the income, the safety net, a goal list (*Aufgaben*) shown at all times, Oma Hanne's hints.
 3. **Jumping** as training: improves the horse's skill, uses energy.
-4. **Riding badge 1**: quiz plus a jumping round; passing opens small **Shows** with prize money and AI rivals.
+4. **Riding badge 1**: quiz plus a jumping round; passing opens **Shows** with prize money and AI rivals, in classes E, A and L that a trained horse unlocks.
 5. **Farm inspection 1**: goals met plus a short quiz → **Reitschule** (farm stage 2): buy a horse (pony or big horse), build or upgrade stable places and the arena on the plots.
 6. Horse looks: 2 **Builds** (pony, big horse), about 6 coats, 3 markings, mane colour, tack.
 7. Credits screen, home-screen app, offline.
