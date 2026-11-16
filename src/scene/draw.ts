@@ -51,9 +51,10 @@ export function pole(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: 
 }
 
 /** A white standard with coloured bands, standing on the sand at (x, y). */
-export function standard(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string) {
+export function standard(ctx: CanvasRenderingContext2D, x: number, y: number, colour: string, tall = 11) {
   ctx.fillStyle = 'rgba(60, 40, 10, 0.25)'; ctx.fillRect(x - 1, y, 5, 2);
-  ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, y - 11, 5, 12);
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, y - 10, 3, 10);
-  ctx.fillStyle = colour; ctx.fillRect(x - 1, y - 8, 3, 2); ctx.fillRect(x - 1, y - 4, 3, 2);
+  ctx.fillStyle = '#2a1a10'; ctx.fillRect(x - 2, y - tall, 5, tall + 1);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 1, y - tall + 1, 3, tall - 1);
+  ctx.fillStyle = colour;
+  for (let b = 4; b < tall - 1; b += 4) ctx.fillRect(x - 1, y - b, 3, 2); // coloured bands all the way up
 }

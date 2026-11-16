@@ -3,14 +3,14 @@
  * the faults so far. Pure and step by step, so the scene only draws it and feeds in the drawn path and the taps.
  * The horse canters on its own along the path the child drew (#47). "Hopp!" in front of the next jump takes off, judged by
  * the Sim's take-off window. Reaching a jump without taking off, or riding at it too askew, the horse refuses.
- * A jump out of turn can't be jumped: the horse stops in front of it, without a fault.
+ * A jump out of turn (or the next one from the wrong side) is hopped over and doesn't count: no fault, no way out needed.
  */
 import { DATA } from './data';
 
 export type Dir = 'N' | 'E' | 'S' | 'W';
 export type CourseJump = { x: number; y: number; dir: Dir; kind: 'cross' | 'upright' | 'oxer' };
-/** Start and finish: a point and the way the horse rides through it. */
-export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[] };
+/** A course; `height`: how high its poles rest, in arena pixels (higher classes, higher jumps; drawing only). */
+export type Course = { start: [x: number, y: number, dir: Dir]; finish: [x: number, y: number, dir: Dir]; jumps: CourseJump[]; height?: number };
 
 export type Round = {
   x: number; y: number; heading: number; // radians: 0 east, π/2 south (the screen's y points down)
@@ -18,7 +18,7 @@ export type Round = {
   started: boolean; // the clock runs from the first way the child gives
   t: number; next: number; faults: number;
   down: number[]; // jumps with a knocked pole
-  air: { jump: number; from: number; to: number; down: boolean } | null; // in the air over a jump, from/to in seconds
+  air: { jump: number; from: number; to: number; down: boolean; counts: boolean } | null; // in the air over a jump, from/to in seconds; counts: the next one, taken off for
   stopped: number; // seconds left standing after a refusal
   refused: number | null; // the jump refused last
   done: boolean;
@@ -47,10 +47,6 @@ export function timeAllowed(c: Course) {
   return Math.ceil((len / R.speed) * R.time);
 }
 const timeFaults = (t: number, allowed: number) => (t > allowed ? Math.ceil((t - allowed) / R.timeFault) : 0);
-
-/** Practice and the riding badge ride the E course, a show its class's. */
-export const courseFor = (kind: 'train' | 'badge' | 'show', showClass: keyof typeof DATA.jumping.courses = 'E') =>
-  DATA.jumping.courses[kind === 'show' ? showClass : 'E'];
 
 export function newRound(c: Course): Round {
   const [x, y, dir] = c.start;
@@ -86,16 +82,17 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
   let next: Round = { ...r, x, y, heading, v, t };
   if (r.air) {
     if (t < r.air.to) return next;
-    // landed: the jump is done, a knocked pole is a fault
-    const { jump, down } = r.air;
+    // landed: the next jump is done, a knocked pole is a fault; a jump out of turn counts for nothing
+    const { jump, down, counts } = r.air;
+    if (!counts) return { ...next, air: null };
     return { ...next, air: null, next: r.next + 1, faults: r.faults + (down ? 1 : 0), down: down ? [...r.down, jump] : r.down };
   }
-  // reaching a jump on the ground (from either side): the horse stops in front of it
+  // reaching a jump on the ground: the next one, ridden its way, is refused (a fault); any other the horse hops over
   for (let i = 0; i < c.jumps.length; i++) {
     const j = c.jumps[i], before = rel(r.x, r.y, [j.x, j.y], j.dir), after = rel(x, y, [j.x, j.y], j.dir);
     if (Math.abs(after.lat) > R.half || Math.sign(before.s) === Math.sign(after.s)) continue;
-    const counts = i === r.next && before.s < 0; // a refusal at the next jump, ridden the right way, is a fault
-    return { ...r, t, heading, v: 0, stopped: R.stop, refused: i, faults: r.faults + (counts ? 1 : 0) };
+    if (i === r.next && before.s < 0) return { ...r, t, heading, v: 0, stopped: R.stop, refused: i, faults: r.faults + 1 };
+    return { ...next, v: Math.max(v, R.speed / 2), air: { jump: i, from: t, to: t + (2 * R.takeoff) / R.speed, down: false, counts: false } };
   }
   // through the finish after the last jump
   if (r.next === c.jumps.length) {
@@ -137,7 +134,7 @@ export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | '
   if (what === 'early') return r;
   const j = c.jumps[r.next], { s } = rel(r.x, r.y, [j.x, j.y], j.dir);
   // straight over the jump, landing as far behind the pole as the hooves left the ground before it
-  return { ...r, heading: ANGLE[j.dir], v: R.speed, air: { jump: r.next, from: r.t, to: r.t + (R.takeoff - s) / R.speed, down: what === 'fault' } };
+  return { ...r, heading: ANGLE[j.dir], v: R.speed, air: { jump: r.next, from: r.t, to: r.t + (R.takeoff - s) / R.speed, down: what === 'fault', counts: true } };
 }
 
 export type Point = { x: number; y: number };
@@ -159,13 +156,32 @@ export function follow(r: Round, path: Point[]): { target: Point | null; path: P
   return { target: rest[0] ?? null, path: rest };
 }
 
+/** How a rider who knows the way takes off (the course check and the e2e route): within a short moment of perfect. */
+export const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
+
+/**
+ * The way a rider who knows it would ride from `r` on, as points every few pixels: the autopilot played ahead
+ * (with "Hopp!" on time), until the finish or `secs`. For the Playwright round, which draws it in one stroke.
+ */
+export function route(r: Round, c: Course, secs = 30): Point[] {
+  const points: Point[] = [{ x: r.x, y: r.y }];
+  for (let t = 0; t < secs && !r.done; t += 1 / 60) {
+    const a = autopilot(r, c);
+    if (a.hopp) r = hopp(r, c, judge);
+    r = step(r, c, 1 / 60, a);
+    const last = points[points.length - 1];
+    if (Math.hypot(r.x - last.x, r.y - last.y) >= 6) points.push({ x: r.x, y: r.y });
+  }
+  return [...points, { x: r.x + Math.cos(r.heading) * 20, y: r.y + Math.sin(r.heading) * 20 }]; // on through the finish
+}
+
 /**
  * A rider who knows the way: where to point the finger, and whether this is the moment for "Hopp!". Rides each
  * jump from a point straight in front of it. For the tests and the Playwright round; the child steers themselves.
  */
 export function autopilot(r: Round, c: Course, window = 0.03) {
-  const j = c.jumps[r.air ? r.air.jump + 1 : r.next]; // in the air: already on to the next one
-  if (!j) { const [fx, fy, fd] = c.finish; return { x: fx + Math.cos(ANGLE[fd]) * 30, y: fy + Math.sin(ANGLE[fd]) * 30, hopp: false }; }
+  // the next jump (in the air: already the one after), or the finish, ridden through like a jump
+  const [fx, fy, fd] = c.finish, j = c.jumps[r.air?.counts ? r.air.jump + 1 : r.next] ?? { x: fx, y: fy, dir: fd, kind: 'upright' };
   const a = ANGLE[j.dir], { s, lat } = rel(r.x, r.y, [j.x, j.y], j.dir), offset = takeOffOffset(r, c);
   const ux = Math.cos(a), uy = Math.sin(a), along = (d: number, side = 0) => ({ x: j.x + ux * d - uy * side, y: j.y + uy * d + ux * side });
   // on the jump's line and pointing its way: along the line and over it; otherwise first to an entry point well in

@@ -141,12 +141,19 @@ describe('a round on the show-jumping arena', () => {
     expect(hopp(r, E, judge)).toBe(r);
   });
 
-  it('a jump out of turn stops the horse without a fault', () => {
+  it('a jump out of turn is hopped over: no fault, it does not count, nothing to get stuck at', () => {
     // in front of jump 2 while jump 1 is next
     const j = E.jumps[1];
-    let r: Round = { ...newRound(E), x: j.x - 30, y: j.y, v: R.speed };
-    while (r.refused === null && r.t < 2) r = step(r, E, DT, { x: j.x + 100, y: j.y }); // straight at it
-    expect([r.refused, r.faults]).toEqual([1, 0]);
+    let r: Round = { ...newRound(E), x: j.x - 30, y: j.y, v: R.speed }, flew = false;
+    for (let i = 0; i < 60; i++) { r = step(r, E, DT, { x: j.x + 100, y: j.y }); flew ||= !!r.air; }
+    expect([flew, r.refused, r.faults, r.next, r.x > j.x]).toEqual([true, null, 0, 0, true]);
+  });
+
+  it('the next jump ridden from behind is hopped over too: no refusal, no fault, it still waits to be jumped', () => {
+    const j = E.jumps[0];
+    let r: Round = { ...newRound(E), x: j.x + 30, y: j.y, heading: Math.PI, v: R.speed }, flew = false;
+    for (let i = 0; i < 60; i++) { r = step(r, E, DT, { x: j.x - 100, y: j.y }); flew ||= !!r.air; }
+    expect([flew, r.refused, r.faults, r.next]).toEqual([true, null, 0, 0]);
   });
 
   it('time faults: one for each started few seconds over the time allowed', () => {

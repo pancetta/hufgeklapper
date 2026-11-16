@@ -1,35 +1,27 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DATA } from '../src/sim/data';
-import { timeAllowed } from '../src/sim/round';
 import { t } from '../src/strings';
 
 /**
- * Rides the course like a rider who knows the way: draws the path with one finger towards the point the scene says
- * (its autopilot), lifts it and taps once for "Hopp!" when it says so, until the round's result shows.
+ * Rides the course like a careful child who knows the way: whenever the horse waits, draws the whole way the
+ * scene's autopilot would ride in one stroke and lifts the finger; while it rides, taps once for "Hopp!" when the
+ * scene says so; until the round's result shows.
  */
 async function rideCourse(page: Page) {
   const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
-  let down = false, first = true;
+  const box = (await canvas.boundingBox())!;
   while (await end.isHidden()) {
     if (Date.now() > until) throw new Error(`the round did not end in 40 s: the autopilot is lost (${await page.locator('#jump-hud').textContent()})`);
-    const [aim, hopp] = await canvas.evaluate((c) => [c.dataset.aim ?? '', c.dataset.hopp ?? '']);
-    if (!aim) continue; // the first frame of the round is still to come
-    const [x, y] = aim.split(',').map(Number);
-    if (first) { // the first way, then lift the finger: the horse sets off
-      await page.mouse.move(x - 20, y - 20); await page.mouse.down(); await page.mouse.move(x, y, { steps: 4 }); await page.mouse.up();
-      first = false;
-      continue;
-    }
-    if (hopp) {
-      if (down) { await page.mouse.up(); down = false; }
-      await page.mouse.click(x, y); // a tap: "Hopp!"
-      continue;
-    }
-    // a stroke starts a little off the target, so it is drawing (not a tap) even when the target stands still
-    if (!down) { await page.mouse.move(x - 20, y - 20); await page.mouse.down(); await page.mouse.move(x, y, { steps: 2 }); down = true; }
-    else await page.mouse.move(x, y, { steps: 2 });
+    const [way, hopp] = await canvas.evaluate((c) => [c.dataset.route ?? '', c.dataset.hopp ?? '']);
+    if (hopp) { await page.mouse.click(box.x + 20, box.y + 20); continue; } // a tap anywhere: "Hopp!"
+    if (!way) continue;
+    const points = way.split(' ').map((p) => p.split(',').map(Number));
+    await page.mouse.move(points[0][0], points[0][1]);
+    await page.mouse.down();
+    for (const [x, y] of points.slice(1)) await page.mouse.move(x, y);
+    await page.mouse.up();
+    await expect(canvas).not.toHaveAttribute('data-route', way); // the horse sets off
   }
-  if (down) await page.mouse.up();
 }
 
 /**
@@ -364,12 +356,13 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await page.getByRole('button', { name: t.go }).tap();
   // steered round the course with "Hopp!" at the green patches: the round ends with the result
   const end = page.locator('#jump-end');
-  const hud = t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, timeAllowed(DATA.jumping.courses.E));
-  await expect(page.locator('#jump-hud')).toHaveText(hud);
+  // each round has its own course: 6 jumps for practice, the clock at 0
+  const hud = page.locator('#jump-hud'), start = new RegExp(`^${t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, 0).split(' · Zeit')[0]} · Zeit 0/`);
+  await expect(hud).toHaveText(start);
   // the pony waits until a way is drawn: the tip says so, and the clock stands
   await expect(page.locator('#jump-tip')).toHaveText(t.drawTip('first', true));
   await page.waitForTimeout(1500);
-  await expect(page.locator('#jump-hud')).toHaveText(hud);
+  await expect(hud).toHaveText(start);
   await rideCourse(page);
   await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
