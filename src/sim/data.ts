@@ -62,7 +62,7 @@ export const DATA = {
     /** A tap more than this many seconds early is not yet a take-off; this long after the window, the horse runs into the pole. */
     early: 0.6,
     late: 0.15,
-    gain: { clear: 3, faults: 1 },
+    gain: { clear: 4, faults: 2 }, // daily practice brings a horse to class A in about two weeks
     energy: 25,
     happy: 5,
   },
@@ -75,14 +75,20 @@ export const DATA = {
    */
   shows: {
     every: 3,
-    fee: 15,
-    prizes: [60, 35, 20],
     faultPoints: 20,
     skillPoints: 0.1,
-    rivalSkill: [10, 50], // the first shows: a clear round usually reaches the podium
     rivalFaultChance: 0.5,
     rivals: [['Lotta', 'Sternchen'], ['Jonas', 'Blitz'], ['Emil', 'Fanny'], ['Hanna', 'Moritz'], ['Ella', 'Pünktchen'], ['Ole', 'Wirbelwind']],
     rivalsPerShow: 4,
+    /**
+     * Classes ("Klassen"), easiest first: a horse may start once its jumping skill reaches `minSkill`. Higher classes
+     * cost more and meet better rivals, but pay much more: training a horse is how sport earns money.
+     */
+    classes: {
+      E: { minSkill: 0, fee: 15, prizes: [60, 35, 20], rivalSkill: [10, 50] }, // the first shows: a clear round usually reaches the podium
+      A: { minSkill: 40, fee: 30, prizes: [150, 90, 50], rivalSkill: [35, 70] },
+      L: { minSkill: 70, fee: 50, prizes: [220, 130, 70], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
+    },
   },
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
   goals: {

@@ -82,7 +82,7 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
   | { type: 'train'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
-  | { type: 'show'; horse: string; faults: number }
+  | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
   | { type: 'explained'; what: Feature }
   | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: 'stalls' | 'arena' };
 
@@ -200,7 +200,20 @@ export function nextShowDay(s: State) {
 }
 /** Why the player can't ride in a show today, or null if they can (the horse still has to be fit). */
 export function showWaits(s: State): 'badge' | 'notToday' | 'money' | null {
-  return s.badges < 1 ? 'badge' : nextShowDay(s) !== s.day ? 'notToday' : s.money < DATA.shows.fee ? 'money' : null;
+  return s.badges < 1 ? 'badge' : nextShowDay(s) !== s.day ? 'notToday' : s.money < DATA.shows.classes.E.fee ? 'money' : null;
+}
+export type ShowClass = keyof typeof DATA.shows.classes;
+export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
+/** Why horse `h` can't start in class `c` today: not skilled enough, or the entry fee is too much; null if it can. */
+export const classWaits = (s: State, h: Horse, c: ShowClass): 'skill' | 'money' | null =>
+  h.skills.jumping < DATA.shows.classes[c].minSkill ? 'skill' : s.money < DATA.shows.classes[c].fee ? 'money' : null;
+/**
+ * Why class `c` is shut today for every horse, the nearest reason first (the fee, then a skilled horse that can't
+ * work today, then no horse skilled enough); null if some horse can start there.
+ */
+export function classShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | null {
+  const w = s.horses.map((h) => classWaits(s, h, c) ?? (cantWork(h, DATA.jumping.energy) ? 'tired' : null));
+  return w.includes(null) ? null : (['money', 'tired', 'skill'] as const).find((r) => w.includes(r)) ?? 'skill';
 }
 const showScore = (faults: number, skill: number) => 100 - DATA.shows.faultPoints * faults + Math.round(skill * DATA.shows.skillPoints);
 
@@ -209,15 +222,15 @@ export type ShowRow = { rider: string; horse: string; score: number; you?: true 
  * A show's results for the player's round with horse `h`: the rivals ride with chance from the game's seed. The table
  * is best first; the player wins a tie. Returns the rank (1 = first), the prize and the moved seed.
  */
-export function showResult(s: State, h: Horse, faults: number, rider: string) {
-  const S = DATA.shows, J = DATA.jumping, rows: ShowRow[] = [];
+export function showResult(s: State, h: Horse, faults: number, rider: string, c: ShowClass) {
+  const S = DATA.shows, C = S.classes[c], J = DATA.jumping, rows: ShowRow[] = [];
   let seed = s.seed, r: number;
   const pool = S.rivals.filter(([name]) => name !== rider); // no rival with the player's own name
   for (let i = 0; i < S.rivalsPerShow; i++) {
     [r, seed] = roll(seed);
     const [name, horse] = pool.splice(Math.floor(r * pool.length), 1)[0];
     [r, seed] = roll(seed);
-    const skill = S.rivalSkill[0] + r * (S.rivalSkill[1] - S.rivalSkill[0]);
+    const skill = C.rivalSkill[0] + r * (C.rivalSkill[1] - C.rivalSkill[0]);
     let down = 0;
     for (let j = 0; j < J.jumps; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
     rows.push({ rider: name, horse, score: showScore(down, skill) });
@@ -225,7 +238,7 @@ export function showResult(s: State, h: Horse, faults: number, rider: string) {
   const you: ShowRow = { rider, horse: h.name, score: showScore(faults, h.skills.jumping), you: true };
   const table = [you, ...rows].sort((a, b) => b.score - a.score || (a.you ? -1 : b.you ? 1 : 0));
   const rank = table.indexOf(you) + 1;
-  return { table, rank, prize: S.prizes[rank - 1] ?? 0, seed };
+  return { table, rank, prize: C.prizes[rank - 1] ?? 0, seed };
 }
 
 /** The quiz's score: in the quiz data the right answer of each question comes first (index 0). */
@@ -389,12 +402,13 @@ function step(state: State, action: Action): State {
     }
     case 'show': {
       // the entry fee, the round (the horse tires like practice), the prize for the first three; one show a day
-      const h = state.horses.find((x) => x.id === action.horse), S = DATA.shows;
-      if (!h || showWaits(state) || cantWork(h, DATA.jumping.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
-      const { prize, seed } = showResult(state, h, action.faults, state.avatar.name);
+      const h = state.horses.find((x) => x.id === action.horse), c = action.showClass;
+      if (!h || !SHOW_CLASSES.includes(c) || showWaits(state) || classWaits(state, h, c) || cantWork(h, DATA.jumping.energy)
+        || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      const fee = DATA.shows.classes[c].fee, { prize, seed } = showResult(state, h, action.faults, state.avatar.name, c);
       const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.jumping.energy) } };
-      const paid: State = { ...state, seed, lastShowDay: state.day, money: state.money - S.fee, horses: state.horses.map((x) => (x === h ? ridden : x)),
-        today: [...state.today, { what: 'showFee', amount: -S.fee }, ...(prize ? [{ what: 'prize' as const, amount: prize }] : [])] };
+      const paid: State = { ...state, seed, lastShowDay: state.day, money: state.money - fee, horses: state.horses.map((x) => (x === h ? ridden : x)),
+        today: [...state.today, { what: 'showFee', amount: -fee }, ...(prize ? [{ what: 'prize' as const, amount: prize }] : [])] };
       return prize ? earn(paid, prize) : paid;
     }
     case 'badgeQuiz': {

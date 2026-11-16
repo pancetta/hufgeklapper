@@ -17,7 +17,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, fit, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -341,7 +341,7 @@ export function showFarm(intro = false) {
   /** The arena: a lesson for the first waiting pupil, jumping practice, and the riding badge or, once passed, the show. */
   function arena() {
     const sheet = $('lesson'), s = game.get(), wait = badgeWaits(s), show = showWaits(s);
-    const showWhy = show === 'notToday' ? t.showWaits.notToday(nextShowDay(s)) : show === 'money' ? t.showWaits.money(DATA.shows.fee) : show && t.showWaits[show];
+    const showWhy = show === 'notToday' ? t.showWaits.notToday(nextShowDay(s)) : show === 'money' ? t.showWaits.money(DATA.shows.classes.E.fee) : show && t.showWaits[show];
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.arena}</h2>
       <button type="button" id="give-lesson">${t.giveLesson}</button><button type="button" id="practise">${t.practiseJumping}</button>
       ${wait?.why === 'passed' ? `<button type="button" id="show"${show ? ' disabled aria-describedby="show-why"' : ''}>${t.show}</button>${showWhy ? `<p class="oma" id="show-why">${showWhy}</p>` : ''}`
@@ -351,7 +351,7 @@ export function showFarm(intro = false) {
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelector('#badge')?.addEventListener('click', showBadge);
     sheet.querySelector('#upgrade')?.addEventListener('click', () => build('arena', t.upgradeArena(DATA.build.arena.cost), t.builtArena));
-    sheet.querySelector('#show')?.addEventListener('click', () => pickHorse(t.showEnter(DATA.shows.fee), (id) => showJumping(id, 'show')));
+    sheet.querySelector('#show')?.addEventListener('click', enterShow);
     $('give-lesson').addEventListener('click', () => {
       const p = game.get().pupils[0];
       if (p) chooseHorse(p); else { sheet.hidden = true; bar.toast(t.noPupils); }
@@ -360,13 +360,34 @@ export function showFarm(intro = false) {
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
   }
-  /** Pick a horse for a jumping round; each one too tired, resting or sick says so. */
-  function pickHorse(title: string, go: (id: string) => void) {
+  /**
+   * A show: the class first, once a horse may start higher than E (each class says why not, if it can't), then the horse.
+   * While only E is open, straight to the horse, with a word on what practice opens.
+   */
+  function enterShow() {
+    const s = game.get(), C = DATA.shows.classes, ride = (c: ShowClass, title: string, note?: string) =>
+      pickHorse(title, (id) => showJumping(id, 'show', c), (h) => (classWaits(s, h, c) === 'skill' ? t.notSkilled : null), note);
+    if (SHOW_CLASSES.slice(1).every((c) => classShut(s, c) === 'skill')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
     const sheet = $('lesson');
-    sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>
+    sheet.firstElementChild!.innerHTML = `<h2>${t.whichClass}</h2><p class="oma">${t.classesHow}</p>
+      ${SHOW_CLASSES.map((c) => {
+        const w = classShut(s, c);
+        return `<button type="button" data-class="${c}"${w ? ' disabled' : ''}>${t.showClass(c, C[c].fee, C[c].prizes[0])}${w ? ` · ${t.classWaits[w]}` : ''}</button>`;
+      }).join('')}
+      <button type="button" id="close-lesson">${t.close}</button>`;
+    sheet.querySelectorAll<HTMLButtonElement>('[data-class]').forEach((b) => b.addEventListener('click', () => {
+      const c = b.dataset.class as ShowClass;
+      ride(c, t.showEnterClass(c, C[c].fee));
+    }));
+    $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
+  }
+  /** Pick a horse for a jumping round; each one too tired, resting or sick (or not allowed, by `not`) says so. */
+  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string) {
+    const sheet = $('lesson');
+    sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>${note ? `<p class="oma">${note}</p>` : ''}
       ${game.get().horses.map((h) => {
-        const why = cantWork(h, DATA.jumping.energy);
-        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
+        const tired = cantWork(h, DATA.jumping.energy), why = tired ? t.cantWork[tired] : not?.(h);
+        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${why}` : ''}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => go(b.dataset.horse!)));
@@ -477,9 +498,9 @@ export function showFarm(intro = false) {
 }
 
 /** A jumping round: practice, the badge's round (after its quiz), or a show. */
-function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train') {
+function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', showClass: ShowClass = 'E') {
   const h = game.get().horses.find((x) => x.id === id)!;
-  const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.show : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
+  const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.showClassName(showClass) : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
@@ -493,8 +514,8 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train') {
     const faults = await (await round).run(), end = $('jump-end');
     if (kind === 'show') {
       // the podium: the first three on their steps, then everyone with their points
-      const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name);
-      game.dispatch({ type: 'show', horse: id, faults });
+      const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name, showClass);
+      game.dispatch({ type: 'show', horse: id, faults, showClass });
       if (game.get().lastShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
       const row = (r: ShowRow) => `<b>${esc(r.rider)}</b><span>${esc(r.horse)}</span>`;
       end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
