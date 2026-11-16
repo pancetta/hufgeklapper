@@ -1,0 +1,21 @@
+src/scene/jumping.ts
+  s_7657db1b41ed88::t_49b2e9d7944ad2 127,223,231,260,262
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_49b2e9d7944ad2 416,420
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "46f09cab2fc9c9a43fc6fdafad02c5bd0f04b52d",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
