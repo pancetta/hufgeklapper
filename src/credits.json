@@ -239,15 +239,15 @@
     ]
   },
   {
-    "title": "Pixelify Sans",
-    "authors": "The Pixelify Sans Project Authors (Stefie Justprince)",
+    "title": "VT323",
+    "authors": "The VT323 Project Authors (Peter Hull)",
     "license": "OFL 1.1",
     "licenseUrl": "https://openfontlicense.org/",
-    "page": "https://github.com/eifetx/Pixelify-Sans",
-    "creditsFile": "assets/credits/pixelify-sans.txt",
+    "page": "https://github.com/phoikoi/VT323",
+    "creditsFile": "assets/credits/vt323.txt",
     "files": [
-      "assets/fonts/PixelifySans.ttf",
-      "assets/credits/pixelify-sans.txt"
+      "assets/fonts/VT323.ttf",
+      "assets/credits/vt323.txt"
     ]
   }
 ]

@@ -1,9 +1,9 @@
 /* --px is one logical pixel (set from fitPixels); UI sizes are whole multiples of it so pixel art stays crisp. */
 @font-face {
-  font-family: 'Pixelify Sans';
-  src: url('/assets/fonts/PixelifySans.ttf') format('truetype');
-  font-weight: 400 700;
+  font-family: 'VT323';
+  src: url('/assets/fonts/VT323.ttf') format('truetype');
   font-display: swap;
+  size-adjust: 135%; /* VT323's letters are small for their size: this keeps text at least as large as before */
 }
 
 :root {
@@ -15,9 +15,10 @@
   --wood-dark: #4e2d15;
   --grass: #4f8a32;
   --sun: #f2c14e;
-  --font: 'Pixelify Sans', system-ui, sans-serif;
+  --font: 'VT323', system-ui, sans-serif;
   color-scheme: light;
   font-family: var(--font);
+  font-synthesis: none; /* VT323 has one weight: no smeared fake bold */
 }
 
 [hidden] { display: none !important; }
@@ -109,6 +110,8 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .icon { width: calc(7 * var(--px)); height: calc(7 * var(--px)); image-rendering: pixelated; flex: none; }
 
 /* scenes fill the screen; HTML sits on top */
+/* every canvas is pixel art scaled up: on the iPad (2 device pixels per CSS pixel) Safari would smooth it otherwise */
+canvas { image-rendering: pixelated; }
 #farm, #stable, #jumping, /* the care gestures and the jump taps are one-finger strokes and drags: Safari must not pan or zoom and cancel them */
 #care-scene { touch-action: none; }
 
@@ -193,7 +196,11 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .overlay button { font-size: 18px; }
 .sheet.menu { display: grid; gap: 12px; }
 .horse-card { display: grid; gap: calc(3 * var(--px)); min-width: min(90vw, 360px); text-align: center; }
-.horse-card canvas { width: 288px; height: 216px; margin: 0 auto; image-rendering: pixelated; }
+.horse-card canvas { width: 288px; height: 216px; margin: 0 auto; }
+.rename { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.rename h2 { margin: 0; }
+.rename input { font: inherit; font-size: 22px; width: 10em; padding: 4px 8px; border: 2px solid var(--wood-dark); border-radius: 6px; }
+.rename .oma { flex-basis: 100%; margin: 0; }
 .horse-card p { margin: 0; font-size: 16px; }
 .horse-card .need { font-size: 16px; }
 .horse-card .need > span:not(.bar) { width: 110px; }
@@ -232,7 +239,7 @@ button.small { font-size: calc(7 * var(--px)); padding: calc(2 * var(--px)) calc
 .sheet.editor { display: grid; gap: 10px; font-size: 18px; max-width: 94vw; }
 .sheet.editor h2 { text-align: center; }
 .editor-body { display: flex; gap: 20px; align-items: center; }
-.preview { width: 200px; height: 160px; image-rendering: pixelated; background: #8fc56a; border: 2px solid var(--wood-dark); border-radius: 6px; flex: none; }
+.preview { width: 200px; height: 160px; background: #8fc56a; border: 2px solid var(--wood-dark); border-radius: 6px; flex: none; }
 .editor-fields { display: grid; gap: 8px; }
 .editor-fields label { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
 .editor-fields input { font: inherit; padding: 4px 8px; border: 2px solid var(--wood-dark); border-radius: 6px; width: 11em; }

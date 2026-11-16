@@ -16,7 +16,7 @@ every part, ships next to the art under `public/assets/credits/`.
 | [LPC] Medieval Village Decorations | bluecarrot16, Sharm, Reemax, Xenodora, Johann C, Johannes Sjölund, Casper Nilsson, Daniel Cook, RayaneFLX, TheraHedwig and others (all in the credits file) | [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | https://opengameart.org/content/lpc-medieval-village-decorations | `public/assets/farm/decorations.png`, `public/assets/farm/fences.png`, `public/assets/credits/lpc-decorations.txt` |
 | LPC style farm animals | Daniel Eddeland (daneeklu) | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | https://opengameart.org/content/lpc-style-farm-animals | `public/assets/animals/chicken-eat.png`, `public/assets/animals/chicken-walk.png`, `public/assets/animals/sheep-eat.png`, `public/assets/animals/sheep-walk.png` |
 | [LPC] Cats and Dogs | bluecarrot16 | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | https://opengameart.org/content/lpc-cats-and-dogs | `public/assets/animals/cat.png`, `public/assets/animals/dog.png` |
-| Pixelify Sans | The Pixelify Sans Project Authors (Stefie Justprince) | [OFL 1.1](https://openfontlicense.org/) | https://github.com/eifetx/Pixelify-Sans | `public/assets/fonts/PixelifySans.ttf`, `public/assets/credits/pixelify-sans.txt` |
+| VT323 | The VT323 Project Authors (Peter Hull) | [OFL 1.1](https://openfontlicense.org/) | https://github.com/phoikoi/VT323 | `public/assets/fonts/VT323.ttf`, `public/assets/credits/vt323.txt` |
 
 ## Our own drawings
 

@@ -100,11 +100,11 @@ const PACKS: Record<string, Pack> = {
     title: '[LPC] Cats and Dogs', authors: 'bluecarrot16', ...lic('CC-BY 3.0'), page: 'https://opengameart.org/content/lpc-cats-and-dogs',
     download: [`${OGA}/cat_0.png`, `${OGA}/dog_2.png`], copy: { 'animals/cat.png': 'cat_0.png', 'animals/dog.png': 'dog_2.png' },
   },
-  'pixelify-sans': {
-    title: 'Pixelify Sans', authors: 'The Pixelify Sans Project Authors (Stefie Justprince)', ...lic('OFL 1.1'),
-    page: 'https://github.com/eifetx/Pixelify-Sans',
-    download: ['https://github.com/google/fonts/raw/main/ofl/pixelifysans/PixelifySans%5Bwght%5D.ttf', 'https://github.com/google/fonts/raw/main/ofl/pixelifysans/OFL.txt'],
-    credits: 'OFL.txt', copy: { 'fonts/PixelifySans.ttf': 'PixelifySans[wght].ttf' },
+  vt323: {
+    title: 'VT323', authors: 'The VT323 Project Authors (Peter Hull)', ...lic('OFL 1.1'),
+    page: 'https://github.com/phoikoi/VT323',
+    download: ['https://github.com/google/fonts/raw/main/ofl/vt323/VT323-Regular.ttf', 'https://github.com/google/fonts/raw/main/ofl/vt323/OFL.txt'],
+    credits: 'OFL.txt', copy: { 'fonts/VT323.ttf': 'VT323-Regular.ttf' },
   },
 };
 

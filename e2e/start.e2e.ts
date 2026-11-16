@@ -147,6 +147,27 @@ test('the game saves itself, carries on after a reload, and moves as a file', as
   await expect(page.locator('#day')).toHaveText(t.day(2));
 });
 
+test('a horse gets a name of its own; a name another horse has is refused', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.rename }).tap();
+  const field = page.getByRole('textbox', { name: t.newName });
+  await field.fill('Luna');
+  await page.getByRole('button', { name: t.done }).tap();
+  await expect(page.getByText(t.nameTaken)).toBeVisible();
+  await field.fill('Sternchen');
+  await field.press('Enter');
+  await expect(page.locator('.horse-card h2')).toHaveText('Sternchen');
+  await expect(page.locator('.nameplate', { hasText: 'Sternchen' })).toBeVisible();
+  // kept after a reload
+  await page.reload();
+  await page.getByRole('button', { name: t.resume }).first().tap();
+  await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
+  await expect(page.locator('.nameplate', { hasText: 'Sternchen' })).toBeVisible();
+});
+
 test('a sick pony: red name plate, the vet heals it for money; no hay shows in the morning', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Krankenhof');

@@ -375,6 +375,15 @@ describe('Sim', () => {
     expect(apply(s, { type: 'show', horse: h.id, faults: 0, showClass: 'toString' as 'E' })).toBe(s); // not a class
   });
 
+  it('renames a horse: trimmed, 1–16 characters, not a name another horse already has', () => {
+    const s = newGame(1), [kiwi, luna] = s.horses;
+    expect(apply(s, { type: 'rename', horse: kiwi.id, name: '  Sternchen ' }).horses[0].name).toBe('Sternchen');
+    expect(apply(s, { type: 'rename', horse: kiwi.id, name: 'kiwi' }).horses[0].name).toBe('kiwi'); // its own name, other case
+    for (const name of ['', '   ', 'x'.repeat(DATA.horseName.max + 1), luna.name, luna.name.toUpperCase()])
+      expect(apply(s, { type: 'rename', horse: kiwi.id, name }), JSON.stringify(name)).toBe(s);
+    expect(apply(s, { type: 'rename', horse: 'nobody', name: 'Max' })).toBe(s);
+  });
+
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
     const s = newGame(1);
     expect(goals(s).map((g) => [g.id, g.have, g.done])).toEqual([['groom', 0, false], ['lessons', 0, false], ['badge', 0, false], ['savings', 300, false], ['reputation', 30, false]]);

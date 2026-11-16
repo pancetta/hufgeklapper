@@ -83,7 +83,7 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'train'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
   | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
-  | { type: 'explained'; what: Feature }
+  | { type: 'explained'; what: Feature } | { type: 'rename'; horse: string; name: string }
   | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: 'stalls' | 'arena' };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
@@ -372,6 +372,12 @@ function step(state: State, action: Action): State {
         horses: state.horses.map((x) => (x === h ? { ...h, needs, cared: [...h.cared, action.what] } : x)),
         careDone: action.quick ? state.careDone : { ...state.careDone, [action.what]: state.careDone[action.what] + 1 },
       };
+    }
+    case 'rename': {
+      // a name of its own: trimmed, not empty, not too long for a nameplate, not another horse's name on the farm
+      const name = typeof action.name === 'string' ? action.name.trim() : '', h = state.horses.find((x) => x.id === action.horse);
+      if (!h || !name || name.length > DATA.horseName.max || state.horses.some((x) => x !== h && x.name.toLowerCase() === name.toLowerCase())) return state;
+      return { ...state, horses: state.horses.map((x) => (x === h ? { ...x, name } : x)) };
     }
     case 'vet': {
       const h = state.horses.find((x) => x.id === action.horse);
