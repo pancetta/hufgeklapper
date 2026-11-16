@@ -313,6 +313,7 @@ test('Oma Hanne explains once which horse fits whom, when no pony fits the pupil
 test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { (s.pupils as { size: string }[])[0].size = 'small'; }); // a small child: a pony fits
   // one pupil waits on the first day; tapping the name asks for a horse
   const pupil = page.locator('.label.pupil');
   await expect(pupil).toHaveCount(1);
