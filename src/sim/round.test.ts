@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { autopilot, type Course, follow, hopp, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
+import { autopilot, type Course, follow, hopp, touchDown, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
 
 const R = DATA.jumping.ride, DT = 1 / 60, E = DATA.jumping.courses.E;
 const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
@@ -51,6 +51,36 @@ describe('a round on the show-jumping arena', () => {
     const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0 };
     expect(hopp(at, E, judge, 0.1).air?.down).toBe(false);
     expect(hopp(at, E, judge).air?.down).toBe(true); // judged at the lift it would be late
+  });
+
+  it('a touch on time or late takes off at once; an earlier one waits to see if it is a tap', () => {
+    const j = E.jumps[0], at = (offset: number): Round => ({ ...newRound(E), x: j.x - R.takeoff + offset * R.speed, y: j.y, heading: 0 });
+    expect(touchDown(at(0), E, judge).air?.down).toBe(false); // on time: clear
+    expect(touchDown(at(0.15), E, judge).air?.down).toBe(true); // late: a knocked pole, not a refusal
+    expect(touchDown(at(-0.3), E, judge)).toEqual(at(-0.3)); // early: maybe the start of a stroke
+    expect(touchDown(at(-1), E, judge)).toEqual(at(-1));
+  });
+
+  /** Rides `path` from `r` for `secs`; returns the horse's positions. */
+  const along = (r: Round, path: { x: number; y: number }[], secs: number) => {
+    const seen: Round[] = [];
+    for (let i = 0; i < secs / DT; i++) { const f = follow(r, path); path = f.path; r = step(r, E, DT, f.target); seen.push(r); }
+    return seen;
+  };
+
+  it('rides a drawn loop instead of cutting it where it crosses itself', () => {
+    const lasso = [...[...Array(20)].map((_, i) => ({ x: 100 + i * 4, y: 150 })),
+      ...[...Array(40)].map((_, i) => ({ x: 180 + 30 * Math.sin((i / 40) * 2 * Math.PI), y: 120 + 30 * Math.cos((i / 40) * 2 * Math.PI) })),
+      ...[...Array(20)].map((_, i) => ({ x: 184 + i * 4, y: 150 }))];
+    const seen = along({ ...newRound(E), x: 100, y: 150, heading: 0 }, lasso, 4);
+    expect(Math.min(...seen.map((h) => h.y))).toBeLessThan(100); // up round the loop (its top at y 90)
+  });
+
+  it('gives up a point it could only circle: inside its tightest turn, or beyond the fence', () => {
+    const hook = along({ ...newRound(E), x: 200, y: 150, heading: 0 }, [{ x: 200, y: 163 }], 3);
+    expect(hook[hook.length - 1].x).toBeGreaterThan(300); // rode on
+    const fence = along({ ...newRound(E), x: 440, y: 150, heading: 0 }, [{ x: 472, y: 150 }, { x: 476, y: 150 }], 4);
+    expect(Math.min(...fence.slice(-30).map((h) => Math.abs(h.y - 150)))).toBeGreaterThan(20); // not sliding along the fence forever
   });
 
   it('with no finger down, the horse does not stay in a corner', () => {

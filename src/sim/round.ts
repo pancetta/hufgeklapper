@@ -1,7 +1,7 @@
 /**
  * A round on the show-jumping arena ("Springplatz", #43), seen from above: where the horse is, which jump is next,
- * the faults so far. Pure and step by step, so the scene only draws it and feeds in the finger and "Hopp!".
- * The horse canters on its own and turns towards the finger. "Hopp!" in front of the next jump takes off, judged by
+ * the faults so far. Pure and step by step, so the scene only draws it and feeds in the drawn path and the taps.
+ * The horse canters on its own along the path the child drew (#47). "Hopp!" in front of the next jump takes off, judged by
  * the Sim's take-off window. Reaching a jump without taking off, or riding at it too askew, the horse refuses.
  * A jump out of turn can't be jumped: the horse stops in front of it, without a fault.
  */
@@ -50,7 +50,7 @@ export function newRound(c: Course): Round {
   return { x, y, heading: ANGLE[dir], t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, done: false };
 }
 
-/** The round `dt` seconds later, the finger at `target` (arena pixels) or lifted (null). */
+/** The round `dt` seconds later, steering to `target` (the next point of the drawn path, arena pixels) or straight on (null). */
 export function step(r: Round, c: Course, dt: number, target: { x: number; y: number } | null): Round {
   if (r.done) return r;
   const t = r.t + dt, allowed = timeAllowed(c);
@@ -104,6 +104,15 @@ export function takeOffOffset(r: Round, c: Course) {
 }
 
 /**
+ * A finger touching down: on time or late, the horse takes off at once (clear, or a late one knocks the pole), so a
+ * slow tap is never too late. Earlier, nothing yet: only a tap counts (`hopp` with its lag), not the start of a stroke.
+ */
+export function touchDown(r: Round, c: Course, judge: (offset: number) => 'early' | 'clear' | 'fault'): Round {
+  const offset = takeOffOffset(r, c);
+  return offset !== null && (offset >= 0 || judge(offset) === 'clear') ? hopp(r, c, judge) : r;
+}
+
+/**
  * "Hopp!": takes off for the next jump if the horse is lined up and the judge (the Sim's take-off window) says so.
  * `lag`: seconds since the finger touched down (a tap is known only once it lifts); the judge hears the touch.
  */
@@ -119,16 +128,19 @@ export function hopp(r: Round, c: Course, judge: (offset: number) => 'early' | '
 
 export type Point = { x: number; y: number };
 /**
- * The path the child drew, as the horse rides it: the points it has reached or passed drop off (the nearest point
- * and all before it, once within reach, and any within reach after it), and it steers to the next one; null when
- * the path is used up.
+ * The path the child drew, as the horse rides it: the points it has reached or passed drop off (the nearest of the
+ * next few and all before it, once reached, and any reached after it), and it steers to the next one; null when the
+ * path is used up.
  */
 export function follow(r: Round, path: Point[]): { target: Point | null; path: Point[] } {
   const d = (p: Point) => Math.hypot(p.x - r.x, p.y - r.y);
+  // only the next few points: where a drawn loop crosses itself, the later pass must not cut the loop short
   let near = -1;
-  for (let i = 0; i < path.length; i++) if (near < 0 || d(path[i]) < d(path[near])) near = i;
-  let rest = near >= 0 && d(path[near]) < R.reach ? path.slice(near + 1) : path;
-  while (rest.length && d(rest[0]) < R.reach) rest = rest.slice(1);
+  for (let i = 0; i < Math.min(path.length, 6); i++) if (near < 0 || d(path[i]) < d(path[near])) near = i;
+  // reached, or behind the horse inside its tightest turn (it could only circle round such a point)
+  const done = (p: Point) => d(p) < R.reach || (d(p) < R.speed / R.turn && (p.x - r.x) * Math.cos(r.heading) + (p.y - r.y) * Math.sin(r.heading) < 0);
+  let rest = near >= 0 && done(path[near]) ? path.slice(near + 1) : path;
+  while (rest.length && done(rest[0])) rest = rest.slice(1);
   return { target: rest[0] ?? null, path: rest };
 }
 
