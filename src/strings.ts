@@ -118,8 +118,8 @@ export const t = {
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
   pupilKind: (small: boolean, advanced: boolean) => `${small ? 'Kleines' : 'Großes'} Kind · ${advanced ? 'kann schon reiten' : 'reitet zum ersten Mal'}`,
   fits: { right: 'passt gut', smallOnHorse: 'etwas groß', bigOnPony: 'zu klein' },
-  fitWhy: (pupil: string, pony: boolean, fit: 'right' | 'smallOnHorse' | 'bigOnPony') =>
-    fit === 'right' ? `${pony ? 'Pony' : 'Pferd'} passt gut zu ${pupil}` : fit === 'bigOnPony' ? `${pupil} ist groß: Ein Pony ist zu klein` : `${pupil} ist klein: Ein Pferd ist etwas groß`,
+  fitWhy: (pupil: string, fit: 'right' | 'smallOnHorse' | 'bigOnPony') =>
+    fit === 'right' ? `Passt gut zu ${pupil}` : fit === 'bigOnPony' ? `${pupil} ist groß: Ein Pony ist zu klein` : `${pupil} ist klein: Ein Pferd ist etwas groß`,
   needsCare: 'braucht erst Pflege',
   wouldBe: (pupil: string, mood: 'delighted' | 'happy' | 'unhappy', pay: number) => `${pupil} wäre ${{ delighted: 'begeistert', happy: 'zufrieden', unhappy: 'nicht so glücklich' }[mood]} · +${pay} €`,
   bestChoice: 'Beste Wahl',
@@ -234,7 +234,7 @@ export const t = {
     care: 'Wähle unten ein Werkzeug. Jedes geht anders: Der Satz oben sagt dir, was du tun musst.',
     board: 'Am Schwarzen Brett kaufst du Heu. Wenn das Geld knapp ist, hilft dir die Bank.',
     arena: 'Auf dem Reitplatz gibst du Reitstunden und übst Springen.',
-    fit: 'Kleine Kinder reiten am besten auf Ponys, große Kinder auf Pferden. Ausgeruht und gut gepflegt macht das Reiten am meisten Spaß. Pferde gibt es später auf dem Pferdemarkt der Reitschule.',
+    fit: 'Kleine Kinder reiten am besten auf Ponys, große Kinder auf Pferden. Ein Pferd, das ausgeruht und gut gepflegt ist, macht am meisten Spaß. Neue Pferde kauft man auf dem Pferdemarkt der Reitschule.',
   },
   gotIt: 'Alles klar!',
   closeHint: 'Hinweis schließen',

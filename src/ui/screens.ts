@@ -18,7 +18,7 @@ import { startStable } from '../scene/stable';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -398,14 +398,14 @@ export function showFarm(intro = false) {
   function chooseHorse(p: Pupil) {
     const s = game.get(), sheet = $('lesson');
     // the first time no horse is the right one, Oma Hanne says which fits whom
-    if (!s.explained.includes('fit') && !lessonChoices(p, s.horses).some((c) => !c.why && c.fit === 'right')) { explain('fit').then(() => chooseHorse(p)); return; }
+    if (!s.explained.includes('fit') && fitsNone(p, s.horses)) { explain('fit').then(() => chooseHorse(p)); return; }
     sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
       <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
       ${lessonChoices(p, s.horses).map((c) => {
         // why it fits or not, in words, then how the lesson would go; the best horse is marked
-        const name = esc(p.name), pony = c.horse.look.build === 'pony';
-        const how = c.why ? t.cantWork[c.why] : [t.fitWhy(name, pony, c.fit), ...(c.unkempt ? [t.needsCare] : []), t.wouldBe(name, c.mood, c.pay)].join(' · ');
-        return `<button type="button" class="choice${c.best ? ' best' : ''}" data-horse="${c.horse.id}"${c.why ? ' disabled' : ''}><b>${esc(c.horse.name)}</b>${c.best ? ` <i>★ ${t.bestChoice}</i>` : ''}<small>${how}</small></button>`;
+        const name = esc(p.name);
+        const how = c.why ? t.cantWork[c.why] : [t.fitWhy(name, c.fit), ...(c.unkempt ? [t.needsCare] : []), t.wouldBe(name, c.mood, c.pay)].join(' · ');
+        return `<button type="button" class="choice${c.best ? ' best' : ''}" data-horse="${c.horse.id}"${c.why ? ' disabled' : ''}><b>${esc(c.horse.name)}${c.best ? ` <i>★ ${t.bestChoice}</i>` : ''}</b><small>${how}</small></button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {

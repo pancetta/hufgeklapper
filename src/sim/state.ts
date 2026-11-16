@@ -166,12 +166,15 @@ export function cantWork(h: Horse, energy: number): 'sick' | 'resting' | 'tired'
   return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < energy ? 'tired' : null;
 }
 
+/** How well a horse is kept: its fed, clean and happy needs as a share of full (0–1). */
+const keptShare = (h: Horse) => (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
+
 /**
  * The jumping minigame's take-off window in seconds: wider for a skilled, well kept, happy horse.
  * A tap within half the window of the perfect moment clears the jump.
  */
 export function jumpWindow(h: Horse) {
-  const J = DATA.jumping, kept = (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
+  const J = DATA.jumping, kept = keptShare(h);
   return J.window.base + J.window.skill * (h.skills.jumping / 100) + J.window.kept * kept;
 }
 export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
@@ -251,7 +254,7 @@ export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {
 
 /** What a lesson would bring: how happy the pupil is (0–100) and the pay. A well kept, fitting horse makes it best. */
 export function lessonOutcome(p: Pupil, h: Horse) {
-  const L = DATA.lessons, kept = (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
+  const L = DATA.lessons, kept = keptShare(h);
   const happy = Math.round(100 * L.fit[fit(p, h)] * (0.5 + 0.5 * kept));
   return { happy, pay: Math.round(L.pay[p.level] * (0.6 + 0.4 * (happy / 100))) };
 }
@@ -263,12 +266,14 @@ export function lessonOutcome(p: Pupil, h: Horse) {
 export function lessonChoices(p: Pupil, horses: Horse[]) {
   const all = horses.map((h) => {
     const why = cantWork(h, DATA.lessons.energy), out = lessonOutcome(p, h);
-    return { horse: h, why, fit: fit(p, h), unkempt: (h.needs.fed + h.needs.clean + h.needs.happy) / 300 < DATA.lessons.keptWell, ...out, mood: mood(out.happy), best: false };
+    return { horse: h, why, fit: fit(p, h), unkempt: keptShare(h) < DATA.lessons.keptWell, ...out, mood: mood(out.happy), best: false };
   });
-  const best = all.filter((c) => !c.why).sort((a, b) => b.pay - a.pay)[0];
+  const best = all.filter((c) => !c.why && c.mood !== 'unhappy').sort((a, b) => b.pay - a.pay)[0]; // never "best" for an unhappy pupil
   if (best) best.best = true;
   return all;
 }
+/** No horse that can work today is the right size for pupil `p`: Oma Hanne then explains which horse fits whom. */
+export const fitsNone = (p: Pupil, horses: Horse[]) => !lessonChoices(p, horses).some((c) => !c.why && c.fit === 'right');
 
 /** How a pupil felt about a lesson: below `happyAt` the farm's reputation drops. */
 export const mood = (happy: number): 'delighted' | 'happy' | 'unhappy' => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';

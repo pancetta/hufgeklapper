@@ -37,7 +37,7 @@ async function newGame(page: Page, name: string, explain = false) {
   await page.getByRole('button', { name: t.start }).tap();
   for (let i = 0; i < t.intro('', []).length; i++) await page.getByRole('button', { name: t.next }).tap();
   await expect(page.getByRole('button', { name: t.next })).toBeHidden();
-  if (!explain) await changeSave(page, (s) => { s.explained = ['stable', 'care', 'board', 'arena']; });
+  if (!explain) await changeSave(page, (s) => { s.explained = [...DATA.features]; });
 }
 
 /** Changes the game in slot 1 as saved, then reloads and carries on with it. */
@@ -294,6 +294,20 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   await expect(page.getByText(t.owe(45))).toBeVisible();
   await page.getByRole('button', { name: t.loan(100) }).tap();
   await expect(page.locator('#money')).toHaveText(t.money(100));
+});
+
+test('Oma Hanne explains once which horse fits whom, when no pony fits the pupil', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => {
+    s.explained = DATA.features.filter((f) => f !== 'fit');
+    (s.pupils as { size: string }[])[0].size = 'big'; // a big child: both ponies are too small
+  });
+  await page.locator('.label.pupil').tap();
+  await expect(page.getByText(t.explain.fit)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.locator('#lesson [data-horse]')).toHaveCount(2);
+  await expect(page.locator('#lesson [data-horse="kiwi"]')).toContainText('Ein Pony ist zu klein');
 });
 
 test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round and pays', async ({ page }) => {

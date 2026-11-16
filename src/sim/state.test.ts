@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -379,7 +379,9 @@ describe('Sim', () => {
     const s = newGame(1), [kiwi, luna] = s.horses, big: Pupil = { id: 'p', name: 'Ben', size: 'big', level: 'beginner', look: 1 };
     const tired = { ...luna, needs: { ...luna.needs, energy: 0 } }, dirty = { ...kiwi, needs: { ...kiwi.needs, fed: 10, clean: 10, happy: 10 } };
     const [a, b] = lessonChoices(big, [dirty, tired]);
-    expect([a.why, a.fit, a.unkempt, a.best]).toEqual([null, 'bigOnPony', true, true]); // the only one that can, so the best
+    expect([a.why, a.fit, a.unkempt, a.mood, a.best]).toEqual([null, 'bigOnPony', true, 'unhappy', false]); // never "best" for an unhappy pupil
+    expect(lessonChoices(big, [kiwi])[0].best).toBe(false); // a big child on a well-kept pony: still not happy
+    expect([fitsNone(big, s.horses), fitsNone({ ...big, size: 'small' }, s.horses), fitsNone({ ...big, size: 'small' }, [tired])]).toEqual([true, false, true]);
     expect([b.why, b.best]).toEqual(['tired', false]);
     const small: Pupil = { ...big, size: 'small' }, horse = { ...kiwi, id: 'h', look: { ...kiwi.look, build: 'horse' as const } };
     expect(lessonChoices(small, [horse, kiwi]).map((c) => [c.fit, c.best])).toEqual([['smallOnHorse', false], ['right', true]]);
