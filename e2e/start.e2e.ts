@@ -13,13 +13,26 @@ async function tapTakeOffs(page: Page) {
   }
 }
 
-/** Starts a new game in the first slot under the given farm name, with the default figure, and listens to Oma Hanne. */
-async function newGame(page: Page, name: string) {
+/**
+ * Starts a new game in the first slot under the given farm name, with the default figure, and listens to Oma Hanne.
+ * Unless `explain` is set, the game then carries on as if Oma had explained every feature already.
+ */
+async function newGame(page: Page, name: string, explain = false) {
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.newGame }).tap();
   await page.getByLabel(t.farmName).fill(name);
   await page.getByRole('button', { name: t.start }).tap();
   for (let i = 0; i < t.intro('', []).length; i++) await page.getByRole('button', { name: t.next }).tap();
   await expect(page.getByRole('button', { name: t.next })).toBeHidden();
+  if (!explain) await changeSave(page, (s) => { s.explained = ['stable', 'care', 'board', 'arena']; });
+}
+
+/** Changes the game in slot 1 as saved, then reloads and carries on with it. */
+async function changeSave(page: Page, change: (state: Record<string, unknown>) => void) {
+  const save = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!));
+  change(save.state);
+  await page.evaluate((s) => localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(s)), save);
+  await page.reload();
+  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
 }
 
 test('a new game in slot 2: the player makes a figure, Oma Hanne hands over the farm, the slot keeps it', async ({ page }) => {
@@ -289,13 +302,7 @@ test('riding badge 1: Oma asks five questions, a jumping round, then the rosette
   await expect(page.getByRole('button', { name: t.ridingBadge })).toBeDisabled();
   await expect(page.getByText(t.badgeWaits.practise(DATA.badge.trainings))).toBeVisible();
   // as if practised enough: the save says so, and the game carries on from it
-  await page.evaluate(() => {
-    const k = 'hufgeklapper.slot.0', s = JSON.parse(localStorage.getItem(k)!);
-    s.state.trainings = 3;
-    localStorage.setItem(k, JSON.stringify(s));
-  });
-  await page.reload();
-  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
+  await changeSave(page, (s) => { s.trainings = DATA.badge.trainings; });
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.ridingBadge }).tap();
   await expect(page.getByText(t.badgeIntro)).toBeVisible();
@@ -329,13 +336,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
   // as if the badge were passed and it is show day
-  await page.evaluate((day) => {
-    const k = 'hufgeklapper.slot.0', s = JSON.parse(localStorage.getItem(k)!);
-    Object.assign(s.state, { badges: 1, trainings: 3, day });
-    localStorage.setItem(k, JSON.stringify(s));
-  }, DATA.shows.every);
-  await page.reload();
-  await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resume }).tap();
+  await changeSave(page, (s) => { Object.assign(s, { badges: 1, trainings: 3, day: DATA.shows.every }); });
   // the notice board's calendar names today
   await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByText(t.nextShow(DATA.shows.every, true))).toBeVisible();
@@ -359,6 +360,45 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await page.getByRole('button', { name: t.places.arena }).tap();
   await expect(page.getByRole('button', { name: t.show, exact: true })).toBeDisabled();
   await expect(page.getByText(t.showWaits.notToday(2 * DATA.shows.every))).toBeVisible();
+});
+
+test('the task list and Oma Hanne: she explains a place once, and says when a pony is hungry', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof', true);
+  // the task list, open; it folds away
+  const toggle = page.getByRole('button', { name: t.goalsTitle(0, 5) });
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText(t.goalText.lessons(5))).toBeVisible();
+  await toggle.tap();
+  await expect(page.getByText(t.goalText.lessons(5))).toBeHidden();
+  // the first visit to the stable: Oma explains it; the second time she doesn't
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await expect(page.getByText(t.explain.stable)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
+  await expect(page.getByText(t.explain.stable)).toBeHidden();
+  // a hungry pony: one hint on the farm, which the child can close
+  await changeSave(page, (s) => { (s.horses as { needs: { fed: number } }[])[0].needs.fed = 10; });
+  await expect(page.getByText(t.hints.hungry('Kiwi'))).toBeVisible();
+  // neither the hint nor the open task list covers a place the child must tap (once the labels are placed)
+  await expect(page.getByRole('button', { name: t.places.stall })).toBeVisible();
+  const covered = await page.evaluate(() => {
+    const boxes = ['#hint', '.goals'].map((q) => document.querySelector(q)!.getBoundingClientRect());
+    return [...document.querySelectorAll<HTMLElement>('.label')].filter((l) => {
+      const r = l.getBoundingClientRect();
+      return boxes.some((b) => r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top);
+    }).map((l) => l.textContent);
+  });
+  expect(covered).toEqual([]);
+  await page.getByRole('button', { name: t.closeHint }).tap();
+  await expect(page.getByText(t.hints.hungry('Kiwi'))).toBeHidden();
+  // the notice board: Oma explains it first, then the shop opens
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.explain.board)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.getByRole('heading', { name: t.shopTitle })).toBeVisible();
 });
 
 test('the credits name the artists and close again', async ({ page }) => {

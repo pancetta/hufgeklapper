@@ -165,6 +165,30 @@ export const t = {
   podium: 'Siegerehrung',
   points: (n: number) => `${n} Punkte`,
   showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
+  // goals and Oma Hanne's hints
+  goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
+  goalText: {
+    groom: (n: number) => `Putze ${n}-mal ein Pony`,
+    lessons: (n: number) => `Gib ${n} Reitstunden`,
+    badge: () => 'Mach dein erstes Reitabzeichen',
+    savings: (n: number) => `Spare ${n} € (ohne Schulden)`,
+    reputation: (n: number) => `Mach deine Reitschüler glücklich (Ruf ${n})`,
+  },
+  allGoals: 'Alle Aufgaben geschafft! Bald kommt die Hof-Prüfung.',
+  hints: {
+    sick: (name: string) => `${name} ist krank. Ruf im Stall den Tierarzt!`,
+    hungry: (name: string) => `${name} hat Hunger. Gib im Stall Heu!`,
+    dirty: (name: string) => `${name} ist schmutzig. Putz es im Stall!`,
+    hay: 'Das Heu wird knapp. Kauf am Schwarzen Brett neues!',
+  },
+  explain: {
+    stable: 'Im Stall siehst du, wie es deinen Ponys geht. Tippe ein Pony an, dann kannst du es pflegen.',
+    care: 'Wähle unten ein Werkzeug. Jedes geht anders: Der Satz oben sagt dir, was du tun musst.',
+    board: 'Am Schwarzen Brett kaufst du Heu. Wenn das Geld knapp ist, hilft dir die Bank.',
+    arena: 'Auf dem Reitplatz gibst du Reitstunden und übst Springen.',
+  },
+  gotIt: 'Alles klar!',
+  closeHint: 'Hinweis schließen',
   // the player card
   playerCard: 'Meine Figur',
   badges: 'Reitabzeichen',

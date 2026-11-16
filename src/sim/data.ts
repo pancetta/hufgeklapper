@@ -84,6 +84,15 @@ export const DATA = {
     rivals: [['Lotta', 'Sternchen'], ['Jonas', 'Blitz'], ['Emil', 'Fanny'], ['Hanna', 'Moritz'], ['Ella', 'Pünktchen'], ['Ole', 'Wirbelwind']],
     rivalsPerShow: 4,
   },
+  /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */
+  goals: {
+    kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 5 }, { id: 'badge', need: 1 }, { id: 'savings', need: 400 }, { id: 'reputation', need: 50 }],
+    reitschule: [],
+  } as Record<'kleinerHof' | 'reitschule', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation'; need: number }[]>,
+  /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
+  hints: { needBelow: 30, hayNights: 2 },
+  /** What Oma Hanne explains the first time the player opens it. */
+  features: ['stable', 'care', 'board', 'arena'] as const,
   /** The player's figure until they make their own (and for saves from before the avatar editor). */
   avatar: { name: 'Kim', skin: 0, hair: 'zopf', hairColor: 0, jacket: 1 } as const,
   pupilNames: ['Lea', 'Ben', 'Mia', 'Paul', 'Emma', 'Finn', 'Lina', 'Noah', 'Sophie', 'Elias', 'Mila', 'Jonas', 'Ida', 'Theo', 'Nele', 'Anton'],

@@ -20,7 +20,7 @@ export type Horse = {
 export type FarmStage = 'kleinerHof' | 'reitschule';
 
 export type State = {
-  version: 8;
+  version: 9;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -45,6 +45,9 @@ export type State = {
   badgeFailedDay: number;
   /** The day of the last show the player rode in (0: none yet). */
   lastShowDay: number;
+  /** Goals reached (they stay reached), and the features Oma Hanne has explained already. */
+  goalsDone: GoalId[];
+  explained: Feature[];
   badgeQuizDay: number;
   /** Money in and out today, for tomorrow morning's bill; `bill` is yesterday's. */
   today: Entry[];
@@ -70,7 +73,8 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
   | { type: 'train'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
-  | { type: 'show'; horse: string; faults: number };
+  | { type: 'show'; horse: string; faults: number }
+  | { type: 'explained'; what: Feature };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -102,7 +106,7 @@ export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
     ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 8, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 9, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -227,9 +231,46 @@ function night(h: Horse, hay: boolean): Horse {
   return { ...h, needs, rest: Math.max(0, h.rest - 1), cared: [] };
 }
 
-/** Applies one action; never changes the state it was given. */
+export type GoalId = (typeof DATA.goals.kleinerHof)[number]['id'];
+export type Feature = (typeof DATA.features)[number];
+
+/** How far each goal of the farm stage has come; a goal once reached stays done. */
+export function goals(s: State) {
+  const have = { groom: s.careDone.groom, lessons: s.lessonsGiven, badge: s.badges, savings: s.debt ? 0 : s.money, reputation: s.reputation };
+  return DATA.goals[s.stage].map(({ id, need }) => {
+    const done = s.goalsDone.includes(id) || have[id] >= need;
+    return { id, need, have: done ? need : Math.max(0, have[id]), done };
+  });
+}
+export const allGoalsDone = (s: State) => goals(s).every((g) => g.done);
+
+/**
+ * Oma Hanne's hint for now, if any, the most urgent first: a sick horse, a hungry one, a dirty one, hay running out.
+ * One at a time, so the child is not flooded.
+ */
+export function hint(s: State): { kind: 'sick' | 'hungry' | 'dirty'; horse: string } | { kind: 'hay' } | null {
+  const below = DATA.hints.needBelow, sick = s.horses.find(isSick);
+  if (sick) return { kind: 'sick', horse: sick.id };
+  if (s.feed < 1) return { kind: 'hay' }; // with no hay, "feed the hungry pony" can't be done: buying hay comes first
+  for (const [kind, test] of [['hungry', (h: Horse) => h.needs.fed < below], ['dirty', (h: Horse) => h.needs.clean < below]] as const) {
+    const h = s.horses.find(test);
+    if (h) return { kind, horse: h.id };
+  }
+  return s.feed < s.horses.length * DATA.hints.hayNights ? { kind: 'hay' } : null;
+}
+
+/** Applies one action (never changing the state it was given); afterwards every goal just reached is noted as done. */
 export function apply(state: State, action: Action): State {
+  const next = step(state, action);
+  if (next === state) return state;
+  const reached = goals(next).filter((g) => g.done && !next.goalsDone.includes(g.id)).map((g) => g.id);
+  return reached.length ? { ...next, goalsDone: [...next.goalsDone, ...reached] } : next;
+}
+
+function step(state: State, action: Action): State {
   switch (action.type) {
+    case 'explained':
+      return state.explained.includes(action.what) || !DATA.features.includes(action.what) ? state : { ...state, explained: [...state.explained, action.what] };
     case 'sleep': {
       // horses eat from the store in turn; whoever finds it empty goes hungry
       let feed = state.feed;

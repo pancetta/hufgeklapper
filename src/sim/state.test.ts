@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { apply, badgeWaits, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -346,6 +346,34 @@ describe('Sim', () => {
       expect(apply(st, { type: 'show', horse: h.id, faults: 0 })).toBe(st);
     }
     expect(showResult(s, h, 0, 'Lotta').table.filter((r) => r.rider === 'Lotta')).toHaveLength(1);
+  });
+
+  it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
+    const s = newGame(1);
+    expect(goals(s).map((g) => [g.id, g.have, g.done])).toEqual([['groom', 0, false], ['lessons', 0, false], ['badge', 0, false], ['savings', 300, false], ['reputation', 30, false]]);
+    const rich = apply({ ...s, money: 500 }, { type: 'buyHay', pack: 0 });
+    expect(rich.goalsDone).toEqual(['savings']);
+    const poor = apply({ ...rich, money: 30 }, { type: 'buyHay', pack: 0 });
+    expect(goals(poor).find((g) => g.id === 'savings')).toMatchObject({ done: true, have: 400 });
+    expect(goals({ ...s, debt: 50, money: 999 }).find((g) => g.id === 'savings')!.have).toBe(0); // saved means without debts
+    expect(allGoalsDone({ ...s, goalsDone: ['groom', 'lessons', 'badge', 'savings', 'reputation'] })).toBe(true);
+  });
+
+  it('gives one hint at a time, the most urgent first', () => {
+    const s = newGame(1), [a, b] = s.horses, below = DATA.hints.needBelow - 1;
+    expect(hint(s)).toBeNull();
+    const dirty = { ...a, needs: { ...a.needs, clean: below } }, hungry = { ...b, needs: { ...b.needs, fed: below } };
+    expect(hint({ ...s, horses: [dirty, hungry] })).toEqual({ kind: 'hungry', horse: b.id });
+    expect(hint({ ...s, horses: [dirty, { ...hungry, needs: { ...hungry.needs, health: 5 } }] })).toEqual({ kind: 'sick', horse: b.id });
+    expect(hint({ ...s, horses: [dirty, b] })).toEqual({ kind: 'dirty', horse: a.id });
+    expect(hint({ ...s, feed: 1 })).toEqual({ kind: 'hay' });
+    expect(hint({ ...s, feed: 0, horses: [dirty, hungry] })).toEqual({ kind: 'hay' }); // no hay: buy some before feeding
+  });
+
+  it('notes what Oma Hanne has explained, once', () => {
+    const s = apply(newGame(1), { type: 'explained', what: 'stable' });
+    expect(s.explained).toEqual(['stable']);
+    expect(apply(s, { type: 'explained', what: 'stable' })).toBe(s);
   });
 
   it('rolls the same numbers from the same seed', () => {
