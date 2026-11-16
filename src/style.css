@@ -300,3 +300,9 @@ canvas { image-rendering: pixelated; }
   position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); top: 12px; margin: 0; max-width: 340px; text-align: right;
   font-size: calc(var(--fs) * 16px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px;
 }
+
+/* a choice with its reason under the name: the lesson's horse list */
+.choice { display: grid; gap: 2px; text-align: left; }
+.choice small { font-size: calc(var(--fs) * 13px); opacity: 0.9; }
+.choice i { font-style: normal; color: var(--sun); }
+.choice.best { box-shadow: 0 0 0 3px var(--sun); }

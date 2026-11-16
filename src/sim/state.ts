@@ -256,8 +256,22 @@ export function lessonOutcome(p: Pupil, h: Horse) {
   return { happy, pay: Math.round(L.pay[p.level] * (0.6 + 0.4 * (happy / 100))) };
 }
 
+/**
+ * Each horse for a lesson with pupil `p`, as the horse list shows it: why it can't (tired, resting, sick), how it
+ * fits, whether it needs care first, how happy the pupil would be and the pay; the best one is marked.
+ */
+export function lessonChoices(p: Pupil, horses: Horse[]) {
+  const all = horses.map((h) => {
+    const why = cantWork(h, DATA.lessons.energy), out = lessonOutcome(p, h);
+    return { horse: h, why, fit: fit(p, h), unkempt: (h.needs.fed + h.needs.clean + h.needs.happy) / 300 < DATA.lessons.keptWell, ...out, mood: mood(out.happy), best: false };
+  });
+  const best = all.filter((c) => !c.why).sort((a, b) => b.pay - a.pay)[0];
+  if (best) best.best = true;
+  return all;
+}
+
 /** How a pupil felt about a lesson: below `happyAt` the farm's reputation drops. */
-export const mood = (happy: number) => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';
+export const mood = (happy: number): 'delighted' | 'happy' | 'unhappy' => happy >= DATA.lessons.delightedAt ? 'delighted' : happy >= DATA.lessons.happyAt ? 'happy' : 'unhappy';
 
 /** Money earned (lessons, prizes): part of it pays back debt first. Used by the actions that earn. */
 export function earn(s: State, amount: number): State {

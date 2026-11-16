@@ -305,6 +305,11 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   const name = (await pupil.textContent())!;
   await pupil.tap();
   await expect(page.getByRole('heading', { name: t.pupilWants(name) })).toBeVisible();
+  // each pony says how it fits and how the lesson would go; one is the best choice
+  await expect(page.locator('#lesson [data-horse]')).toHaveCount(2);
+  await expect(page.locator('#lesson [data-horse="kiwi"]')).toContainText(`${name} wäre`);
+  await expect(page.locator('#lesson .choice.best')).toHaveCount(1);
+  await expect(page.locator('#lesson .choice.best')).toContainText(t.bestChoice);
   await page.locator('#lesson [data-horse="kiwi"]').tap();
   await expect(page.getByRole('status')).toHaveText(t.lessonRuns(name, 'Kiwi'));
   await expect(page.locator('#money')).not.toHaveText(t.money(300));
@@ -473,7 +478,7 @@ test('the task list and Oma Hanne: she explains a place once, and says when a po
   await expect(page.getByRole('heading', { name: t.shopTitle })).toBeVisible();
 });
 
-test('the farm inspection makes a Reitschule: build stall places, buy a horse at the market, upgrade the arena', async ({ page }) => {
+test('the farm inspection makes a Reitschule: buy a horse into the free stall, build stall places, upgrade the arena', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
   // as if every goal of the Kleiner Hof were met and money saved up
@@ -491,10 +496,18 @@ test('the farm inspection makes a Reitschule: build stall places, buy a horse at
   await page.getByRole('button', { name: t.toFarm }).tap();
   // the Reitschule's new goals
   await expect(page.getByText(t.goalText.horses(3))).toBeVisible();
-  // the market: no free stall place yet
+  // the market: the Reitschule has a free stall, so a horse can move in at once
   await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByRole('heading', { name: t.market })).toBeVisible();
   await expect(page.locator('[data-offer]')).toHaveCount(DATA.market.offers);
+  const offer = page.locator('[data-offer]').first(), name = (await offer.textContent())!.split(' · ')[0];
+  await offer.tap();
+  await expect(page.getByText(t.boughtHorse(name))).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  expect(state.horses.map((h: { name: string }) => h.name)).toEqual(['Kiwi', 'Luna', name]);
+  // now every stall is taken: no more horses until stall places are built
+  await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.locator('[data-offer]').first()).toBeDisabled();
   await page.getByRole('button', { name: t.close }).tap();
   // build two stall places on the free plot
@@ -503,19 +516,11 @@ test('the farm inspection makes a Reitschule: build stall places, buy a horse at
   await expect(page.getByText(t.builtStalls)).toBeVisible();
   await page.getByRole('button', { name: t.gotIt }).tap();
   await expect(page.getByRole('button', { name: t.shelter })).toBeVisible();
-  // now a horse can move in
-  await page.getByRole('button', { name: t.places.board }).tap();
-  const offer = page.locator('[data-offer]').first(), name = (await offer.textContent())!.split(' · ')[0];
-  await offer.tap();
-  await expect(page.getByText(t.boughtHorse(name))).toBeVisible();
-  await page.getByRole('button', { name: t.gotIt }).tap();
-  const state = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
-  expect(state.horses.map((h: { name: string }) => h.name)).toEqual(['Kiwi', 'Luna', name]);
-  // the stable now has four places: three horses and one free
+  // the stable now has five places: three horses and two free
   await page.getByRole('button', { name: t.places.stall, exact: true }).tap();
   await expect(page.locator('.nameplate:not(.empty)')).toHaveCount(3);
-  await expect(page.locator('.nameplate.empty')).toHaveCount(1);
-  await page.screenshot({ path: test.info().outputPath('stable-four.png') });
+  await expect(page.locator('.nameplate.empty')).toHaveCount(2);
+  await page.screenshot({ path: test.info().outputPath('stable-five.png') });
   await page.getByRole('button', { name: t.toFarm }).tap();
   // the arena upgrade
   await page.getByRole('button', { name: t.places.arena }).tap();
