@@ -65,13 +65,14 @@ export const DATA = {
     /**
      * The round on the show-jumping arena ("Springplatz", #43, #47), in arena pixels and seconds: the horse canters at
      * `speed` along the path the child drew, turning at most `turn` radians a second; a point of it within `reach`
-     * counts as reached. Its hooves leave the ground `takeoff`
+     * counts as reached. It speeds up by `speedUp` along a way and brakes by `brake` at its end, so it stands about
+     * where the way ends (#54); riding piece by piece takes stops, so the time allowed is generous. Its hooves leave the ground `takeoff`
      * before the pole; a pole is `half` × 2 wide. Reaching a pole without a take-off, or riding at it more than
      * `refuse` degrees askew, the horse refuses: it stands `stop` seconds, then turns round. The time allowed is
      * the course's straight length ridden at `speed`, times `time`; each started `timeFault` seconds over it is a
      * fault, and `giveUp` seconds over it the round ends, each jump left a fault.
      */
-    ride: { speed: 90, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 2, timeFault: 5, giveUp: 45 },
+    ride: { speed: 90, speedUp: 150, brake: 400, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 3, timeFault: 5, giveUp: 45 },
     arena: { w: 480, h: 300, fence: 14 },
     /** The courses ("Parcours"), by show class; practice and the riding badge use E. Arena pixels; a jump is ridden the way of `dir`. */
     courses: {

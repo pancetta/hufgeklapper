@@ -48,17 +48,18 @@ describe('a round on the show-jumping arena', () => {
 
   it('a tap counts from when the finger touched down', () => {
     // lined up for jump 1, the tap's touch exactly at the perfect take-off, lifted 0.1 s later
-    const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0 };
+    const j = E.jumps[0], at: Round = { ...newRound(E), x: j.x - R.takeoff + 0.1 * R.speed, y: j.y, heading: 0, v: R.speed };
     expect(hopp(at, E, judge, 0.1).air?.down).toBe(false);
     expect(hopp(at, E, judge).air?.down).toBe(true); // judged at the lift it would be late
   });
 
   it('a touch on time or late takes off at once; an earlier one waits to see if it is a tap', () => {
-    const j = E.jumps[0], at = (offset: number): Round => ({ ...newRound(E), x: j.x - R.takeoff + offset * R.speed, y: j.y, heading: 0 });
+    const j = E.jumps[0], at = (offset: number, v: number = R.speed): Round => ({ ...newRound(E), x: j.x - R.takeoff + offset * R.speed, y: j.y, heading: 0, v, started: true });
     expect(touchDown(at(0), E, judge).air?.down).toBe(false); // on time: clear
     expect(touchDown(at(0.15), E, judge).air?.down).toBe(true); // late: a knocked pole, not a refusal
     expect(touchDown(at(-0.3), E, judge)).toEqual(at(-0.3)); // early: maybe the start of a stroke
     expect(touchDown(at(-1), E, judge)).toEqual(at(-1));
+    expect(touchDown(at(0.1, 0), E, judge)).toEqual(at(0.1, 0)); // standing: only a tap jumps, never the start of a way
   });
 
   /** Rides `path` from `r` for `secs`; returns the horse's positions. */
@@ -77,16 +78,45 @@ describe('a round on the show-jumping arena', () => {
   });
 
   it('gives up a point it could only circle: inside its tightest turn, or beyond the fence', () => {
-    const hook = along({ ...newRound(E), x: 200, y: 150, heading: 0 }, [{ x: 200, y: 163 }], 3);
-    expect(hook[hook.length - 1].x).toBeGreaterThan(300); // rode on
-    const fence = along({ ...newRound(E), x: 440, y: 150, heading: 0 }, [{ x: 472, y: 150 }, { x: 476, y: 150 }], 4);
-    expect(Math.min(...fence.slice(-30).map((h) => Math.abs(h.y - 150)))).toBeGreaterThan(20); // not sliding along the fence forever
+    // cantering past a point right beside it: reached or given up, the horse then stands instead of circling
+    const hook = along({ ...newRound(E), x: 200, y: 150, heading: 0, v: R.speed }, [{ x: 205, y: 163 }], 3);
+    expect(hook.slice(-20).every((h) => h.v === 0)).toBe(true);
+    // a way drawn past the fence is ridden along its inside, and the horse stands at its end
+    const fence = along({ ...newRound(E), x: 400, y: 150, heading: 0 }, [{ x: 472, y: 150 }, { x: 476, y: 150 }], 4), last = fence[fence.length - 1];
+    expect([last.v, Math.round(last.x)]).toEqual([0, DATA.jumping.arena.w - DATA.jumping.arena.fence - 6]);
   });
 
-  it('with no finger down, the horse does not stay in a corner', () => {
-    let r: Round = { ...newRound(E), x: 455, y: 279, heading: 0 };
-    for (let i = 0; i < 120; i++) r = step(r, E, DT, null);
-    expect(Math.hypot(r.x - 460, r.y - 280)).toBeGreaterThan(40);
+  it('before the first way nothing moves and the clock waits; then the horse speeds up to a canter', () => {
+    const start = newRound(E);
+    let r = start;
+    for (let i = 0; i < 60; i++) r = step(r, E, DT, null);
+    expect(r).toBe(start);
+    r = step(r, E, DT, { x: 200, y: 250 });
+    expect([r.started, r.t > 0, r.v > 0 && r.v < R.speed]).toEqual([true, true, true]);
+    for (let i = 0; i < 60; i++) r = step(r, E, DT, { x: 400, y: 250 });
+    expect(r.v).toBe(R.speed);
+  });
+
+  it('at the end of the way the horse slows down and stands, while the clock runs on', () => {
+    let r: Round = { ...newRound(E), x: 300, y: 150, heading: 0, v: R.speed, started: true };
+    for (let i = 0; i < 60; i++) r = step(r, E, DT, null);
+    const stood = r;
+    for (let i = 0; i < 60; i++) r = step(r, E, DT, null);
+    expect([stood.v, r.x, r.t > stood.t]).toEqual([0, stood.x, true]);
+  });
+
+  it('a way that ends just before a jump: the horse stands about where it ends, no fault', () => {
+    const j = E.jumps[0];
+    for (const end of [60, 40, 30, 20, 15]) {
+      const seen = along({ ...newRound(E), x: j.x - 120, y: j.y, heading: 0 }, [{ x: j.x - end, y: j.y }], 3), last = seen[seen.length - 1];
+      expect([end, last.v, last.faults, last.refused]).toEqual([end, 0, 0, null]);
+      expect(Math.abs(last.x - (j.x - end)), `${end}`).toBeLessThan(R.reach + 2);
+    }
+  });
+
+  it('a way into a corner: the horse rides into it and stands there, not shaking', () => {
+    const seen = along({ ...newRound(E), x: 380, y: 230, heading: 0 }, [{ x: 475, y: 295 }], 4), last = seen.slice(-20);
+    expect(last.every((h) => h.v === 0 && h.heading === last[0].heading)).toBe(true);
   });
 
   it('a late "Hopp!" knocks the pole: a fault, the jump still counts', () => {
@@ -114,8 +144,8 @@ describe('a round on the show-jumping arena', () => {
   it('a jump out of turn stops the horse without a fault', () => {
     // in front of jump 2 while jump 1 is next
     const j = E.jumps[1];
-    let r: Round = { ...newRound(E), x: j.x - 30, y: j.y };
-    while (r.refused === null && r.t < 2) r = step(r, E, DT, null); // straight on, no finger
+    let r: Round = { ...newRound(E), x: j.x - 30, y: j.y, v: R.speed };
+    while (r.refused === null && r.t < 2) r = step(r, E, DT, { x: j.x + 100, y: j.y }); // straight at it
     expect([r.refused, r.faults]).toEqual([1, 0]);
   });
 
@@ -125,8 +155,8 @@ describe('a round on the show-jumping arena', () => {
     expect(r.faults).toBeGreaterThan(1);
   });
 
-  it('ends a round nobody rides: each jump left is a fault, and the time', () => {
-    let r = newRound(E);
+  it('ends a round given up halfway: each jump left is a fault, and the time', () => {
+    let r = step(newRound(E), E, 0.1, { x: 100, y: 250 }); // a first way, then nothing more
     while (!r.done) r = step(r, E, 0.1, null);
     expect(r.faults).toBeGreaterThanOrEqual(E.jumps.length + Math.ceil(R.giveUp / R.timeFault));
     // the fence kept the horse in
@@ -135,12 +165,12 @@ describe('a round on the show-jumping arena', () => {
   });
 
   it('the finish only counts after the last jump', () => {
-    const [fx, fy, fd] = E.finish, before = { ...newRound(E), x: fx, y: fy - 10, heading: fd === 'S' ? Math.PI / 2 : 0 };
+    const [fx, fy] = E.finish, before: Round = { ...newRound(E), x: fx - 10, y: fy, heading: 0, v: R.speed }, through = { x: fx + 40, y: fy };
     let r = before;
-    for (let i = 0; i < 30; i++) r = step(r, E, DT, null);
+    for (let i = 0; i < 30; i++) r = step(r, E, DT, through);
     expect(r.done).toBe(false);
-    r = before; r = { ...r, next: E.jumps.length };
-    for (let i = 0; i < 30; i++) r = step(r, E, DT, null);
+    r = { ...before, next: E.jumps.length };
+    for (let i = 0; i < 30; i++) r = step(r, E, DT, through);
     expect(r.done).toBe(true);
   });
 });

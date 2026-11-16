@@ -9,12 +9,17 @@ import { t } from '../src/strings';
  */
 async function rideCourse(page: Page) {
   const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
-  let down = false;
+  let down = false, first = true;
   while (await end.isHidden()) {
     if (Date.now() > until) throw new Error(`the round did not end in 40 s: the autopilot is lost (${await page.locator('#jump-hud').textContent()})`);
     const [aim, hopp] = await canvas.evaluate((c) => [c.dataset.aim ?? '', c.dataset.hopp ?? '']);
     if (!aim) continue; // the first frame of the round is still to come
     const [x, y] = aim.split(',').map(Number);
+    if (first) { // the first way, then lift the finger: the horse sets off
+      await page.mouse.move(x - 20, y - 20); await page.mouse.down(); await page.mouse.move(x, y, { steps: 4 }); await page.mouse.up();
+      first = false;
+      continue;
+    }
     if (hopp) {
       if (down) { await page.mouse.up(); down = false; }
       await page.mouse.click(x, y); // a tap: "Hopp!"
@@ -359,7 +364,12 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await page.getByRole('button', { name: t.go }).tap();
   // steered round the course with "Hopp!" at the green patches: the round ends with the result
   const end = page.locator('#jump-end');
-  await expect(page.locator('#jump-hud')).toHaveText(t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, timeAllowed(DATA.jumping.courses.E)));
+  const hud = t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, timeAllowed(DATA.jumping.courses.E));
+  await expect(page.locator('#jump-hud')).toHaveText(hud);
+  // the pony waits until a way is drawn: the tip says so, and the clock stands
+  await expect(page.locator('#jump-tip')).toHaveText(t.drawTip('first', true));
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#jump-hud')).toHaveText(hud);
   await rideCourse(page);
   await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
