@@ -176,12 +176,11 @@ export function jumpWindow(h: Horse) {
 }
 export const clears = (h: Horse, offset: number) => Math.abs(offset) <= jumpWindow(h) / 2;
 /**
- * What a tap `offset` seconds from the perfect take-off does: too early to count yet, a clear jump, or a knocked pole.
- * Without a tap, the pole falls once `missed`.
+ * What "Hopp!" `offset` seconds from the perfect take-off does: too early to count yet, a clear jump, or a knocked
+ * pole. Without it the horse refuses (see round.ts).
  */
 export const takeOff = (h: Horse, offset: number): 'early' | 'clear' | 'fault' =>
   offset < -DATA.jumping.early ? 'early' : clears(h, offset) ? 'clear' : 'fault';
-export const missed = (h: Horse, offset: number) => offset > jumpWindow(h) / 2 + DATA.jumping.late;
 
 /**
  * Why the riding badge can't be tried now: passed already, more practice first, tomorrow after a failed try, or every
@@ -232,7 +231,7 @@ export function showResult(s: State, h: Horse, faults: number, rider: string, c:
     [r, seed] = roll(seed);
     const skill = C.rivalSkill[0] + r * (C.rivalSkill[1] - C.rivalSkill[0]);
     let down = 0;
-    for (let j = 0; j < J.jumps; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
+    for (let j = 0; j < J.courses[c].jumps.length; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
     rows.push({ rider: name, horse, score: showScore(down, skill) });
   }
   const you: ShowRow = { rider, horse: h.name, score: showScore(faults, h.skills.jumping), you: true };

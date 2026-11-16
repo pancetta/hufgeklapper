@@ -1,16 +1,25 @@
 import { expect, type Page, test } from '@playwright/test';
-import { COURSE } from '../src/scene/jumping';
 import { DATA } from '../src/sim/data';
+import { timeAllowed } from '../src/sim/round';
 import { t } from '../src/strings';
 
-/** Taps the jumping course at each perfect take-off, timed from now (the round has just started). */
-async function tapTakeOffs(page: Page) {
-  const start = Date.now(), { speed, takeoff, first, spacing } = COURSE;
-  for (let i = 0; i < DATA.jumping.jumps; i++) {
-    const at = start + ((first - takeoff + i * spacing) / speed) * 1000;
-    await page.waitForTimeout(Math.max(0, at - Date.now()));
-    await page.touchscreen.tap(300, 300); // not locator.tap: it would wait if the result covered the canvas
+/**
+ * Rides the course like a rider who knows the way: the finger follows the point the scene says (its autopilot),
+ * "Hopp!" when it says so, until the round's result shows.
+ */
+async function rideCourse(page: Page) {
+  const canvas = page.locator('#jumping'), end = page.locator('#jump-end'), until = Date.now() + 40_000;
+  let down = false;
+  while (await end.isHidden()) {
+    if (Date.now() > until) throw new Error('the round did not end in 40 s: the autopilot is lost');
+    const [aim, hopp] = await canvas.evaluate((c) => [c.dataset.aim ?? '', c.dataset.hopp ?? '']);
+    if (!aim) continue; // the first frame of the round is still to come
+    const [x, y] = aim.split(',').map(Number);
+    await page.mouse.move(x, y);
+    if (!down) { await page.mouse.down(); down = true; }
+    if (hopp) await page.locator('#hopp').dispatchEvent('pointerdown');
   }
+  await page.mouse.up();
 }
 
 /**
@@ -290,7 +299,7 @@ test('a riding lesson: a pupil waits by the arena, picks a pony, rides a round a
   await expect(page.getByRole('status')).toHaveText(t.noPupils);
 });
 
-test('jumping practice: the avatar rides a round, taps take off, the pony trains', async ({ page }) => {
+test('jumping practice: the avatar steers round the course, "Hopp!" takes off, the pony trains', async ({ page }) => {
   test.setTimeout(60_000); // the round runs in real time (about 12 s), slower on a busy runner
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
@@ -301,12 +310,11 @@ test('jumping practice: the avatar rides a round, taps take off, the pony trains
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await expect(page.getByText(t.jumpHow(true))).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
-  // taps at the right moments: at least one jump must be cleared (without taps, all five poles fall)
+  // steered round the course with "Hopp!" at the green patches: the round ends with the result
   const end = page.locator('#jump-end');
-  await tapTakeOffs(page);
-  await expect(end).toBeVisible({ timeout: 15_000 });
-  await expect(end).not.toContainText(t.jumpFaults(DATA.jumping.jumps, 'Kiwi'));
-  await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|gefallen\. Kiwi hat trotzdem geübt\./);
+  await expect(page.locator('#jump-hud')).toHaveText(t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, timeAllowed(DATA.jumping.courses.E)));
+  await rideCourse(page);
+  await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
   expect(after.skills.jumping).toBeGreaterThan(before.skills.jumping);
   expect(after.needs.energy).toBe(before.needs.energy - DATA.jumping.energy);
@@ -338,7 +346,7 @@ test('riding badge 1: Oma asks five questions, a jumping round, then the rosette
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   const end = page.locator('#jump-end');
-  await tapTakeOffs(page);
+  await rideCourse(page);
   // passed or not (the taps are timed, a pole may still fall), the result and the save agree
   await expect(end).toBeVisible({ timeout: 15_000 });
   const passed = (await end.textContent())!.includes(t.badgePassed);
@@ -367,7 +375,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await expect(page.getByText(t.showEnter(DATA.shows.classes.E.fee))).toBeVisible();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
-  await tapTakeOffs(page);
+  await rideCourse(page);
   const end = page.locator('#jump-end');
   await expect(end.getByRole('heading', { name: t.podium })).toBeVisible({ timeout: 15_000 });
   await expect(end.locator('.ranking li')).toHaveCount(DATA.shows.rivalsPerShow + 1);
@@ -402,7 +410,7 @@ test('show classes: a trained horse opens class A; the untrained one may not sta
   await expect(page.getByRole('button', { name: `Luna · ${t.notSkilled}` })).toBeDisabled();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
-  await tapTakeOffs(page);
+  await rideCourse(page);
   await expect(page.locator('#jump-end').getByRole('heading', { name: t.podium })).toBeVisible({ timeout: 15_000 });
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
   expect(s.today[0]).toEqual({ what: 'showFee', amount: -A.fee });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, missed, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, clears, earn, fit, isSick, jumpWindow, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, type State, stalls, takeOff } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -261,8 +261,6 @@ describe('Sim', () => {
     expect(takeOff(h, -J.early - 0.01)).toBe('early');
     expect(takeOff(h, -J.early + 0.01)).toBe('fault');
     expect(takeOff(h, 0)).toBe('clear');
-    expect(missed(h, jumpWindow(h) / 2 + J.late - 0.01)).toBe(false);
-    expect(missed(h, jumpWindow(h) / 2 + J.late + 0.01)).toBe(true);
   });
 
   it('trains jumping: skill grows (more for a clear round), energy goes; a sick or tired horse cannot', () => {
@@ -341,7 +339,7 @@ describe('Sim', () => {
     const best = showResult(s, { ...h, skills: { jumping: 100 } }, 0, 'Mara', 'L');
     expect([best.rank, best.prize, best.table.length]).toEqual([1, DATA.shows.classes.L.prizes[0], DATA.shows.rivalsPerShow + 1]);
     expect(best.table[0]).toMatchObject({ rider: 'Mara', horse: h.name, you: true });
-    const worst = showResult(s, { ...h, skills: { jumping: 0 } }, DATA.jumping.jumps, 'Mara', 'E');
+    const worst = showResult(s, { ...h, skills: { jumping: 0 } }, DATA.jumping.courses.E.jumps.length, 'Mara', 'E');
     expect([worst.rank, worst.prize]).toEqual([DATA.shows.rivalsPerShow + 1, 0]);
     expect(showResult(s, h, 1, 'Mara', 'E')).toEqual(showResult(s, h, 1, 'Mara', 'E'));
     expect(new Set(best.table.map((r) => r.rider)).size).toBe(best.table.length); // no rival twice

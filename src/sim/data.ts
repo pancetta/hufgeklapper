@@ -57,17 +57,51 @@ export const DATA = {
   },
   /** The jumping minigame ("Springen"): course, take-off window (seconds) and what training does. */
   jumping: {
-    jumps: 5,
     window: { base: 0.12, skill: 0.2, kept: 0.1 },
-    /** A tap more than this many seconds early is not yet a take-off; this long after the window, the horse runs into the pole. */
+    /** A tap more than this many seconds early is not yet a take-off. */
     early: 0.6,
-    late: 0.15,
+    /**
+     * The round on the show-jumping arena ("Springplatz", #43), in arena pixels and seconds: the horse canters at
+     * `speed` and turns at most `turn` radians a second towards the finger. Its hooves leave the ground `takeoff`
+     * before the pole; a pole is `half` × 2 wide. Reaching a pole without a take-off, or riding at it more than
+     * `refuse` degrees askew, the horse refuses: it stands `stop` seconds, then turns round. The time allowed is
+     * the course's straight length ridden at `speed`, times `time`; each started `timeFault` seconds over it is a
+     * fault, and `giveUp` seconds over it the round ends, each jump left a fault.
+     */
+    ride: { speed: 90, turn: 2.4, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 2, timeFault: 5, giveUp: 45 },
+    arena: { w: 480, h: 300, fence: 14 },
+    /** The courses ("Parcours"), by show class; practice and the riding badge use E. Arena pixels; a jump is ridden the way of `dir`. */
+    courses: {
+      E: {
+        start: [40, 250, 'E'], finish: [230, 200, 'E'],
+        jumps: [
+          { x: 140, y: 250, dir: 'E', kind: 'cross' }, { x: 280, y: 250, dir: 'E', kind: 'upright' }, { x: 420, y: 160, dir: 'N', kind: 'cross' },
+          { x: 300, y: 50, dir: 'W', kind: 'upright' }, { x: 160, y: 50, dir: 'W', kind: 'cross' }, { x: 50, y: 150, dir: 'S', kind: 'upright' },
+        ],
+      },
+      A: {
+        start: [40, 150, 'E'], finish: [430, 160, 'S'],
+        jumps: [
+          { x: 130, y: 150, dir: 'E', kind: 'upright' }, { x: 260, y: 150, dir: 'E', kind: 'oxer' }, { x: 250, y: 245, dir: 'W', kind: 'cross' },
+          { x: 130, y: 245, dir: 'W', kind: 'oxer' }, { x: 45, y: 140, dir: 'N', kind: 'upright' }, { x: 180, y: 50, dir: 'E', kind: 'upright' },
+          { x: 330, y: 50, dir: 'E', kind: 'oxer' },
+        ],
+      },
+      L: {
+        start: [40, 250, 'E'], finish: [445, 210, 'E'],
+        jumps: [
+          { x: 130, y: 250, dir: 'E', kind: 'upright' }, { x: 250, y: 250, dir: 'E', kind: 'oxer' }, { x: 400, y: 130, dir: 'N', kind: 'oxer' },
+          { x: 300, y: 45, dir: 'W', kind: 'upright' }, { x: 180, y: 45, dir: 'W', kind: 'oxer' }, { x: 60, y: 165, dir: 'S', kind: 'upright' },
+          { x: 200, y: 210, dir: 'E', kind: 'oxer' }, { x: 330, y: 210, dir: 'E', kind: 'upright' },
+        ],
+      },
+    } as Record<'E' | 'A' | 'L', import('./round').Course>,
     gain: { clear: 4, faults: 2 }, // daily practice brings a horse to class A in about two weeks
     energy: 25,
     happy: 5,
   },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
-  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 1 },
+  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
   /**
    * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
    * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their
@@ -86,8 +120,8 @@ export const DATA = {
      */
     classes: {
       E: { minSkill: 0, fee: 15, prizes: [60, 35, 20], rivalSkill: [10, 50] }, // the first shows: a clear round usually reaches the podium
-      A: { minSkill: 40, fee: 30, prizes: [150, 90, 50], rivalSkill: [35, 70] },
-      L: { minSkill: 70, fee: 50, prizes: [220, 130, 70], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
+      A: { minSkill: 40, fee: 30, prizes: [160, 95, 55], rivalSkill: [35, 70] },
+      L: { minSkill: 70, fee: 50, prizes: [240, 145, 80], rivalSkill: [60, 90] }, // more and sport outearns lessons in a long game
     },
   },
   /** The goals ("Aufgaben") of each farm stage: what to reach; once reached, a goal stays done. */

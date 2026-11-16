@@ -96,7 +96,18 @@ After *Schlafen gehen*, a short list of last night's news: who fell sick, who is
 A short skill game whose difficulty depends on the horse's **Needs** and skills.
 
 **Jumping** ("Springen"):
-The first **Minigame**: top-down, the course scrolls, tap at take-off.
+The first **Minigame**: a **Course** on the show-jumping arena ("Springplatz"), seen from above. The finger steers,
+"Hopp!" takes off.
+
+**Course** ("Parcours"):
+The numbered jumps of a round, ridden in order, with start, finish and a time allowed ("erlaubte Zeit"). Each show
+class has its own; practice and the riding badge ride the E course.
+
+**Fault** ("Fehler"):
+What a round costs: a knocked pole, a **Refusal**, or each started few seconds over the time allowed.
+
+**Refusal** ("Verweigerung"):
+The horse stops in front of the next jump: ridden at it too askew, or without "Hopp!". A fault; then it turns round.
 
 **Training**:
 Riding the **Jumping** minigame at home: raises the horse's skill, uses **Energie**.
