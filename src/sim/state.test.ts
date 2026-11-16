@@ -489,6 +489,14 @@ describe('Sim', () => {
     expect([helped.money, helped.debt]).toEqual([0, DATA.loan.debtLimit]); // a gift, not a loan
     const again = apply(sick(helped), { type: 'sleep' });
     expect(again.horses.every(isSick)).toBe(true); // not again so soon
+    // the next help: on the 10th day after, not the 9th (the check runs on the new morning)
+    const D = helped.rescueDay, E = DATA.rescue.every;
+    expect(apply({ ...sick(helped), day: D + E - 2 }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
+    expect(apply({ ...sick(helped), day: D + E - 1 }, { type: 'sleep' }).night).toContainEqual({ kind: 'omaHelped' });
+    // at the Pensionsstall the morning's pay comes first: a boarder whose pay (half of it repays debt) covers the vet
+    // means no dead end
+    const guest = { ...s.horses[0], id: 'g', needs: { ...s.horses[0].needs, health: 100 }, owner: { name: 'Familie Weber', pay: DATA.vet.cost / DATA.repayShare, unhappy: 0 } };
+    expect(apply({ ...s, stage: 'pensionsstall', horses: [...s.horses, guest] }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
     expect(stuck({ ...s, money: DATA.vet.cost })).toBe(false); // with money for the vet it is no dead end
     expect(apply({ ...s, money: DATA.vet.cost }, { type: 'sleep' }).night).not.toContainEqual({ kind: 'omaHelped' });
   });

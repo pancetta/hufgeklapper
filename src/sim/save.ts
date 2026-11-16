@@ -60,7 +60,7 @@ function isOffer(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 12 && isAvatar(x.avatar) && isInt(x.rescueDay, 0)
+  return isObj(x) && x.version === 12 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
     && isInt(x.staff, 0, DATA.staff.names.length) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
     && (x.partOffer === null || (isObj(x.partOffer) && typeof x.partOffer.horse === 'string' && isText(x.partOffer.rider, 30) && isInt(x.partOffer.pay, 0, 1000))) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
     && Array.isArray(x.market) && x.market.length <= 10 && x.market.every(isOffer)
@@ -134,18 +134,18 @@ function fromVersion8(x: Obj): unknown {
   return { ...x, version: 9, state: { ...s, version: 9, goalsDone: [], explained: [...DATA.features] } };
 }
 
-/** Version 11 to 12: Oma Hanne's help in a dead end (never needed yet). */
-function fromVersion11(x: Obj): unknown {
-  const s = x.state;
-  if (!isObj(s)) return x;
-  return { ...x, version: 12, state: { ...s, version: 12, rescueDay: 0 } };
-}
-
 /** Version 10 to 11: the Pensionsstall (no grooms, no boarders or riders yet). */
 function fromVersion10(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s)) return x;
   return { ...x, version: 11, state: { ...s, version: 11, staff: 0, boardOffers: [], partOffer: null } };
+}
+
+/** Version 11 to 12: Oma Hanne's help in a dead end (never needed yet). */
+function fromVersion11(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 12, state: { ...s, version: 12, rescueDay: 0 } };
 }
 
 /** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */

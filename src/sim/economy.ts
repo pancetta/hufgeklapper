@@ -47,7 +47,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
     sickDays += s.horses.filter(isSick).length; // counted in the morning, before the vet comes
-    streak = stuck(s) ? streak + 1 : 0; longest = Math.max(longest, streak);
+    streak = stuck(s) ? streak + 1 : 0; longest = Math.max(longest, streak); // mornings in a dead end, waiting for Oma Hanne's next help
     // the vet for a sick horse, with a loan if the money is short
     for (const h of s.horses.filter(isSick)) { if (s.money < DATA.vet.cost) act({ type: 'loan' }); act({ type: 'vet', horse: h.id }); }
     // hay: the careful keep a few nights in store, the careless buy when it's gone
