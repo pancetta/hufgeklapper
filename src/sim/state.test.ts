@@ -526,6 +526,31 @@ describe('Sim', () => {
     expect([gameOver(s), s.deadEnd]).toEqual([false, 0]);
   });
 
+  it('the care course counts as grooming and hooves today, makes the horse happier (more without a wrong step); riding it costs a little energy', () => {
+    const s = newGame(1), h = s.horses[0], R = DATA.routine;
+    const after = (wrong: number, ride: boolean) => apply(s, { type: 'routine', horse: h.id, wrong, ride }).horses[0];
+    const clean = after(0, true);
+    expect(clean.cared).toEqual(['groom', 'hooves']);
+    expect(clean.needs.happy).toBe(Math.min(100, h.needs.happy + DATA.care.groom.happy + DATA.care.hooves.happy + R.happyClean));
+    expect(clean.needs.energy).toBe(h.needs.energy - R.energy);
+    expect(after(2, false).needs.happy).toBe(Math.min(100, h.needs.happy + DATA.care.groom.happy + DATA.care.hooves.happy + R.happy));
+    expect(after(2, false).needs.energy).toBe(h.needs.energy);
+    // already groomed today: no second grooming, but the happiness
+    const groomed = apply(s, { type: 'care', horse: h.id, what: 'groom' });
+    expect(apply(groomed, { type: 'routine', horse: h.id, wrong: 0, ride: false }).horses[0].cared).toEqual(['groom', 'hooves']);
+    // a horse too tired to ride can't be ridden in it
+    const tired = { ...s, horses: s.horses.map((x, i) => (i ? x : { ...x, needs: { ...x.needs, energy: R.energy - 1 } })) };
+    expect(apply(tired, { type: 'routine', horse: h.id, wrong: 0, ride: true })).toBe(tired);
+  });
+
+  it('a lesson on a horse the pupil got ready in the care course pays a tip and some reputation, more without a wrong step', () => {
+    const s = { ...newGame(1), money: 0, debt: 0 }, p = s.pupils[0], h = lessonChoices(p, s.horses).find((c) => !c.why)!.horse, R = DATA.routine;
+    const lesson = (prepared?: number) => apply(s, { type: 'lesson', pupil: p.id, horse: h.id, prepared });
+    const plain = lesson(), clean = lesson(0), some = lesson(1);
+    expect([clean.money - plain.money, some.money - plain.money]).toEqual([R.tipClean, R.tip]);
+    expect([clean.reputation - plain.reputation, some.reputation - plain.reputation]).toEqual([R.reputationClean, R.reputation]);
+  });
+
   describe('the Pensionsstall', () => {
     const pension = (): State => {
       // a Reitschule with every goal met passes its inspection: the Pensionsstall, with boarders looking for a stall

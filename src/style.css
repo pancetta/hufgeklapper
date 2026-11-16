@@ -217,6 +217,14 @@ canvas { image-rendering: pixelated; }
 .tools [data-tool] .icon { width: calc(10 * var(--px)); height: calc(10 * var(--px)); }
 .tools [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
 .tools .done::after { content: '✓'; margin-left: var(--px); }
+/* the care course: the things to pick along the bottom (two rows), the counter, tip and stop at the top right */
+#routine { touch-action: none; }
+.things { flex-wrap: wrap; gap: calc(3 * var(--px)); padding: 0 calc(8 * var(--px)); }
+.things [data-thing] { font-size: calc(var(--fs) * 8 * var(--px)); padding: calc(2 * var(--px)) calc(5 * var(--px)); }
+.things [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+.routine-bar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: calc(4 * var(--px)); align-items: center;
+  font-size: calc(var(--fs) * 8 * var(--px)); color: var(--paper); text-shadow: var(--px) var(--px) 0 var(--wood-dark); }
+.overlay.ride { padding: 0; background: var(--wood-dark); }
 .status { color: #3c7a2a; }
 .status.sick { color: #c0392b; }
 

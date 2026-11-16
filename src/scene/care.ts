@@ -1,28 +1,27 @@
 /**
  * Caring for one horse, close up in its stall (three times the farm's pixel size). The care tools are gestures:
- * brush the dirt off the coat, tap each hoof, drag hay into the manger, swipe the manure away. When a gesture is
- * complete the scene calls onDone; the rules (what care fills) stay in the Sim.
+ * brush the dirt off the coat, tap each hoof, drag hay from the bale into the trough, swipe the manure away. When a
+ * gesture is complete the scene calls onDone; the rules (what care fills) stay in the Sim. The stall is sized in
+ * metres from the horse's height: the trough at head height in front of it, the walls, bars and window around it.
  */
 import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import { fitPixels } from '../pixel';
 import type { Care } from '../sim/state';
-import { blit, image, shadow } from './draw';
+import { shadow } from './draw';
 
 export type CareOptions = { look: Look; dirt: number; cared: Care[]; onDone: (what: Care) => void }; // dirt: 0 clean … 1 very dirty
 
-const MANGER_EMPTY = [424, 608, 78, 32] as const, MANGER_FULL = [424, 528, 78, 46] as const; // decorations.png
-const HAY = [96, 704, 32, 32] as const;
 
 function seeded(seed: number) {
   return () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 }
 
 export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
-  const [deco, sheet] = await Promise.all([image('farm/decorations.png'), horseSheet(opts.look, 'idle')]);
+  const sheet = await horseSheet(opts.look, 'idle');
   const ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, running = true, tool: Care = 'groom', t = 0;
-  const L = { cx: 0, foot: 0, mx: 0, my: 0 }; // horse centre and hooves; manger position
+  const L = { cx: 0, foot: 0, mx: 0, my: 0, bx: 0, by: 0 }; // horse centre and hooves; the trough's top left; the hay bale's top left
 
   // the side view (west) of the horse, its dirt layer, and where its hooves are
   const frame = document.createElement('canvas');
@@ -31,8 +30,11 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
   fctx.drawImage(sheet, 128, 0, 128, 128, 0, 0, 128, 128);
   const px = fctx.getImageData(0, 0, 128, 128).data;
   const opaque = (x: number, y: number) => px[(y * 128 + x) * 4 + 3] > 0;
-  let bottom = 0;
-  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) if (opaque(x, y)) bottom = y;
+  let bottom = 0, top = 128, x0 = 128;
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) if (opaque(x, y)) { bottom = y; top = Math.min(top, y); x0 = Math.min(x0, x); }
+  // metres to pixels: the horse is about 1.75 m (pony) or 2.15 m (horse) to the tip of its ears
+  const M = (bottom - top) / (opts.look.build === 'pony' ? 1.75 : 2.15), m = (v: number) => Math.round(v * M);
+  const TROUGH = { w: m(0.8), h: m(0.3) }, BUNDLE = { w: m(0.5), h: m(0.28) }, BALE = { w: m(0.9), h: m(0.45) };
   const hooves: { x: number; done: boolean }[] = [];
   for (let x = 0, start = -1; x <= 128; x++) {
     const on = x < 128 && [0, 1, 2].some((d) => opaque(x, bottom - d));
@@ -76,7 +78,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
   const dirtLeft = () => { const d = dctx.getImageData(0, 0, 128, 128).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n; };
   const dirtStart = Math.max(1, dirtLeft());
   const manure = Array.from({ length: Math.max(1, Math.round(opts.dirt * 4)) }, () => ({ x: 0.15 + rnd() * 0.5, y: rnd(), gone: false }));
-  const hay = { x: 0, y: 0, home: true, dragging: false, inManger: false };
+  const hay = { x: 0, y: 0, home: true, dragging: false, inManger: false }; // the bundle of hay: its top left
   const done = new Set<Care>(opts.cared);
   const sparkles: { x: number; y: number; age: number }[] = [], hearts: { x: number; y: number; age: number }[] = [];
   const finish = (what: Care) => {
@@ -94,27 +96,58 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
-    L.foot = Math.round(H * 0.72); L.cx = Math.round(W * 0.36); L.mx = Math.round(W * 0.62); L.my = L.foot + 2;
-    if (hay.home) { hay.x = 8; hay.y = 24; }
+    L.foot = Math.round(H * 0.72); L.cx = Math.max(Math.round(W * 0.36), 64 - x0 + TROUGH.w + 8);
+    L.mx = L.cx - 64 + x0 - TROUGH.w - 2; L.my = L.foot - m(1.0); // the trough in front of the head, at head height
+    L.bx = W - BALE.w - m(0.3); L.by = L.foot - BALE.h; // the bale in the corner
+    if (hay.home) home();
+    canvas.dataset.layout = JSON.stringify({ cx: L.cx, foot: L.foot, hay: [L.bx + BALE.w / 2, L.by - BUNDLE.h / 2], trough: [L.mx + TROUGH.w / 2, L.my + TROUGH.h / 2] });
   }
+
+  const rect = (c: string, x: number, y: number, w: number, h: number) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  /** A bundle of hay, top left at (x, y). */
+  function bundle(x: number, y: number) {
+    rect('#d9b75a', x, y + 2, BUNDLE.w, BUNDLE.h - 2); rect('#e8cc7a', x + 2, y, BUNDLE.w - 4, 3); rect('#c49f45', x + 1, y + BUNDLE.h - 2, BUNDLE.w - 2, 2);
+    for (let i = 3; i < BUNDLE.w - 2; i += 4) rect('#b8923a', x + i, y + 3, 1, BUNDLE.h - 5);
+  }
+  /**
+   * The stall around the horse: the lower wall of planks to 1.4 m, bars above it with the dim aisle behind, a window
+   * with daylight, the drinker and the salt lick by the trough; straw on the floor, the hay bale in the corner.
+   */
+  function drawStall() {
+    const wall = L.foot - 6 - m(1.4);
+    rect('#3b2a1c', 0, 0, W, wall); // the aisle behind the bars
+    rect('#5a3c26', 0, Math.max(0, wall - m(1.1)), W, 3);
+    const win = Math.round(W * 0.62), winY = Math.max(4, wall - m(1.0));
+    rect('#bfe3f5', win, winY, m(0.7), m(0.5)); rect('#e8f6fc', win + 2, winY + 2, 3, m(0.5) - 4); rect('#5a3419', win + Math.round(m(0.7) / 2), winY, 1, m(0.5)); rect('#5a3419', win - 2, winY + m(0.5), m(0.7) + 4, 2);
+    for (let x = 3; x < W; x += 6) rect('#9aa3a8', x, 0, 2, wall); // the bars
+    rect('#5a3419', 0, wall - 3, W, 3);
+    for (let x = 0; x < W; x += 12) { rect((x / 12) % 2 ? '#8a5530' : '#7f4d2b', x, wall, 12, L.foot - 6 - wall); rect('#5a3419', x, wall, 1, L.foot - 6 - wall); }
+    rect('#d9b75a', 0, L.foot - 6, W, H);
+    ctx.fillStyle = '#c49f45';
+    for (let i = 0; i < 160; i++) ctx.fillRect((i * 37) % W, L.foot - 4 + ((i * 53) % (H - L.foot + 4)), 3, 1);
+    // the trough at head height, hay in it once fed; the drinker and the salt lick beside it
+    rect('#4a4a5e', L.mx + 2, L.my + TROUGH.h, 2, L.foot - 6 - L.my - TROUGH.h); rect('#4a4a5e', L.mx + TROUGH.w - 4, L.my + TROUGH.h, 2, L.foot - 6 - L.my - TROUGH.h); // its legs
+    rect('#6f7a80', L.mx - 1, L.my - 1, TROUGH.w + 2, TROUGH.h + 1); rect('#9aa3a8', L.mx, L.my, TROUGH.w, 2); rect('#4a4a5e', L.mx + 1, L.my + TROUGH.h - 2, TROUGH.w - 2, 2);
+    if (hay.inManger) { rect('#d9b75a', L.mx + 2, L.my - 3, TROUGH.w - 4, 4); rect('#e8cc7a', L.mx + 4, L.my - 4, TROUGH.w - 10, 2); }
+    const dr = L.mx + Math.round(TROUGH.w / 2) - 4, drY = L.my - m(0.45);
+    rect('#9aa3a8', dr, drY, 9, 5); rect('#6f7a80', dr + 1, drY + 1, 7, 2); rect('#9aa3a8', dr + 3, drY - 4, 2, 4);
+    rect('#c0392b', Math.max(2, L.mx - 8), L.my - m(0.7), 5, 7); rect('#e8a0a0', Math.max(2, L.mx - 7), L.my - m(0.7) + 1, 3, 2);
+    // the bale in the corner: hay to drag from
+    rect('#c49f45', L.bx, L.by, BALE.w, BALE.h); rect('#d9b75a', L.bx + 1, L.by + 1, BALE.w - 2, BALE.h - 3); rect('#e8cc7a', L.bx + 2, L.by + 1, BALE.w - 4, 1);
+    rect('#8a6a2a', L.bx + Math.round(BALE.w / 3), L.by, 1, BALE.h); rect('#8a6a2a', L.bx + Math.round((2 * BALE.w) / 3), L.by, 1, BALE.h);
+  }
+  const home = () => { hay.home = true; hay.x = L.bx + Math.round((BALE.w - BUNDLE.w) / 2); hay.y = L.by - BUNDLE.h; };
 
   function frameDraw(now: number) {
     if (!running) return;
     t = now / 1000;
     ctx.imageSmoothingEnabled = false;
-    for (let x = 0; x < W; x += 12) {
-      ctx.fillStyle = (x / 12) % 2 ? '#8a5530' : '#7f4d2b'; ctx.fillRect(x, 0, 12, L.foot - 6);
-      ctx.fillStyle = '#5a3419'; ctx.fillRect(x, 0, 1, L.foot - 6);
-    }
-    ctx.fillStyle = '#d9b75a'; ctx.fillRect(0, L.foot - 6, W, H);
-    ctx.fillStyle = '#c49f45';
-    for (let i = 0; i < 160; i++) ctx.fillRect((i * 37) % W, L.foot - 4 + ((i * 53) % (H - L.foot + 4)), 3, 1);
+    drawStall();
     // manure on the straw
-    for (const m of manure) if (!m.gone) {
-      const x = Math.round(L.cx - 50 + m.x * 60), y = Math.round(L.foot + 6 + m.y * Math.max(4, H - L.foot - 12));
+    for (const m_ of manure) if (!m_.gone) {
+      const x = Math.round(L.cx - 50 + m_.x * 60), y = Math.round(L.foot + 6 + m_.y * Math.max(4, H - L.foot - 12));
       ctx.fillStyle = '#5a3d22'; ctx.fillRect(x - 3, y - 1, 7, 3); ctx.fillRect(x - 2, y - 3, 5, 2); ctx.fillStyle = '#7d5733'; ctx.fillRect(x - 1, y - 3, 2, 1);
     }
-    blit(ctx, deco, hay.inManger ? MANGER_FULL : MANGER_EMPTY, L.mx, L.my - (hay.inManger ? 46 : 32));
     shadow(ctx, L.cx, L.foot - 1, 28, 3, 0.25);
     const hx = L.cx - 64, hy = L.foot - 1 - bottom;
     // the pose: coat and dirt, eyes shut for a moment every few seconds; the body breathes and hops, the legs stay on
@@ -141,7 +174,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       ctx.fillRect(x - 3, y - 1, 7, 1); ctx.fillRect(x - 3, y + 1, 7, 1); ctx.fillRect(x - 4, y, 1, 1); ctx.fillRect(x + 4, y, 1, 1);
       if (h.done) ctx.fillRect(x - 2, y, 5, 1);
     }
-    if (tool === 'feed' && !hay.inManger) blit(ctx, deco, HAY, Math.round(hay.x), Math.round(hay.y));
+    if (tool === 'feed' && !hay.inManger) bundle(hay.x, hay.y);
     for (const h of hearts) {
       h.age += 1 / 60;
       if (h.age < 0 || h.age > 1.5) continue;
@@ -176,7 +209,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       }
       if (manure.every((m) => m.gone)) finish('muck');
     }
-    if (tool === 'feed' && hay.dragging) { hay.x = x - 16; hay.y = y - 16; }
+    if (tool === 'feed' && hay.dragging) { hay.x = x - BUNDLE.w / 2; hay.y = y - BUNDLE.h / 2; }
   }
   canvas.addEventListener('pointerdown', (e) => {
     if (finger !== null) return;
@@ -189,7 +222,7 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
       if (Math.abs(hx + near.x - x) < 6) near.done = true;
       if (hooves.every((h) => h.done)) finish('hooves');
     }
-    if (tool === 'feed' && !hay.inManger && x >= hay.x && x < hay.x + 32 && y >= hay.y && y < hay.y + 32) { hay.dragging = true; hay.home = false; }
+    if (tool === 'feed' && !hay.inManger && x >= hay.x - 4 && x < hay.x + BUNDLE.w + 4 && y >= hay.y - 4 && y < L.foot) { hay.dragging = true; hay.home = false; } // the bundle or the bale under it
     move(x, y);
   });
   canvas.addEventListener('pointermove', (e) => { if (e.pointerId === finger) move(...at(e)); });
@@ -198,8 +231,9 @@ export async function startCare(canvas: HTMLCanvasElement, opts: CareOptions) {
     finger = null;
     if (hay.dragging) {
       hay.dragging = false;
-      if (hay.x + 16 > L.mx && hay.x + 16 < L.mx + 78 && hay.y + 16 > L.my - 50) { hay.inManger = true; finish('feed'); }
-      else { hay.home = true; hay.x = 8; hay.y = 24; }
+      const cx = hay.x + BUNDLE.w / 2, cy = hay.y + BUNDLE.h / 2;
+      if (cx > L.mx - 6 && cx < L.mx + TROUGH.w + 6 && cy > L.my - m(0.5) && cy < L.my + TROUGH.h + 6) { hay.inManger = true; finish('feed'); }
+      else home();
     }
   };
   canvas.addEventListener('pointerup', up);

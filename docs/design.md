@@ -19,6 +19,7 @@ Oma Hanne hands the player her small **Farm**. The player cares for the **Horses
 | What limits a day | Each horse's **Needs** (Hunger, Sauberkeit, Laune, Energie, Gesundheit). Riding and lessons use **Energie**; care refills needs. |
 | Neglect | Low needs make the horse **sick**: the vet costs money and the horse rests for a few days. Horses never die. |
 | Care | Touch gestures: brush by swiping over the coat, tap each hoof, and so on. After the same **Care action** has been done 5 times, *Schnell erledigen* unlocks for it. Later, staff take care over. |
+| Care course | *Ganz genau pflegen* (#72): every handling step one by one in the stable aisle, from opening the box to closing it, with leading at a walk on the arena and the lesson in between. Stable aisle and stall are drawn to scale: sizes in metres from the horse's own height. From the horse card in the stable, or before a lesson for the pupil (a tip). Part of riding badge 2 (#74). |
 | Sport | A short skill **Minigame**; the horse's needs and skills widen or narrow the timing window. |
 | Horse views | Side view, large, in the stable and for care; top-down (walking in 4 directions) on the farm map and the course. Both come from the same LPC sheets. |
 | Jumping view | Top-down on the show-jumping arena: the whole course in view, the child draws the way with one finger and the cantering horse rides it (a standing horse sets off only once the finger lifts), a short tap anywhere takes off in front of each jump (#47); the horse grows and its shadow stays on the ground during the jump (#43). |

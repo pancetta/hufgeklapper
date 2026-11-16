@@ -25,6 +25,15 @@ export const DATA = {
     feed: { fed: 45, happy: 5 },
     muck: { clean: 20, happy: 10 },
   },
+  /**
+   * The care course ("Pflegekurs", #72): every step of getting a horse ready, a walk ride and putting it away. It counts
+   * as grooming and hooves for the day; the horse gets happier, the walk ride (alone) costs a little energy, and a lesson
+   * prepared this way pays a tip and some reputation. Without a wrong step there is more. `straps`: the bridle's buckles.
+   */
+  routine: {
+    energy: 10, pace: 0.5, happy: 8, happyClean: 15, tip: 3, tipClean: 6, reputation: 1, reputationClean: 2,
+    straps: { islaender: 2, haflinger: 2, reitpony: 2, quarter: 2, warmblut: 3 },
+  },
   /** After this many times by hand, a care action can be done with one tap ("Schnell erledigen"). */
   quickCareAfter: 5,
   /** Each horse eats this many hay bales from the store every night. */

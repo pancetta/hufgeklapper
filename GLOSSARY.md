@@ -102,6 +102,12 @@ Füttern, Putzen, Hufe auskratzen, Misten; done with touch gestures on the stabl
 **Quick care** ("Schnell erledigen"):
 One-tap version of a **Care action**, unlocked after doing it by hand 5 times.
 
+**Care course** ("Pflegekurs", "Ganz genau pflegen"):
+Every step of handling a horse one by one: out of the box, tied up, groomed, saddled and bridled, led at a walk on
+the arena, the lesson, then everything put away again. Pick a thing, tap a place or a part of the horse; a step out of turn doesn't happen and Oma Hanne
+says why. Counts as grooming and hooves for the day; before a **Lesson** the pupil can get the horse ready this way for a
+tip. Always say *Pflegekurs*, not *Kurs* alone (that word would clash with the jumping **Course**).
+
 **Vet** ("Tierarzt"):
 Treats a **Sick** horse for money; afterwards it rests for a few days ("ruht sich aus") and can't be ridden or used for lessons.
 

@@ -92,7 +92,8 @@ export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft' | 'omaHelped' | 'lastWarning' | 'gameOver'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
-  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string }
+  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
+  | { type: 'routine'; horse: string; wrong: number; ride: boolean }
   | { type: 'train'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
   | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
@@ -558,6 +559,21 @@ function step(state: State, action: Action): State {
         careDone: action.quick ? state.careDone : { ...state.careDone, [action.what]: state.careDone[action.what] + 1 },
       };
     }
+    case 'routine': {
+      // the care course done: groomed and hooves done today (as by hand), happier, more without a wrong step; a walk
+      // ride by the player costs a little energy (a lesson's ride took its own)
+      const h = state.horses.find((x) => x.id === action.horse), R = DATA.routine;
+      if (!h || !own(h) || !Number.isInteger(action.wrong) || action.wrong < 0 || (action.ride && cantWork(h, R.energy))) return state;
+      const fresh = (['groom', 'hooves'] as const).filter((c) => !h.cared.includes(c)), needs = { ...h.needs };
+      for (const c of fresh) for (const [n, v] of Object.entries(DATA.care[c]) as [Need, number][]) needs[n] = clamp(needs[n] + v);
+      needs.happy = clamp(needs.happy + (action.wrong ? R.happy : R.happyClean));
+      if (action.ride) needs.energy = clamp(needs.energy - R.energy);
+      return {
+        ...state,
+        horses: state.horses.map((x) => (x === h ? { ...h, needs, cared: [...h.cared, ...fresh] } : x)),
+        careDone: fresh.reduce((d, c) => ({ ...d, [c]: d[c] + 1 }), state.careDone),
+      };
+    }
     case 'rename': {
       // a name of its own: trimmed, not empty, not too long for a nameplate, not the name of another horse on the farm
       // or at the market (buying it would make two)
@@ -620,12 +636,14 @@ function step(state: State, action: Action): State {
     case 'lesson': {
       const p = state.pupils.find((x) => x.id === action.pupil), h = state.horses.find((x) => x.id === action.horse);
       if (!p || !h || !own(h) || cantWork(h, DATA.lessons.energy)) return state;
-      const { happy, pay } = lessonOutcome(p, h);
+      const { happy, pay: fee } = lessonOutcome(p, h), R = DATA.routine;
+      // a horse the pupil got ready step by step (the care course): a tip and a little reputation, more without a wrong step
+      const prep = action.prepared === undefined ? null : action.prepared === 0, pay = fee + (prep === null ? 0 : prep ? R.tipClean : R.tip);
       const worked = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.lessons.energy) } };
       const after = earn({ ...state, today: [...state.today, { what: 'lesson', amount: pay }] }, pay);
       return {
-        ...after, horses: state.horses.map((x) => (x === h ? worked : x)), pupils: state.pupils.filter((x) => x !== p),
-        reputation: clamp(state.reputation + (happy - DATA.lessons.happyAt) / 5), lessonsGiven: state.lessonsGiven + 1,
+        ...after, horses: state.horses.map((x) => (x === h ? worked : x)), pupils: state.pupils.filter((x) => x !== p), lessonsGiven: state.lessonsGiven + 1,
+        reputation: clamp(state.reputation + (happy - DATA.lessons.happyAt) / 5 + (prep === null ? 0 : prep ? R.reputationClean : R.reputation)),
       };
     }
     case 'loan': {

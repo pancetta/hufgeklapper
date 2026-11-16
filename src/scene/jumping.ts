@@ -11,7 +11,7 @@ import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
 import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, takeOffOffset, touchDown } from '../sim/round';
 import { blit, pole, shadow, standard } from './draw';
-import { drawRider } from './kids';
+import { drawKid, drawRider, type Gear } from './kids';
 import { seat } from './life';
 
 export type JumpingOptions = {
@@ -24,6 +24,8 @@ export type JumpingOptions = {
   onKnock?: (offset: number, held: number) => void; // a knocked pole: when, and how long the finger was held, to say why
   onChange?: (r: Round) => void; // for the round's counters (jump, faults, time)
   onWaiting?: (waiting: 'first' | 'more' | null) => void; // the horse stands for a (first) way to ride; null: it rides
+  lead?: boolean; // the child walks beside and leads the horse (the care course's warm-up, #72) instead of riding it
+  gear?: Gear; // what the child wears (the care course: what was put on)
 };
 
 const A = DATA.jumping.arena, R = DATA.jumping.ride, STEP = 1 / 60, LIFT = 6; // poles rest this high above the sand, unless the course says
@@ -120,7 +122,7 @@ function gate(ctx: CanvasRenderingContext2D, [x, y, dir]: Course['start'], finis
 
 /** Runs one round on `canvas`; resolves with its faults once the horse is through the finish. */
 export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions) {
-  const [gallop, idle] = await Promise.all([horseSheet(o.look, 'gallop'), horseSheet(o.look, 'idle')]);
+  const [gallop, idle] = await Promise.all([horseSheet(o.look, o.course.pace ? 'walk' : 'gallop'), horseSheet(o.look, 'idle')]); // a walk ride: the walk sheet
   const arena = paintArena(), ctx = canvas.getContext('2d')!, c = o.course;
   let r = newRound(c), S = 1, W = 0, H = 0, ox = 0, oy = 0, acc = 0, last = performance.now(), running = false, stopped = false;
   let path: Point[] = [], box = canvas.getBoundingClientRect(), go = false, waiting: 'first' | 'more' | null = null; // go: the first way is drawn
@@ -147,10 +149,13 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     const grow = 1 + lift * 0.25;
     ctx.translate(r.x, r.y - lift * (8 + (c.height ?? LIFT))); ctx.scale(grow, grow); ctx.translate(-r.x, -r.y); // higher jumps, higher arc
     // the jump pose from the side: legs stretched at take-off, tucked over the pole, reaching out to land
-    const f = phase < 0 ? Math.floor(t * 11) % 6 : !side ? Math.floor(t * 11) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
+    const fps = c.pace ? 7 : 11, f = phase < 0 || !side ? Math.floor(t * fps) % 6 : phase < 0.25 ? 3 : phase < 0.75 ? 0 : 4;
     const [sheet, frame] = r.stopped || !running || (!r.air && !r.v) ? [idle, [ROW[dir] * 128, 0, 128, 128] as const] : [gallop, [f * 128, ROW[dir] * 128, 128, 128] as const];
     blit(ctx, sheet, frame, r.x - 64, r.y - 93);
-    drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir);
+    if (o.lead) { // on foot, beside the horse's shoulder on our side of it, a step with each beat
+      const [dx, dy] = dir === 'E' ? [12, 7] : dir === 'W' ? [-12, 7] : dir === 'S' ? [12, 0] : [12, -4];
+      drawKid(ctx, o.kid, r.x + dx, r.y + dy, dir, r.v ? Math.floor(t * 4) : 0, o.gear);
+    } else drawRider(ctx, o.kid, r.x + s.dx, r.y + s.dy, dir, o.gear);
     if (dir === 'S') { // coming towards us, the head and neck are in front of the child
       ctx.beginPath(); ctx.rect(r.x - 64, r.y - 93, 128, 93 + s.dy - 2); ctx.clip();
       blit(ctx, sheet, frame, r.x - 64, r.y - 93);
