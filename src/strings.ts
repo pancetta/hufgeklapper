@@ -93,16 +93,17 @@ export const t = {
     feed: (name: string) => `${name} frisst zufrieden.`, muck: () => 'Die Box ist sauber!',
   },
   quickCare: 'Schnell erledigen',
-  noHayLeft: 'Kein Heu mehr im Lager.',
+  noHayLeft: 'Kein Heu mehr im Lager. Kauf im Futterlager neues!',
   toStable: 'Zum Stall',
 
-  // the notice board: hay, the bank, and the bill
+  // the feed store and the notice board: hay, the bank, and the bill
   hay: (n: number) => `${n} Heu`,
   shopTitle: 'Schwarzes Brett',
   buyHay: 'Heu kaufen',
   hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price} €`,
   hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price} €)`,
-  stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
+  stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
+  boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
   owe: (n: number) => `Du schuldest ${n} €.`,
   omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
   loan: (n: number) => `${n} € von der Bank leihen`,

@@ -136,6 +136,10 @@ How well the farm is known for its lessons (0–100). Happy pupils raise it, unh
 **Feed** ("Futter", in hay bales: "Heuballen"):
 Bought and stored; every horse eats one bale from the store each night. With none left it goes hungry.
 
+**Feed store** ("Futterlager"):
+Where the feed lies and is bought: every bale in stock on a stack, and how many nights it lasts. Later also
+concentrate feed ("Kraftfutter").
+
 **Plot** ("Bauplatz"):
 A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.
 

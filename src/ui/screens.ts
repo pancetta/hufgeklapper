@@ -418,10 +418,11 @@ export function showFarm(intro = false) {
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
   }
-  /** The notice board: buy hay (on credit when the money is short) and borrow from the bank. */
+  /** The notice board: the debt, the show calendar, the bank when money is short, and the horse market. */
   function shop() {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
+      ${!s.debt && !s.badges && !(s.money < DATA.vet.cost && canLoan(s)) && s.stage !== 'reitschule' ? `<p>${t.boardEmpty}</p>` : ''}
       ${s.debt ? `<p>${t.owe(s.debt)}</p>` : ''}
       ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}

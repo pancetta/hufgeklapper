@@ -116,6 +116,10 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
   await expect(page.locator('#money')).toHaveText(t.money(275));
   await page.screenshot({ path: test.info().outputPath('store.png') });
   await page.getByRole('button', { name: t.toFarm }).tap();
+  // the notice board: nothing pinned up yet on a new farm
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.boardEmpty)).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
   // the stable: both ponies with their needs
   await page.getByRole('button', { name: t.places.stall }).tap();
   for (const name of ['Kiwi', 'Luna']) await expect(page.locator('.nameplate', { hasText: name })).toBeVisible();

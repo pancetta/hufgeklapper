@@ -306,7 +306,7 @@ export function hint(s: State): { kind: 'sick' | 'hungry' | 'dirty'; horse: stri
     const h = s.horses.find(test);
     if (h) return { kind, horse: h.id };
   }
-  return s.feed < s.horses.length * DATA.hints.hayNights ? { kind: 'hay' } : null;
+  return hayNights(s) < DATA.hints.hayNights ? { kind: 'hay' } : null;
 }
 
 /** Applies one action (never changing the state it was given); afterwards every goal just reached is noted as done. */
