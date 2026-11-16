@@ -405,6 +405,21 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await expect(page.locator('#jump-tip')).toHaveText(t.drawTip('first', true));
   await page.waitForTimeout(1500);
   await expect(hud).toHaveText(start);
+  // a short first way: the pony rides it and stands again; while the next way is drawn it still waits, until the
+  // finger lifts
+  const canvas = page.locator('#jumping'), tip = page.locator('#jump-tip');
+  const routeNow = async () => (await canvas.getAttribute('data-route'))!.split(' ').map((p) => p.split(',').map(Number));
+  const draw = async (points: number[][]) => { await page.mouse.move(points[0][0], points[0][1]); await page.mouse.down(); for (const [x, y] of points.slice(1)) await page.mouse.move(x, y); };
+  await draw((await routeNow()).slice(0, 3));
+  await page.mouse.up();
+  await expect(tip).toHaveText(t.drawTip('more', true), { timeout: 5000 });
+  const way = (await canvas.getAttribute('data-route'))!;
+  await draw((await routeNow()).slice(0, 3));
+  await page.waitForTimeout(1000);
+  await expect(tip).toHaveText(t.drawTip('more', true)); // still standing: the finger is down
+  await expect(canvas).toHaveAttribute('data-route', way); // (a horse that moved gets a new route)
+  await page.mouse.up();
+  await expect(tip).toBeHidden(); // off it goes
   await rideCourse(page);
   await expect(end).toContainText(/Fehlerfrei! Kiwi springt jetzt besser\.|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
