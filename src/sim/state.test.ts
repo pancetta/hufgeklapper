@@ -622,6 +622,11 @@ describe('Sim', () => {
     expect([passed.badges, passed.horses[0].needs.energy, badge2Waits(passed)]).toEqual([2, 100 - X.energy, { why: 'passed' }]);
     expect(apply(passed, { type: 'badge2', horse: id, wrong: 0, faults: 0 })).toBe(passed);
     expect(goals({ ...passed, stage: 'pensionsstall' }).find((g) => g.id === 'badge2')).toMatchObject({ done: true, need: 1 });
+    // part 1 took the only fresh horse's energy: the result still counts (the round checks the horse itself)
+    const tiredAfter = { ...rested, horses: rested.horses.map((h, i) => ({ ...h, needs: { ...h.needs, energy: i ? 10 : DATA.badge2.energy } })) };
+    const course = apply(tiredAfter, { type: 'routine', horse: id, wrong: 0, ride: true });
+    expect(badge2Waits(course)).toEqual({ why: 'tired' });
+    expect(apply(course, { type: 'badge2', horse: id, wrong: 0, faults: 0 }).badges).toBe(2);
   });
 
   describe('the Pensionsstall', () => {

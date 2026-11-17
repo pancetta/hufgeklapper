@@ -272,6 +272,12 @@ export const faultWhy = (h: Horse, offset: number, held = Infinity, need = 0): '
  * Why the riding badge can't be tried now: passed already, more practice first, tomorrow after a failed try, or every
  * horse too tired for the jumping round (so the quiz isn't wasted).
  */
+export function badgeWaits(s: State): { why: 'passed' } | { why: 'practise'; rounds: number } | { why: 'tomorrow' } | { why: 'tired' } | null {
+  if (s.badges >= 1) return { why: 'passed' };
+  if (s.trainings < DATA.badge.trainings) return { why: 'practise', rounds: DATA.badge.trainings - s.trainings };
+  if (s.badgeFailedDay === s.day) return { why: 'tomorrow' };
+  return s.horses.every((h) => cantWork(h, DATA.jumping.energy)) ? { why: 'tired' } : null;
+}
 /** Why riding badge 2 (#74) can't be taken now: badge 1 first, more cross-country practice, the care course once, tomorrow, all tired; null if it can. */
 export function badge2Waits(s: State): { why: 'passed' | 'badge1' | 'routine' | 'tomorrow' | 'tired' } | { why: 'practise'; rounds: number } | null {
   const B = DATA.badge2;
@@ -281,13 +287,7 @@ export function badge2Waits(s: State): { why: 'passed' | 'badge1' | 'routine' | 
   if (s.routines < B.routines) return { why: 'routine' };
   if (s.badgeFailedDay === s.day) return { why: 'tomorrow' };
   // the exam needs the care course's walk and the cross-country round from one horse
-  return s.horses.filter(own).every((h) => cantWork(h, DATA.routine.energy + DATA.crossCountry.energy)) ? { why: 'tired' } : null;
-}
-export function badgeWaits(s: State): { why: 'passed' } | { why: 'practise'; rounds: number } | { why: 'tomorrow' } | { why: 'tired' } | null {
-  if (s.badges >= 1) return { why: 'passed' };
-  if (s.trainings < DATA.badge.trainings) return { why: 'practise', rounds: DATA.badge.trainings - s.trainings };
-  if (s.badgeFailedDay === s.day) return { why: 'tomorrow' };
-  return s.horses.every((h) => cantWork(h, DATA.jumping.energy)) ? { why: 'tired' } : null;
+  return s.horses.filter(own).every((h) => cantWork(h, DATA.badge2.energy)) ? { why: 'tired' } : null;
 }
 /** The next show day: today if a show is on and not ridden yet. */
 export function nextShowDay(s: State) {
@@ -663,7 +663,9 @@ function step(state: State, action: Action): State {
       // the exam: the care course (its wrong steps), then a cross-country round (`faults`; null: not ridden, the course
       // already had too many wrong steps); both within the limits pass it, else another try tomorrow
       const h = state.horses.find((x) => x.id === action.horse), B = DATA.badge2, X = DATA.crossCountry;
-      if (!h || !own(h) || badge2Waits(state) || !Number.isInteger(action.wrong) || action.wrong < 0) return state;
+      // tired now is no reason to drop the result: part 1 itself took the horse's energy (the round checks its own below)
+      const w = badge2Waits(state);
+      if (!h || !own(h) || (w && w.why !== 'tired') || !Number.isInteger(action.wrong) || action.wrong < 0) return state;
       const rode = action.faults !== null;
       if (rode && (!Number.isInteger(action.faults) || action.faults! < 0 || cantWork(h, X.energy))) return state;
       const ridden = rode ? { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - X.energy) } } : h;

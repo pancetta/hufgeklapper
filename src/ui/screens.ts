@@ -273,6 +273,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     card.firstElementChild!.innerHTML = `<h2>${t.playerCard}</h2><canvas class="preview" width="40" height="32" aria-hidden="true"></canvas>
       <p class="player-name"></p><h3>${t.badges}</h3>
       ${s.badges ? `<p class="badge"><img class="rosette" src="${icon('rosette')}" alt="">${t.badgeName}</p>` : `<p>${t.noBadges}</p>`}
+      ${s.badges >= 2 ? `<p class="badge"><img class="rosette" src="${icon('rosette')}" alt="">${t.badge2Name}</p>` : ''}
       <button type="button" id="close-card">${t.close}</button>`;
     card.querySelector('.player-name')!.textContent = s.avatar.name;
     const g = card.querySelector('canvas')!.getContext('2d')!;
@@ -398,12 +399,13 @@ export function showFarm(intro = false) {
   /** Out to the fields (#73, #74): cross-country practice, and riding badge 2 until it is passed (or why not yet). */
   function fields() {
     const sheet = $('lesson'), w = badge2Waits(game.get());
+    if (w?.why === 'passed') return pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy); // only practice left: no extra tap
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.xc}</h2><button type="button" id="xc-practise">${t.practiseXc}</button>
-      ${w?.why === 'passed' ? '' : `<button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
-      ${w ? `<p class="oma" id="badge2-why">${w.why === 'practise' ? t.badge2Practise(w.rounds) : t.badge2Waits[w.why]}</p>` : ''}`}
+      <button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
+      ${w ? `<p class="oma" id="badge2-why">${w.why === 'practise' ? t.badge2Practise(w.rounds) : t.badge2Waits[w.why]}</p>` : ''}
       <button type="button" id="close-lesson">${t.close}</button>`;
     $('xc-practise').addEventListener('click', () => pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy));
-    sheet.querySelector('#badge2')?.addEventListener('click', () => pickHorse(t.whichHorseBadge2, badge2Exam, undefined, undefined, DATA.routine.energy + DATA.crossCountry.energy));
+    sheet.querySelector('#badge2')?.addEventListener('click', () => pickHorse(t.whichHorseBadge2, badge2Exam, undefined, undefined, DATA.badge2.energy));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
   }
@@ -958,6 +960,7 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
   // a night's sleep ends the course: the pupil and the day it was for are gone
   const bar = wireTopBar($, () => { if (game.get().day !== s0.day) back(); });
   let done: StepId[] = [], wrong = 0, thing: Thing = 'hand';
+  const missed = new Set<string>(); // the same wrong tap again is no new mistake
   const say = (text: string) => { $('say').textContent = text; };
   const scene = startRoutine($<HTMLCanvasElement>('routine'), { look: h.look, kid, straps: DATA.routine.straps[h.breed], onTap: (at) => tap(at) });
   const HORSE: Spot[] = ['head', 'neck', 'body', 'belly', 'legs', 'tail'];
@@ -972,8 +975,9 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
     if (thing === 'hand' && HORSE.includes(at) && ('first' in r || ('why' in r && r.why === 'none'))) return say(t.routinePet(h.name));
     if ('first' in r) {
       // anything else out of turn is: Oma says what comes first, and why
-      wrong++; count();
+      if (!missed.has(`${thing}:${at}`)) { missed.add(`${thing}:${at}`); wrong++; count(); }
       const why = t.routineWhy[r.why];
+      if (exam) return wrong > DATA.badge2.maxWrong ? end() : say(why ?? t.badge2NotYet); // the exam gives no "what comes first"; too many: over at once
       return say(`${why ? `${why} ` : ''}${t.routineFirst(t.steps[r.first])}`);
     }
     if ('why' in r) return say(r.why === 'done' ? t.routineAgain : t.routineNone);
@@ -1020,10 +1024,13 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
     }, { once: true });
   }
   function end() {
+    if (exam && wrong > DATA.badge2.maxWrong) return exam(wrong); // failed before the end: no care done, no walk
+    const opening = badge2Waits(game.get())?.why === 'routine';
     game.dispatch({ type: 'routine', horse: id, wrong, ride: !pupil });
     if (exam) return exam(wrong);
     const sheet = $('routine-end');
-    sheet.querySelector('p')!.textContent = t.routineDone(h.name, !wrong);
+    // Oma points to riding badge 2 if this care course was what it still needed
+    sheet.querySelector('p')!.textContent = t.routineDone(h.name, !wrong) + (opening && !badge2Waits(game.get()) ? ` ${t.badge2Ready}` : '');
     sheet.hidden = false;
   }
   app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.thing as Thing)));
@@ -1031,7 +1038,9 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
   // stopping asks once more: everything done so far is lost
   $('leave').addEventListener('click', (e) => {
     const b = e.currentTarget as HTMLButtonElement;
-    if (b.dataset.sure) back(); else { b.dataset.sure = '1'; b.textContent = t.routineLeaveSure; }
+    if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = exam ? t.badge2LeaveSure : t.routineLeaveSure; return; }
+    if (exam) { game.dispatch({ type: 'badge2', horse: id, wrong: DATA.badge2.maxWrong + 1, faults: null }); return omaSays(t.badge2Left).then(() => showFarm()); } // stopping the exam fails it for today
+    back();
   });
   $('routine-back').addEventListener('click', back);
   say(exam ? t.badge2Course(h.name, DATA.badge2.maxWrong) : pupil ? t.routineIntroPupil(pupil.name, h.name) : t.routineIntro(h.name));
@@ -1050,7 +1059,7 @@ function showCrossCountry(id: string, examWrong?: number) {
   const course = xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length; // a new track each ride: the skill grows
   const $ = screen(`<canvas id="xc" aria-label="${t.crossCountry}"></canvas>
     <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><div>${exam ? `<p><b>${t.badge2Xc(DATA.badge2.maxFaults)}</b></p>` : ''}<ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul></div>
-      <div class="answers"><button type="button" id="xc-go">${t.go}</button><button type="button" id="xc-leave">${t.back}</button></div></div></section>
+      <div class="answers"><button type="button" id="xc-go">${t.go}</button>${exam ? '' : `<button type="button" id="xc-leave">${t.back}</button>`}</div></div></section>
     <p id="xc-hud" class="jump-hud" aria-live="off"></p><p id="xc-tip" class="jump-tip" role="status" hidden></p>
     <div class="xc-breath"><span>${t.stamina}</span><span class="bar"><i id="xc-breath"></i></span></div>
     <nav class="tools paces">${PACES.map((p) => `<button type="button" data-pace="${p}" aria-pressed="${p === 'trot'}">${t.paces[p]}</button>`).join('')}</nav>
@@ -1060,7 +1069,7 @@ function showCrossCountry(id: string, examWrong?: number) {
   const hud = (r: XcRound) => {
     // how the time goes so far: ahead of or behind the target time for this part of the track
     const part = Math.min(1, r.s / course.length), tempo = r.s < 20 ? '' : ` · ${t.xcTempo[r.t < lo * part - 2 ? 'fast' : r.t > hi * part + 2 ? 'slow' : 'ok']}`;
-    $('xc-hud').textContent = t.xcHud(Math.min(r.next + 1, N), N, r.faults, Math.floor(r.t), lo, hi) + tempo;
+    $('xc-hud').textContent = t.xcHud(Math.min(r.next + 1, N), N, r.faults, Math.floor(r.t), lo, hi) + (exam ? t.badge2HudMax(DATA.badge2.maxFaults) : '') + tempo;
     $('xc-breath').style.width = `${Math.round(r.stamina * 100)}%`;
     if (r.stamina < DATA.crossCountry.tired && !tiredSaid && tip.hidden) { tiredSaid = true; say(t.xcTired(pony)); } // not over a warning
     if (r.stamina > DATA.crossCountry.tired + 0.1) tiredSaid = false;
@@ -1094,7 +1103,7 @@ function showCrossCountry(id: string, examWrong?: number) {
       game.dispatch({ type: 'badge2', horse: id, wrong: examWrong, faults });
       const passed = game.get().badges >= 2;
       if (passed) p.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badge2Name}">`);
-      p.textContent = `${passed ? t.badge2Passed : t.badge2Failed} ${t.skillNow(t.crossCountry, h.skills.crossCountry, xcScope(h))}`;
+      p.textContent = passed ? t.badge2Passed : `${t.badge2Failed(faults, DATA.badge2.maxFaults)} ${t.xcTime(end.t, lo, hi)}`;
     } else {
       const practising = badge2Waits(game.get())?.why === 'practise';
       game.dispatch({ type: 'xcTrain', horse: id, faults });
@@ -1106,7 +1115,7 @@ function showCrossCountry(id: string, examWrong?: number) {
     $('xc-end').hidden = false;
   }, { once: true });
   $('xc-back').addEventListener('click', () => showFarm());
-  $('xc-leave').addEventListener('click', () => showFarm());
+  $('xc-leave')?.addEventListener('click', () => showFarm());
   leave = () => { clearTimeout(tipTimer); removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); ride.then((r) => r.stop()); };
 }
 
@@ -1162,6 +1171,6 @@ function badge2Exam(id: string) {
       game.dispatch({ type: 'badge2', horse: id, wrong, faults: null });
       return omaSays(t.badge2CourseFailed).then(() => showFarm());
     }
-    return omaSays(t.badge2CourseDone).then(() => showCrossCountry(id, wrong));
+    return omaSays(t.badge2CourseDone(wrong)).then(() => showCrossCountry(id, wrong));
   });
 }

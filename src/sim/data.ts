@@ -157,9 +157,10 @@ export const DATA = {
   badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 },
   /**
    * Riding badge 2 (#74): open after badge 1, some cross-country practice and the care course done once. The exam: the
-   * care course with at most `maxWrong` wrong steps, then a cross-country round with at most `maxFaults` faults.
+   * care course with at most `maxWrong` wrong steps, then a cross-country round with at most `maxFaults` faults. The horse
+   * needs `energy` to start.
    */
-  badge2: { xcTrainings: 3, routines: 1, maxWrong: 2, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
+  badge2: { xcTrainings: 3, routines: 1, maxWrong: 2, maxFaults: 2, energy: 70 }, // a rested horse: after the care course it still has breath for the round // a refusal and a pole, or a refusal and its lost time
   /**
    * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
    * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their

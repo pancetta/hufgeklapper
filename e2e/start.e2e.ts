@@ -527,7 +527,7 @@ test('riding badge 2: locked until practice and a care course, then the care cou
   await expect(page.locator('#tip')).toHaveCount(0); // no tips in the exam
   await expect(page.locator('#count')).toContainText(t.badge2Mistakes(0, DATA.badge2.maxWrong));
   await playRoutine(page);
-  await expect(page.getByText(t.badge2CourseDone)).toBeVisible();
+  await expect(page.getByText(t.badge2CourseDone(0))).toBeVisible();
   await page.getByRole('button', { name: t.gotIt }).tap();
   await expect(page.getByText(t.badge2Xc(DATA.badge2.maxFaults))).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
@@ -540,6 +540,21 @@ test('riding badge 2: locked until practice and a care course, then the care cou
   await expect(end).toContainText(t.badge2Passed);
   await expect(page.getByRole('img', { name: t.badge2Name })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.badges)).toBe(2);
+});
+
+test('riding badge 2: stopping the exam counts as not passed; another try tomorrow', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { Object.assign(s, { badges: 1, xcTrainings: DATA.badge2.xcTrainings, routines: 1 }); });
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: t.badge2Name }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.routineLeave }).tap();
+  await page.getByRole('button', { name: t.badge2LeaveSure }).tap();
+  await expect(page.getByText(t.badge2Left)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await expect(page.getByText(t.badge2Waits.tomorrow)).toBeVisible();
 });
 
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
