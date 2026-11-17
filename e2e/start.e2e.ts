@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { devices, expect, type Page, test } from '@playwright/test';
 import { DATA } from '../src/sim/data';
 import { GESTURE, STEPS } from '../src/sim/routine';
 import { lessonOutcome, salePrice, type State } from '../src/sim/state';
@@ -1036,6 +1036,30 @@ test('a home-screen app: manifest with icons, and the game runs offline once loa
   await page.getByRole('button', { name: t.places.stall }).tap();
   await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
   await expect.poll(() => page.locator('#stable').evaluate((c: HTMLCanvasElement) => c.getContext('2d')!.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3])).toBe(255);
+});
+
+test('the whole screen: a button where the browser can, a Home Screen tip where not, nothing from the Home Screen (#89)', async ({ browser, baseURL }) => {
+  const open = async (init: string) => {
+    const page = await browser.newPage({ ...devices['iPad (gen 11) landscape'], baseURL });
+    await page.addInitScript(init);
+    await page.goto('./');
+    return page;
+  };
+  // the browser can: the button asks for the whole screen
+  let page = await open("Object.defineProperty(HTMLHtmlElement.prototype, 'requestFullscreen', { configurable: true, value: function () { window.asked = true; return Promise.resolve(); } });");
+  await page.getByRole('button', { name: t.fullscreen }).tap();
+  expect(await page.evaluate(() => (window as unknown as { asked?: boolean }).asked)).toBe(true);
+  await page.close();
+  // it can't (Safari without the API): the tip instead
+  page = await open(''); // Playwright's WebKit has no Fullscreen API, like Safari on an iPhone
+  await expect(page.getByText(t.homeScreenTip)).toBeVisible();
+  await page.close();
+  // started from the Home Screen: neither
+  page = await open('const mm = window.matchMedia; window.matchMedia = (q) => q.includes(\'display-mode\') ? { matches: true, media: q } : mm(q);');
+  await expect(page.getByRole('heading', { name: t.title })).toBeVisible();
+  await expect(page.getByRole('button', { name: t.fullscreen })).toHaveCount(0);
+  await expect(page.getByText(t.homeScreenTip)).toHaveCount(0);
+  await page.close();
 });
 
 test('portrait asks to turn the iPad', async ({ page }) => {

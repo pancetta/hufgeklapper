@@ -33,6 +33,20 @@ import { icon } from './icons';
 const app = document.querySelector<HTMLElement>('#app')!;
 const base = import.meta.env.BASE_URL;
 const howList = (lines: string[]) => lines.map((l) => `<li>${l}</li>`).join('');
+/**
+ * The whole screen without Safari's bars (#89): the Fullscreen API where the browser has it (iPadOS Safari does, for
+ * any element), else a tip to start the game from the Home Screen. Nothing when it already runs from there.
+ */
+const fullscreen = {
+  standalone: () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true,
+  api: () => { const d = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void }; return d.requestFullscreen ? () => d.requestFullscreen().catch(() => {}) : d.webkitRequestFullscreen ? () => d.webkitRequestFullscreen!() : null; },
+  on: () => !!(document.fullscreenElement || (document as { webkitFullscreenElement?: Element }).webkitFullscreenElement),
+  /** Into the whole screen (Safari's own button leads out again); a refusal just does nothing. */
+  enter() { try { this.api()?.(); } catch { /* refused: nothing happens */ } },
+  /** The button (or the Home Screen tip) for a screen; empty when already standalone or in the whole screen. */
+  html: (id: string) => fullscreen.standalone() || fullscreen.on() ? '' : fullscreen.api() ? `<button id="${id}" type="button" class="small">${t.fullscreen}</button>` : `<p class="tip">${t.homeScreenTip}</p>`,
+};
+
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&${({ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' })[c]};`);
 let leave = () => {};
 
@@ -148,6 +162,7 @@ export function showStart() {
       </div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
       <button id="show-credits" class="small corner" type="button">${t.credits}</button>
+      <div class="full-screen">${fullscreen.html('fullscreen')}</div>
     </main>
     <p id="toast" class="toast" role="status" hidden></p>
     ${creditsSheet()}`);
@@ -187,6 +202,7 @@ export function showStart() {
     if (b.dataset.do === 'import') { importInto = i; $<HTMLInputElement>('import-file').click(); }
   }));
   $('show-credits').addEventListener('click', () => { $('credits').hidden = false; });
+  app.querySelector('#fullscreen')?.addEventListener('click', () => fullscreen.enter());
   $('close-credits').addEventListener('click', () => { $('credits').hidden = true; });
   const farm = startFarm($<HTMLCanvasElement>('farm'));
   leave = () => { farm.then((f) => f.stop()); };
@@ -209,6 +225,7 @@ function topBar(busy = '') {
       <div class="sheet menu">
         <button id="resume" type="button">${t.resume}</button>
         <button id="player" type="button">${t.playerCard}</button>
+        ${fullscreen.html('menu-fullscreen')}
         <button id="to-start" type="button">${t.toStart}</button>
       </div>
     </section>
@@ -270,6 +287,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   }
   $('menu').addEventListener('click', () => { $('menu-sheet').hidden = false; });
   $('resume').addEventListener('click', () => { $('menu-sheet').hidden = true; });
+  $('menu-sheet').querySelector('#menu-fullscreen')?.addEventListener('click', () => { $('menu-sheet').hidden = true; fullscreen.enter(); });
   $('to-start').addEventListener('click', showStart);
   // the player card: the figure, its name and the badges earned
   $('player').addEventListener('click', () => {
