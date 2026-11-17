@@ -210,6 +210,7 @@ export const t = {
   done: 'Fertig',
   nameTaken: 'So heißt schon ein anderes Pferd. Wähle einen anderen Namen.',
   cantWork: { sick: 'ist krank', resting: 'ruht sich aus', tired: 'ist zu müde' },
+  pickLine: (what: string, now: number, max: number, fresh: boolean) => `${what} ${now}\u00a0von\u00a0${max} · ${fresh ? 'ausgeruht' : 'schon etwas müde'}`,
   lessonRuns: (pupil: string, horse: string) => `${pupil} reitet auf ${horse}.`,
   lessonDone: (pupil: string, mood: 'delighted' | 'happy' | 'unhappy', pay: number, repaid: number) =>
     `${pupil} war ${{ delighted: 'begeistert', happy: 'zufrieden', unhappy: 'nicht so glücklich' }[mood]}! +${pay}\u00a0€${repaid ? ` (davon ${repaid}\u00a0€ für die Schulden)` : ''}`,

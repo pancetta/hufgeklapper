@@ -761,6 +761,17 @@ test('a jumping round can be stopped: before the first way back to the farm for 
   await expect(page.getByText(t.jumpQuitSure)).toBeVisible();
   await page.getByRole('button', { name: t.jumpQuitYes }).tap();
   await expect(page.locator('#jump-end')).toContainText(t.jumpFaults(0, 'Kiwi').replace(/^0 /, ''));
+test('picking a horse to ride: each says how good and how fresh it is, a tired one why not, the best is marked (#101)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { const [kiwi, luna] = s.horses as { needs: { energy: number }; skills: { jumping: number } }[]; kiwi.skills.jumping = 30; luna.needs.energy = 0; });
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.practiseJumping }).tap();
+  const kiwi = page.locator('#lesson [data-horse="kiwi"]'), luna = page.locator('#lesson [data-horse="luna"]');
+  await expect(kiwi).toContainText(t.bestChoice);
+  await expect(kiwi).toContainText(`${t.jumping} 30`);
+  await expect(luna).toBeDisabled();
+  await expect(luna).toContainText(t.cantWork.tired);
 });
 
 test('riding badge 1: Oma asks five questions, a jumping round, then the rosette or another try tomorrow', async ({ page }) => {
@@ -848,7 +859,8 @@ test('show classes: a trained horse opens class A; the untrained one may not sta
   await expect(page.getByRole('button', { name: t.showClass('L', DATA.shows.classes.L.fee, DATA.shows.classes.L.prizes[0]) })).toBeDisabled();
   await page.getByRole('button', { name: t.showClass('A', A.fee, A.prizes[0]) }).tap();
   await expect(page.getByText(t.showEnterClass('A', A.fee))).toBeVisible();
-  await expect(page.getByRole('button', { name: `Luna · ${t.jumpShows.notSkilled}` })).toBeDisabled();
+  await expect(page.locator('#lesson [data-horse="luna"]')).toBeDisabled();
+  await expect(page.locator('#lesson [data-horse="luna"]')).toContainText(t.jumpShows.notSkilled);
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await rideCourse(page);

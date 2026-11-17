@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder, bestRider } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -413,8 +413,8 @@ export function showFarm(intro = false) {
         : `<button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
       ${w ? `<p class="oma" id="badge2-why">${w.why === 'practise' ? t.badge2Practise(w.rounds) : t.badge2Waits[w.why]}</p>` : ''}`}
       <button type="button" id="close-lesson">${t.close}</button>`;
-    $('xc-practise').addEventListener('click', () => pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy));
-    sheet.querySelector('#badge2')?.addEventListener('click', () => pickHorse(t.whichHorseBadge2, badge2Exam, undefined, undefined, DATA.badge2.energy));
+    $('xc-practise').addEventListener('click', () => pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy, 'crossCountry'));
+    sheet.querySelector('#badge2')?.addEventListener('click', () => pickHorse(t.whichHorseBadge2, badge2Exam, undefined, undefined, DATA.badge2.energy, 'crossCountry'));
     sheet.querySelector('#xc-show')?.addEventListener('click', () => enterShow(true));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
@@ -448,7 +448,7 @@ export function showFarm(intro = false) {
   function enterShow(xc = false) {
     const s = game.get(), C = xc ? DATA.xcShows.classes : DATA.shows.classes, shut = xc ? xcClassShut : classShut, T = xc ? t.xcShows : t.jumpShows;
     const ride = (c: ShowClass, title: string, note?: string) => pickHorse(title, (id) => (xc ? showCrossCountry(id, undefined, c) : showJumping(id, 'show', c)),
-      (h) => ({ skill: T.notSkilled, scope: T.notScope, money: null, ok: null })[(xc ? xcClassWaits : classWaits)(s, h, c) ?? 'ok'], note, xc ? DATA.crossCountry.energy : undefined);
+      (h) => ({ skill: T.notSkilled, scope: T.notScope, money: null, ok: null })[(xc ? xcClassWaits : classWaits)(s, h, c) ?? 'ok'], note, xc ? DATA.crossCountry.energy : undefined, xc ? 'crossCountry' : 'jumping');
     if (SHOW_CLASSES.slice(1).every((c) => shut(s, c) === 'skill' || shut(s, c) === 'scope')) return ride('E', T.enter(C.E.fee), T.classesLater);
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${T.whichClass}</h2><p class="oma">${T.classesHow}</p>
@@ -463,13 +463,18 @@ export function showFarm(intro = false) {
     }));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
   }
-  /** Pick a horse for a jumping round; each one too tired, resting or sick (or not allowed, by `not`) says so. */
-  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string, energy: number = DATA.jumping.energy) {
-    const sheet = $('lesson');
+  /**
+   * Pick a horse for a ride: each says how good it is at it and how fresh, or why it can't go (too tired, resting,
+   * sick, or not allowed by `not`); the best one is marked, like the lesson's pick (#101).
+   */
+  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string, energy: number = DATA.jumping.energy, what: 'jumping' | 'crossCountry' = 'jumping') {
+    const sheet = $('lesson'), xc = what === 'crossCountry';
+    const best = bestRider(game.get().horses, what, energy, not);
     sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>${note ? `<p class="oma">${note}</p>` : ''}
       ${game.get().horses.filter(own).map((h) => {
         const tired = cantWork(h, energy), why = tired ? t.cantWork[tired] : not?.(h);
-        return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${why}` : ''}</button>`;
+        const line = why ?? t.pickLine(xc ? t.crossCountry : t.jumping, h.skills[what], xc ? xcScope(h) : scope(h), h.needs.energy >= 70);
+        return `<button type="button" class="choice${h.id === best ? ' best' : ''}" data-horse="${h.id}"${why ? ' disabled' : ''}><b>${esc(h.name)}${h.id === best ? ` <i>★ ${t.bestChoice}</i>` : ''}</b><small>${line}</small></button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => go(b.dataset.horse!)));
