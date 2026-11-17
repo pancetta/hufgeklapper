@@ -693,7 +693,7 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   // steered round the course with "Hopp!" at the green patches: the round ends with the result
   const end = page.locator('#jump-end');
   // each round has its own course: 6 jumps for practice, the clock at 0
-  const hud = page.locator('#jump-hud'), start = new RegExp(`^${t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, 0).split(' · Zeit')[0]} · Zeit 0/`);
+  const hud = page.locator('#jump-hud'), start = new RegExp(`^${t.jumpHud(1, DATA.jumping.courses.E.jumps.length, 0, 0, 0).split(' · Zeit')[0]} · Zeit\\s0/`);
   await expect(hud).toHaveText(start);
   // the pony waits until a way is drawn: the tip says so, and the clock stands
   await expect(page.locator('#jump-tip')).toHaveText(t.drawTip('first', true));
