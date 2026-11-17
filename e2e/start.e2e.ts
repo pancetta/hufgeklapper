@@ -674,7 +674,7 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.practiseJumping }).tap();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
-  await expect(page.getByText(t.jumpHow(true))).toBeVisible();
+  await expect(page.getByText(t.jumpHow(true)[0])).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
   // steered round the course with "Hopp!" at the green patches: the round ends with the result
   const end = page.locator('#jump-end');

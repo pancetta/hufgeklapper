@@ -263,8 +263,8 @@ canvas { image-rendering: pixelated; }
 
 /* Oma Hanne talks: her portrait and a speech bubble at the bottom left */
 .overlay.talk { align-items: flex-end; justify-content: flex-start; padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 20px) 20px; background: rgba(30, 20, 5, 0.25); }
-.sheet.bubble { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; align-items: center; max-width: min(640px, 90vw); font-size: calc(var(--fs) * 22px); }
-.bubble img { width: 120px; image-rendering: pixelated; grid-row: span 2; }
+.sheet.bubble { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; max-width: min(560px, 62vw); font-size: calc(var(--fs) * 18px); } /* covers less of the scene it explains (#95) */
+.bubble img { width: 88px; image-rendering: pixelated; grid-row: span 2; }
 .bubble p { margin: 0; }
 .bubble button { justify-self: end; }
 

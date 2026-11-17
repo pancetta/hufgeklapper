@@ -32,6 +32,7 @@ import { icon } from './icons';
 
 const app = document.querySelector<HTMLElement>('#app')!;
 const base = import.meta.env.BASE_URL;
+const howList = (lines: string[]) => lines.map((l) => `<li>${l}</li>`).join('');
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&${({ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' })[c]};`);
 let leave = () => {};
 
@@ -651,7 +652,7 @@ export function showFarm(intro = false) {
 function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', showClass: ShowClass = 'E') {
   const h = game.get().horses.find((x) => x.id === id)!;
   const $ = screen(`<canvas id="jumping" aria-label="${kind === 'show' ? t.showClassName(showClass) : kind === 'badge' ? t.ridingBadge : t.practiseJumping}"></canvas>
-    <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
+    <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><ul class="rules"></ul>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
     <p id="jump-hud" class="jump-hud" aria-live="off"></p><p id="jump-tip" class="jump-tip" role="status" hidden></p>
     <button type="button" id="jump-quit" class="small corner left" hidden>${t.routineLeave}</button>
@@ -661,7 +662,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   const hud = (r: Round) => { $('jump-hud').textContent = t.jumpHud(Math.min(r.next + 1, course.jumps.length), course.jumps.length, r.faults, Math.floor(r.t), allowed); };
   // higher classes need momentum: how long this horse needs the finger held before letting go (0: a tap)
   const need = holdNeed(h, course.hold ?? 0), tip = $('jump-tip');
-  if (need) $('jump-start').querySelector('p')!.textContent = t.jumpHow(h.look.build === 'pony', true); // Oma explains the momentum instead of the tap
+  $('jump-start').querySelector('ul')!.innerHTML = howList(t.jumpHow(h.look.build === 'pony', !!need)); // with momentum: Oma explains the hold, not the tap
   let waitTip = '', knockTimer = 0;
   const round = startJumping($<HTMLCanvasElement>('jumping'), {
     look: h.look, kid: avatarKid(game.get().avatar), course, window: jumpWindow(h), hold: need, judge: (o, held) => takeOff(h, o, held, need), onChange: hud,
@@ -1109,7 +1110,7 @@ function showCrossCountry(id: string, examWrong?: number, show?: ShowClass) {
   const course = show ? xcCourse(s0.day * 1013 + 7, show) : xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length;
   const rule = exam ? t.badge2Xc(DATA.badge2.maxFaults) : show ? t.xcShowRule(show, N) : '';
   const $ = screen(`<canvas id="xc" aria-label="${show ? t.xcShows.name(show) : t.crossCountry}"></canvas>
-    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><div>${rule ? `<p><b>${rule}</b></p>` : ''}<ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul></div>
+    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><div>${rule ? `<p><b>${rule}</b></p>` : ''}<ul class="rules">${howList(t.xcHow(pony))}</ul></div>
       <div class="answers"><button type="button" id="xc-go">${t.go}</button>${exam ? '' : `<button type="button" id="xc-leave">${t.back}</button>`}</div></div></section>
     <p id="xc-hud" class="jump-hud" aria-live="off"></p><p id="xc-tip" class="jump-tip" role="status" hidden></p>
     <div class="xc-breath"><span>${t.stamina}</span><span class="bar"><i id="xc-breath"></i></span></div>

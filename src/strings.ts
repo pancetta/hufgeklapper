@@ -102,7 +102,7 @@ export const t = {
   // the care course (#72): every step one by one
   routine: 'Ganz genau pflegen',
   routineTitle: (name: string) => `${name} fertigmachen`,
-  routineIntro: (name: string) => `Heute machst du alles selbst! Wähle unten ein Ding oder die Hand. Dann tippe auf ${name} oder auf einen Ort: Box, Ring, Sattelkammer, Wasserhahn, Reitplatz – oder auf dich. Fang bei der Box an.`,
+  routineIntro: (name: string) => `Wähle unten ein Ding oder die Hand. Dann tippe auf ${name} oder auf einen Ort. Fang bei der Box an.`,
   routineIntroPupil: (pupil: string, name: string) => `${pupil} macht heute ${name} selbst fertig – und du hilfst! Wähle unten ein Ding oder die Hand, dann tippe auf ${name} oder einen Ort. Fang bei der Box an.`,
   routineTip: 'Tipp',
   routineNext: (step: string, thing: string) => `Als Nächstes: ${step} (mit: ${thing}).`,
@@ -276,7 +276,12 @@ export const t = {
   xcFaults: (n: number, horse: string) => `${n} Fehler. ${horse} hat trotzdem geübt.`,
   xcTime: (s: number, lo: number, hi: number) => (s < lo ? `Ihr wart ${Math.ceil(lo - s)} s zu schnell.` : s > hi ? `Ihr wart ${Math.ceil(s - hi)} s zu langsam.` : 'Die Zeit passte genau.'),
   whichHorse: 'Mit welchem Pferd?',
-  jumpHow: (pony: boolean, hold = false) => `Mal mit dem Finger einen Weg vom ${pony ? 'Pony' : 'Pferd'} aus, ein Stück oder bis ins Ziel. Wenn du den Finger hebst, reitet es los. Am Ende des Wegs wartet es auf den nächsten. Reite die Hindernisse der Reihe nach, gerade darauf zu. ${hold ? 'Hier sind die Sprünge höher, dafür brauchst du Schwung: Wenn dein Pferd auf den gelben Streifen kommt, drück den Finger auf den Platz und halte ihn still. Am grünen Feld lässt du los: Hopp!' : 'Auf dem grünen Feld tippst du kurz: Hopp!'}`,
+  jumpHow: (pony: boolean, hold = false) => [
+    `Mal mit dem Finger einen Weg vom ${pony ? 'Pony' : 'Pferd'} aus.`,
+    'Heb den Finger: Dann reitet es los.',
+    'Spring die Hindernisse der Reihe nach, gerade darauf zu.',
+    ...(hold ? ['Hohe Sprünge brauchen Schwung: Auf dem gelben Streifen den Finger drücken und halten.', 'Am grünen Feld loslassen: Hopp!'] : ['Auf dem grünen Feld kurz tippen: Hopp!']),
+  ],
   knock: { soon: 'Zu früh abgesprungen: Die Stange ist gefallen.', late: 'Zu spät abgesprungen: Die Stange ist gefallen.', power: 'Zu wenig Schwung: Halte den Finger länger!' },
   drawTip: (waiting: 'first' | 'more', pony: boolean) => (waiting === 'first' ? `Mal einen Weg vom ${pony ? 'Pony' : 'Pferd'} aus und heb den Finger: Dann geht es los!` : `Dein ${pony ? 'Pony' : 'Pferd'} wartet. Mal den nächsten Weg und heb den Finger!`),
   jumpHud: (jump: number, all: number, faults: number, s: number, allowed: number) => `Hindernis ${jump}/${all} · Fehler ${faults} · Zeit ${s}/${allowed} s`,
