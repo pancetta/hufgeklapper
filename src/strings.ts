@@ -412,7 +412,7 @@ export const t = {
     lastPony: (name: string, price: number) => `${name} ist dein letztes Pony. Kleine Reitschüler brauchen aber ein Pony! Du bekommst ${price} €.`,
   },
   sellYes: (price: number) => `Ja, verkaufen · ${price} €`,
-  sold: (name: string, price: number) => `${name} hat ein neues Zuhause. +${price} €`,
+  sold: (name: string, price: number, repaid: number) => `${name} hat ein neues Zuhause. +${price} €${repaid ? ` (davon ${repaid} € für die Schulden)` : ''}`,
   shelter: 'Offenstall',
   buildStalls: (cost: number) => `Stallplätze bauen (${cost} €)`,
   upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost} €)`,

@@ -544,7 +544,7 @@ export function showFarm(intro = false) {
       $('shop').hidden = true;
       // a new groom or a boarder's horse: the map shows them at once
       const now = game.get();
-      if (now.staff !== shopFrom.staff || now.horses.length !== shopFrom.horses) showFarm();
+      if (now.staff !== shopFrom.staff || now.horses.map((h) => h.id).join() !== shopFrom.horses) showFarm(); // ids: a sale then a boarder keeps the count
     });
   }
   /** Before a horse goes (#85): Oma Hanne's word on it and the price, then yes or back to the board. */
@@ -556,13 +556,13 @@ export function showFarm(intro = false) {
       <div class="answers"><button type="button" id="sell-yes">${t.sellYes(price)}</button><button type="button" id="sell-no">${t.back}</button></div>`;
     $('sell-yes').addEventListener('click', () => {
       game.dispatch({ type: 'sell', horse: id });
-      if (!game.get().horses.some((x) => x.id === id)) bar.toast(t.sold(h.name, price));
+      if (!game.get().horses.some((x) => x.id === id)) bar.toast(t.sold(h.name, price, s.debt - game.get().debt));
       shop();
     });
     $('sell-no').addEventListener('click', shop);
   }
-  let shopFrom = { staff: 0, horses: 0 };
-  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
+  let shopFrom = { staff: 0, horses: '' };
+  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.map((h) => h.id).join() }; shop(); $('shop').hidden = false; }
   /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
   /** Once, under the offers: what stands in the way of one of them — the stalls, or the pasture with a word on enlarging it. */
   function roomNote(s: State, offers: { look: Horse['look'] }[]) {

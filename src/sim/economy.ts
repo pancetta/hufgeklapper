@@ -17,7 +17,7 @@ export type Report = {
   worth: number;
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number;
-  xcRides: number; xcShows: number; sold: number; badge2Day: number | null; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
+  xcRides: number; xcShows: number; sold: number; traded: number; badge2Day: number | null; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
   deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
   lostDay: number | null; // the day the farm was lost (game over), if it was
 };
@@ -51,7 +51,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     for (let i = 0; i < obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h, c))) n++; }
     return n;
   };
-  let sold = 0, invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
+  let sold = 0, traded = 0, invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
   const paid: Record<string, number> = {}; // what each bought horse cost, so a sale takes it out of the farm's worth again
   /** A stall is free but the pasture is full (#79): enlarge it, if the money allows. */
   const roomOnPasture = (build: Horse['look']['build']) => {
@@ -122,6 +122,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (x) act({ type: 'xcTrain', horse: x.id, faults: xcFaults(x) });
       for (const h of s.horses.filter(own)) {
         if (saleWaits(s, h) || !(salePrice(h) > (paid[h.id] ?? Infinity) || saleAdvice(s, h) === 'good')) continue;
+        if (paid[h.id]) traded++; // a bought horse, trained and sold again
         invested -= paid[h.id] ?? 0; act({ type: 'sell', horse: h.id }); sold++;
       }
     };
@@ -159,7 +160,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     act({ type: 'sleep' });
   }
   const top = (k: 'jumping' | 'crossCountry') => Math.max(0, ...s.horses.filter(own).map((h) => h.skills[k]));
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, xcShows, sold, badge2Day, jumping: top('jumping'), crossCountry: top('crossCountry') };
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, xcShows, sold, traded, badge2Day, jumping: top('jumping'), crossCountry: top('crossCountry') };
 }
 
 /** One line per run, for docs/economy.md and the console. */

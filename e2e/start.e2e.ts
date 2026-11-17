@@ -524,7 +524,7 @@ test('selling a horse at the market: Oma says what she thinks, the money comes, 
   await page.getByRole('button', { name: t.sellLine('Kiwi', price) }).tap();
   await expect(page.getByText(t.saleAdvice.practise('Kiwi', price))).toBeVisible();
   await page.getByRole('button', { name: t.sellYes(price) }).tap();
-  await expect(page.getByText(t.sold('Kiwi', price))).toBeVisible();
+  await expect(page.getByText(t.sold('Kiwi', price, 0))).toBeVisible();
   const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
   expect([s.horses.length, s.money]).toEqual([1, 300 + price]);
   // Luna is the last horse now: she stays
