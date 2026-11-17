@@ -34,7 +34,7 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
   ]);
   const straw = strawTile(), ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, running = true;
-  const layout = { boxW: 120, x0: 0, floor: 0 };
+  const layout = { boxW: 120, x0: 0, floor: 0, bar: 58 }; // bar: the top bar's bottom, CSS pixels (safe area included)
 
   function fit() {
     // twice the farm's scale, but small enough in height that the windows clear the top bar and the needs fit below
@@ -47,6 +47,7 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
     layout.boxW = Math.min(120, Math.floor((W - 24) / opts.stalls));
     layout.x0 = Math.round((W - layout.boxW * opts.stalls) / 2);
     layout.floor = Math.round(H * 0.6);
+    layout.bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 58;
     opts.onLayout?.();
   }
 
@@ -69,7 +70,7 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
     for (let i = 0; i < opts.stalls; i++) {
       const bx = x0 + i * boxW, cx = bx + boxW / 2;
       // a window over the stall: light falls in, dust dances in it
-      const wx = Math.round(cx - 16), wy = Math.max(Math.ceil(58 / S), floor - 112); // under the top bar
+      const wx = Math.round(cx - 16), wy = Math.max(Math.ceil((layout.bar + 4) / S), floor - 112); // under the top bar
       blit(ctx, barn, WINDOW, wx, wy);
       ctx.fillStyle = 'rgba(255, 236, 170, 0.09)';
       for (let k = 0; k < 100; k += 2) ctx.fillRect(wx + 3 + k * 0.45, wy + 31 + k, 26, 2);
