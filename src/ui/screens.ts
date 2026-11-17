@@ -730,7 +730,7 @@ function podium(end: HTMLElement, table: ShowRow[]) {
 }
 
 /**
- * Riding badge 1: Oma Hanne asks five care questions (the answers in turn order, the right one not always first),
+ * Riding badge 1: Oma Hanne asks five care questions (the answers shuffled per day, the right one not always first),
  * then the player picks a horse for the jumping round.
  */
 function showBadge() {
@@ -757,8 +757,8 @@ function showInspection() {
 }
 
 /**
- * A quiz in a speech bubble over the farm: the speaker asks each question (the answers in turn order, so the right
- * one, first in the data, moves around), says right or wrong, then hands the chosen answers to `done`.
+ * A quiz in a speech bubble over the farm: the speaker asks each question (the answers shuffled per day by
+ * answerOrder, so the right one, first in the data, moves around), says right or wrong, then hands the chosen answers to `done`.
  */
 function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: string; a: { text: string }[] }[],
   done: (picked: number[], ui: { say: (text: string) => void; buttons: (html: string, on: (b: HTMLButtonElement) => void) => void; end: (text: string) => void }) => void) {
