@@ -72,7 +72,7 @@ export async function startStore(canvas: HTMLCanvasElement, opts: StoreOptions) 
     for (const [i, p] of spots.entries()) {
       const start = drops.get(i), k = start === undefined ? 1 : Math.min(1, (t - start) / 0.35);
       if (k < 0) continue;
-      ctx.drawImage(bale, p.x, Math.round(p.y - (1 - k * k) * 60));
+      ctx.drawImage(bale, p.x, Math.round(Math.max(Math.min(p.y, 32), p.y - (1 - k * k) * 60))); // from the beam down, never up under the top bar
       if (k === 1) drops.delete(i);
     }
     requestAnimationFrame(frame);
