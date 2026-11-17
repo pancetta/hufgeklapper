@@ -299,6 +299,20 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast };
 }
 
+/**
+ * The horses not on the farm map's pasture: the sick and resting ones are in the stable, and the map's pasture shows
+ * only as many as its first field holds (#79) — the others graze on the paddocks of the pasture screen, so the map
+ * never looks crowded.
+ */
+function offMapPasture(horses: Horse[]) {
+  let places = 0;
+  return horses.flatMap((h, i) => {
+    if (isSick(h) || h.rest) return [i];
+    places += DATA.pasture.need[h.look.build];
+    return places > DATA.pasture.start ? [i] : [];
+  });
+}
+
 /** Oma Hanne says something in her speech bubble; resolves when the child taps "Alles klar!". */
 function omaSays(text: string): Promise<void> {
   const box = document.createElement('section');
@@ -578,9 +592,7 @@ export function showFarm(intro = false) {
       const p = game.get().pupils.find((x) => x.id === b.dataset.pupil);
       if (p) explain('arena').then(() => chooseHorse(p));
     }));
-    // sick horses, and those resting after the vet, stay in the stable, off the pasture
-    const inStall = game.get().horses.flatMap((h, i) => (isSick(h) || h.rest ? [i] : []));
-    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(inStall); });
+    farm.then((f) => { f.setPupils(waiting.map(pupilKid)); f.setAway(offMapPasture(game.get().horses)); });
     place();
   }
   const farm = startFarm($<HTMLCanvasElement>('farm'), {
@@ -704,6 +716,7 @@ function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: str
     <section class="overlay talk"><div class="sheet bubble"><img src="${portrait(who)}" alt="${who === 'oma' ? t.omaHanne : t.inspector}"><p aria-live="polite"></p>
       <div class="answers"></div></div></section>`);
   const farm = startFarm($<HTMLCanvasElement>('farm'), { herd: game.get().horses.map((h) => h.look), canter: false, plots: farmPlots(game.get()) });
+  farm.then((f) => f.setAway(offMapPasture(game.get().horses)));
   leave = () => { farm.then((f) => f.stop()); };
   const say = $('farm').nextElementSibling!.querySelector('p')!, answers = $('farm').nextElementSibling!.querySelector<HTMLElement>('.answers')!;
   const picked: number[] = [];
