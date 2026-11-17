@@ -435,6 +435,10 @@ describe('Sim', () => {
     expect([d.income, d.debts.map((r) => r.what), d.total]).toEqual([[{ what: 'prize', amount: 60 }], ['loan', 'hayOnCredit', 'repay'], 130]);
   });
 
+  it('shows no minus points on the podium, however bad the round (#104)', () => {
+    expect([t.points(-39), t.points(0), t.points(82)]).toEqual(['0 Punkte', '0 Punkte', '82 Punkte']);
+  });
+
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
     const s = newGame(1);
     expect(goals(s).map((g) => [g.id, g.have, g.done])).toEqual([['groom', 0, false], ['lessons', 0, false], ['badge', 0, false], ['savings', 300, false], ['reputation', 30, false]]);

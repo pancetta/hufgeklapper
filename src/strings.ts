@@ -338,7 +338,7 @@ export const t = {
   nextXcShow: (day: number, today: boolean) => (today ? 'Heute ist Gelände-Turnier!' : `Nächstes Gelände-Turnier: Tag ${day}`),
   nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',
-  points: (n: number) => `${n} Punkte`,
+  points: (n: number) => `${Math.max(0, n)} Punkte`, // a bad round shows 0, never minus points (#104); the ranking keeps the real score
   showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
