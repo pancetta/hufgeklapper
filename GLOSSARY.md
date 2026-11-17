@@ -61,6 +61,9 @@ _Avoid_: quest, mission, achievement
 
 **Riding badge** ("Reitabzeichen"):
 The player's own riding level, earned by a quiz plus a **Minigame** round; opens harder sport such as **Shows**. Always say *Reitabzeichen*, never just *Abzeichen* (that word means **Markings**).
+*Reitabzeichen 1*: a quiz plus a jumping round. *Reitabzeichen 2* (#74), after cross-country practice and one **Care course**:
+the care course without tips (at most 2 wrong steps), then a **Cross-country** round (at most 2 faults); it opens
+cross-country shows (#75).
 
 **Mentor** ("Oma Hanne"):
 The former owner who hands over the farm, explains new things in short speech bubbles and gives hints.

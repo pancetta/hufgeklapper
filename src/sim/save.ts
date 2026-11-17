@@ -14,7 +14,7 @@ const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -61,14 +61,14 @@ function isOffer(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 16 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
+  return isObj(x) && x.version === 17 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
     && isInt(x.deadEnd, 0, DATA.rescue.grace)
     && isInt(x.staff, 0, DATA.staff.names.length) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
     && (x.partOffer === null || (isObj(x.partOffer) && typeof x.partOffer.horse === 'string' && isText(x.partOffer.rider, 30) && isInt(x.partOffer.pay, 0, 1000))) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
     && Array.isArray(x.market) && x.market.length <= 10 && x.market.every(isOffer)
     && isObj(x.built) && isInt(x.built.stalls, 0, 1) && isInt(x.built.arena, 0, 1) && isInt(x.built.pasture, 0, DATA.build.pasture.max)
     && Array.isArray(x.goalsDone) && x.goalsDone.length <= 20 && x.goalsDone.every((g) => GOALS.has(g as string))
-    && Array.isArray(x.explained) && x.explained.every((f) => (DATA.features as readonly unknown[]).includes(f)) && isInt(x.lastShowDay, 0) && isInt(x.trainings, 0) && isInt(x.badges, 0, 1) && isInt(x.badgeFailedDay, 0) && isInt(x.badgeQuizDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
+    && Array.isArray(x.explained) && x.explained.every((f) => (DATA.features as readonly unknown[]).includes(f)) && isInt(x.lastShowDay, 0) && isInt(x.trainings, 0) && isInt(x.xcTrainings, 0) && isInt(x.routines, 0) && isInt(x.badges, 0, 2) && isInt(x.badgeFailedDay, 0) && isInt(x.badgeQuizDay, 0) && Number.isFinite(x.seed) && isInt(x.day, 1) && isInt(x.money)
     && isInt(x.feed, 0) && oneOf(x.stage, DATA.stalls) && Array.isArray(x.horses) && x.horses.every(isHorse)
     && Array.isArray(x.night) && x.night.every((n) => isObj(n) && oneOf(n.kind, NEWS) && (n.horse === undefined || isText(n.horse, 40))
       && (n.owner === undefined || isText(n.owner, 30)) && (n.count === undefined || isInt(n.count, 0, 100)))
@@ -185,6 +185,13 @@ function fromVersion15(x: Obj): unknown {
   return { ...x, version: 16, state: { ...s, version: 16, built: { ...s.built, pasture } } };
 }
 
+/** Version 16 to 17: riding badge 2 (#74) counts cross-country practice and care courses; none counted before. */
+function fromVersion16(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s)) return x;
+  return { ...x, version: 17, state: { ...s, version: 17, xcTrainings: 0, routines: 0 } };
+}
+
 /** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */
 function fromVersion9(x: Obj): unknown {
   const s = x.state;
@@ -213,6 +220,7 @@ export function parseSave(text: string): Parsed {
   if (isObj(x) && x.version === 13) x = fromVersion13(x);
   if (isObj(x) && x.version === 14) x = fromVersion14(x);
   if (isObj(x) && x.version === 15) x = fromVersion15(x);
+  if (isObj(x) && x.version === 16) x = fromVersion16(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -599,6 +599,29 @@ describe('Sim', () => {
     // not before the Reitschule; and a full stable says so first
     expect(buildWaits(newGame(1), 'pasture')).toBe('stage');
     expect(noRoom({ ...s, built: { ...s.built, stalls: 0 } }, 'pony')).toBe('stall');
+  });
+
+  it('riding badge 2 opens after badge 1, cross-country practice and one care course; the exam needs both parts within their limits', () => {
+    const B = DATA.badge2, X = DATA.crossCountry;
+    let s: State = { ...newGame(1) };
+    const id = s.horses[0].id;
+    expect(badge2Waits(s)).toEqual({ why: 'badge1' });
+    s = { ...s, badges: 1 };
+    expect(badge2Waits(s)).toEqual({ why: 'practise', rounds: B.xcTrainings });
+    for (let i = 0; i < B.xcTrainings; i++) s = apply({ ...s, horses: s.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) }, { type: 'xcTrain', horse: id, faults: 0 });
+    expect(badge2Waits(s)).toEqual({ why: 'routine' });
+    s = apply(s, { type: 'routine', horse: id, wrong: 0, ride: false });
+    expect(badge2Waits(s)).toBeNull();
+    const rested = { ...s, horses: s.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) };
+    // too many wrong steps in the care course: failed without riding (no energy spent), again tomorrow
+    const failed = apply(rested, { type: 'badge2', horse: id, wrong: B.maxWrong + 1, faults: null });
+    expect([failed.badges, failed.badgeFailedDay, failed.horses[0].needs.energy, badge2Waits(failed)]).toEqual([1, s.day, 100, { why: 'tomorrow' }]);
+    // too many faults cross-country: failed too; within both limits: passed, and the goal is done
+    expect(apply(rested, { type: 'badge2', horse: id, wrong: 0, faults: B.maxFaults + 1 }).badges).toBe(1);
+    const passed = apply(rested, { type: 'badge2', horse: id, wrong: B.maxWrong, faults: B.maxFaults });
+    expect([passed.badges, passed.horses[0].needs.energy, badge2Waits(passed)]).toEqual([2, 100 - X.energy, { why: 'passed' }]);
+    expect(apply(passed, { type: 'badge2', horse: id, wrong: 0, faults: 0 })).toBe(passed);
+    expect(goals({ ...passed, stage: 'pensionsstall' }).find((g) => g.id === 'badge2')).toMatchObject({ done: true, need: 1 });
   });
 
   describe('the Pensionsstall', () => {
