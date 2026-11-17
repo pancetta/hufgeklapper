@@ -191,8 +191,8 @@ export function showStart() {
   leave = () => { farm.then((f) => f.stop()); };
 }
 
-/** The top bar: money, day, sleep and the menu. */
-function topBar() {
+/** The top bar: money, day, sleep and the menu; `busy`: what going to bed now would leave unfinished, asked first. */
+function topBar(busy = '') {
   return `
     <header class="topbar">
       <span class="stat farm-name">${esc(game.name())}</span>
@@ -201,7 +201,7 @@ function topBar() {
       <span class="stat" id="hay"><img class="icon" src="${icon('feed')}" alt="">${t.hay(game.get().feed)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
-      <button id="sleep" type="button"><img class="icon" src="${icon('moon')}" alt="">${t.sleep}</button>
+      <button id="sleep" type="button"${busy ? ` data-busy="${esc(busy)}"` : ''}><img class="icon" src="${icon('moon')}" alt="">${t.sleep}</button>
       <button id="menu" type="button">${t.menu}</button>
     </header>
     <section id="menu-sheet" class="overlay" hidden>
@@ -218,7 +218,9 @@ function topBar() {
 }
 
 function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
-  $('sleep').addEventListener('click', () => {
+  $('sleep').addEventListener('click', async () => {
+    const busy = $('sleep').dataset.busy;
+    if (busy && !(await ask(busy, t.sleepAnyway))) return;
     // the farm diary first: today's money as bars and which horses got better (#78), then good night
     const day = dayMoney(game.get().today), better = game.get().horses.filter((h) => own(h) && gained(h).some((g) => g > 0));
     const money = day.income.length + day.costs.length + day.debts.length > 0;
@@ -984,7 +986,7 @@ export function showCare(id: string) {
  */
 function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) {
   const s0 = game.get(), h = s0.horses.find((x) => x.id === id)!, kid = pupil ? pupilKid(pupil) : avatarKid(s0.avatar);
-  const $ = screen(`<canvas id="routine" aria-label="${t.routineTitle(esc(h.name))}"></canvas>${topBar()}
+  const $ = screen(`<canvas id="routine" aria-label="${t.routineTitle(esc(h.name))}"></canvas>${topBar(t.sleepBusy(h.name))}
     <h2 class="care-title">${t.routineTitle(esc(h.name))}</h2>
     <p id="say" class="how" role="status"></p>
     <div class="routine-bar"><span id="count"></span>${exam ? '' : `<button id="tip" type="button" class="small">${t.routineTip}</button>`}<button id="leave" type="button" class="small">${t.routineLeave}</button></div>

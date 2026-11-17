@@ -624,6 +624,22 @@ test('riding badge 2: stopping the exam counts as not passed; another try tomorr
   await expect(page.getByText(t.badge2Waits.tomorrow)).toBeVisible();
 });
 
+test('going to bed in the middle of the care course asks first; no keeps the course (#93)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate[data-horse="kiwi"]').tap();
+  await page.getByRole('button', { name: t.routine }).tap();
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.sleepBusy('Kiwi'))).toBeVisible();
+  await page.getByRole('button', { name: t.no, exact: true }).tap();
+  await expect(page.locator('#routine')).toBeVisible();
+  await expect(page.locator('#day')).toHaveText(t.day(1));
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.sleepAnyway }).tap();
+  await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
+});
+
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('./');
