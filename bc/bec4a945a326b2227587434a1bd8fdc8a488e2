@@ -1,0 +1,54 @@
+src/strings.ts
+  s_7657db1b41ed88::t_659231887e6f5a 213-222
+src/sim/economy.test.ts
+  s_7657db1b41ed88::t_e0a9bc39b3ad44 48-55,57-65
+  s_7657db1b41ed88::t_f9a4b68e916f97 3-4
+  s_7657db1b41ed88::t_23685c19864c98 56
+src/sim/save.test.ts
+  s_7657db1b41ed88::t_6a7e5df4cca878 51-57,60
+e2e/start.e2e.ts
+  s_7657db1b41ed88::t_443aefd5d0198a 545-546,549-558
+src/sim/data.ts
+  s_7657db1b41ed88::t_87a2e3eb8a8a82 154-155
+src/sim/state.ts
+  s_7657db1b41ed88::t_87a2e3eb8a8a82 16-17,31,132,192,282-289,531
+src/sim/save.ts
+  s_7657db1b41ed88::t_87a2e3eb8a8a82 17,43-44,64,168-175,202
+src/sim/economy.ts
+  s_7657db1b41ed88::t_6db04a89dab6b0 9,20,42-49,95-99,124-125,131,133
+docs/design.md
+  s_7657db1b41ed88::t_fb227207133e3c 27
+GLOSSARY.md
+  s_7657db1b41ed88::t_fb227207133e3c 149-153
+src/sim/state.test.ts
+  s_7657db1b41ed88::t_6a7e5df4cca878 4,569-579
+  s_7657db1b41ed88::t_b102b684ed9bc6 580-581
+src/style.css
+  s_7657db1b41ed88::t_991f291fd0633f 354-362,364-366
+  s_7657db1b41ed88::t_652d366200e39c 197-198,363
+  s_7657db1b41ed88::t_f4ee206027d785 340
+docs/economy.md
+  s_7657db1b41ed88::t_fb227207133e3c 12-13,32-48
+  s_7657db1b41ed88::t_a0b930159970de 26
+src/ui/screens.ts
+  s_7657db1b41ed88::t_991f291fd0633f 27,221,234-235,650-651,740,759-769,795,1053-1054,1061-1077
+  s_7657db1b41ed88::t_652d366200e39c 783-784,792,800
+  s_7657db1b41ed88::t_938d9254f7bc35 220,222-223,233
+  s_7657db1b41ed88::t_6765d5dfb85ea6 793-794,796,1078
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bcbec4a945a326b2227587434a1bd8fdc8a488e2",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
