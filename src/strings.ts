@@ -333,14 +333,13 @@ export const t = {
   xcShow: 'Gelände-Turnier',
   xcShowWaits: {
     notToday: (day: number) => `Das nächste Gelände-Turnier ist an Tag ${day}.`,
-    money: (fee: number) => `Das Startgeld kostet ${fee} €. So viel hast du gerade nicht.`,
   },
   xcShowRule: (c: string, n: number) => `Gelände-Turnier, Klasse ${c}: ${n} Hindernisse. Wenig Fehler und die richtige Zeit bringen Punkte.`,
   nextXcShow: (day: number, today: boolean) => (today ? 'Heute ist Gelände-Turnier!' : `Nächstes Gelände-Turnier: Tag ${day}`),
   nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',
   points: (n: number) => `${n} Punkte`,
-  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
+  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize} € Preisgeld.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
   goalText: {

@@ -330,10 +330,10 @@ export function gained(h: Horse, days = 1): [number, number] {
 }
 /** How far a breed can come cross-country (#73): sure-footed ponies do better here than over poles. */
 export const xcScope = (h: { breed: Breed }) => DATA.crossCountry.scope[h.breed];
-/** The cross-country take-off window (seconds): wider with skill and good care. */
-export function xcWindow(h: Horse) {
+/** The cross-country take-off window (seconds): wider with skill and good care; narrower in a higher show class (#75). */
+export function xcWindow(h: Horse, c?: ShowClass) {
   const w = DATA.crossCountry.window;
-  return w.base + w.skill * (h.skills.crossCountry / 100) + w.kept * keptShare(h);
+  return (w.base + w.skill * (h.skills.crossCountry / 100) + w.kept * keptShare(h)) * (c ? DATA.xcShows.classes[c].window : 1);
 }
 /** How fast galloping tires this horse, as a share: a skilled one less. */
 export const xcDrain = (h: Horse) => 1 - DATA.crossCountry.skillDrain * (h.skills.crossCountry / 100);

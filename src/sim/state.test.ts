@@ -650,6 +650,10 @@ describe('Sim', () => {
     // the jumping skill counts nothing here: a horse good over poles but new cross-country stays out of class A
     const jumper = { ...h, skills: { jumping: 90, crossCountry: 10 } };
     expect(xcClassWaits(s, jumper, 'A')).toBe('skill');
+    // a higher class is stricter: the same horse has less time to say "Hopp!"
+    expect(xcWindow(h, 'E')).toBe(xcWindow(h));
+    expect(xcWindow(h, 'L')).toBeLessThan(xcWindow(h, 'A'));
+    expect(xcWindow(h, 'A')).toBeLessThan(xcWindow(h));
   });
 
   describe('the Pensionsstall', () => {

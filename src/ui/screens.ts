@@ -399,7 +399,7 @@ export function showFarm(intro = false) {
   /** Out to the fields (#73–#75): cross-country practice, and riding badge 2 (or why not yet), once passed the shows. */
   function fields() {
     const sheet = $('lesson'), s = game.get(), w = badge2Waits(s), show = w?.why === 'passed' && xcShowWaits(s);
-    const showWhy = show === 'notToday' ? t.xcShowWaits.notToday(nextXcShowDay(s)) : show === 'money' ? t.xcShowWaits.money(DATA.xcShows.classes.E.fee) : '';
+    const showWhy = show === 'notToday' ? t.xcShowWaits.notToday(nextXcShowDay(s)) : show === 'money' ? t.showWaits.money(DATA.xcShows.classes.E.fee) : '';
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.xc}</h2><button type="button" id="xc-practise">${t.practiseXc}</button>
       ${w?.why === 'passed' ? `<button type="button" id="xc-show"${show ? ' disabled aria-describedby="xc-show-why"' : ''}>${t.xcShow}</button>${showWhy ? `<p class="oma" id="xc-show-why">${showWhy}</p>` : ''}`
         : `<button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
@@ -1089,7 +1089,7 @@ function showCrossCountry(id: string, examWrong?: number, show?: ShowClass) {
     if (o && (o.kind === 'water' || o.kind === 'ditch') && o.at - r.s < 16 && o.at - r.s > 0 && r.pace === 'gallop' && warned !== r.next) { warned = r.next; say(t.xcAhead[o.kind]); }
   };
   const ride = startCrossCountry($<HTMLCanvasElement>('xc'), {
-    look: h.look, kid: avatarKid(s0.avatar), course, window: xcWindow(h) * (course.window ?? 1), drain: xcDrain(h), stamina: h.needs.energy / 100,
+    look: h.look, kid: avatarKid(s0.avatar), course, window: xcWindow(h, show), drain: xcDrain(h), stamina: h.needs.energy / 100,
     // too fast at water or a ditch, or too slow to jump: the horse comes again at a trot
     onChange: hud, onRefuse: (why) => { say(t.xcRefused[why]); if (why !== 'late') pick('trot'); },
   });

@@ -75,7 +75,6 @@ async function newGame(page: Page, name: string, explain = false) {
   if (!explain) await changeSave(page, (s) => { s.explained = [...DATA.features]; });
 }
 
-/** Changes the game in slot 1 as saved, then reloads and carries on with it. */
 /** A careful child through the fields: the pace Oma would ride (a trot before water and the ditch), "Hopp!" at the strip. */
 async function rideXc(page: Page) {
   const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
@@ -87,6 +86,7 @@ async function rideXc(page: Page) {
   return end;
 }
 
+/** Changes the game in slot 1 as saved, then reloads and carries on with it. */
 async function changeSave(page: Page, change: (state: Record<string, unknown>) => void) {
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!));
   change(save.state);

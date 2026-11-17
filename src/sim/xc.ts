@@ -9,9 +9,11 @@ export type Pace = 'walk' | 'trot' | 'gallop';
 export const PACES: Pace[] = ['walk', 'trot', 'gallop'];
 export type XcKind = 'log' | 'hedge' | 'bank' | 'ditch' | 'water';
 export type XcObstacle = { at: number; kind: XcKind };
-/** A track: its length in metres, its obstacles in order, and the optimum time (seconds) to arrive in. */
-/** `window`: a share of the horse's take-off window (higher classes are stricter); `height`: how big the obstacles are drawn. */
-export type XcCourse = { length: number; obstacles: XcObstacle[]; optimum: [number, number]; window?: number; height?: number };
+/**
+ * A track: its length in metres, its obstacles in order, and the optimum time (seconds) to arrive in; `height`: how
+ * high a show class's obstacles are drawn (#75).
+ */
+export type XcCourse = { length: number; obstacles: XcObstacle[]; optimum: [number, number]; height?: number };
 /**
  * Why a refusal: no "Hopp!" in time, a tap too early, too fast at water or a ditch, or too slow (a walk) to jump;
  * `skip` after the third refusal at one obstacle: the horse is led round it.
@@ -44,13 +46,13 @@ const tooFast = (v: number) => v > X.pace.trot + 0.1;
 export function xcCourse(seed: number, cls?: keyof typeof DATA.xcShows.classes): XcCourse {
   let n = Math.abs(Math.floor(seed)) % 2147483646 + 1;
   const rnd = () => (n = (n * 16807) % 2147483647) / 2147483647;
-  const C = cls ? DATA.xcShows.classes[cls] : { obstacles: X.obstacles, length: X.length, window: 1, height: 1 };
+  const C = cls ? DATA.xcShows.classes[cls] : { obstacles: X.obstacles, length: X.length, height: 1 };
   const kinds = (['log', 'hedge', 'bank', 'log', 'ditch', 'water', 'hedge', 'log', 'bank', 'ditch'] as XcKind[]).slice(0, C.obstacles);
   for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
   const gap = (C.length - 60) / C.obstacles;
   const obstacles = kinds.map((kind, i) => ({ kind, at: Math.round(40 + i * gap + rnd() * gap * 0.4) }));
   const optimum = C.length / X.typical;
-  return { length: C.length, obstacles, optimum: [Math.round(optimum - X.tolerance), Math.round(optimum + X.tolerance)], window: C.window, height: C.height };
+  return { length: C.length, obstacles, optimum: [Math.round(optimum - X.tolerance), Math.round(optimum + X.tolerance)], height: C.height };
 }
 
 export const newXcRound = (stamina: number): XcRound => ({

@@ -46,9 +46,9 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   const xcBase = xcWindow(newGame(seed).horses[0]);
   let xcLuck = seed ^ 0xbeef; // its own dice: riding cross-country doesn't shuffle the jumping rounds
   const xcFaults = (h: Horse, c?: ShowClass) => {
-    const C = c ? DATA.xcShows.classes[c] : { obstacles: DATA.crossCountry.obstacles, window: 1 };
+    const obstacles = c ? DATA.xcShows.classes[c].obstacles : DATA.crossCountry.obstacles;
     let n = 0, r: number;
-    for (let i = 0; i < C.obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / (xcWindow(h) * C.window))) n++; }
+    for (let i = 0; i < obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h, c))) n++; }
     return n;
   };
   let invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
@@ -104,7 +104,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     // the sport player, once practised cross-country: one care course, then riding badge 2 (#74) with a fresh horse in
     // the morning
     if (strategy === 'sport' && s.badges === 1) {
-      if (s.xcTrainings >= DATA.badge2.xcTrainings && !s.routines) act({ type: 'routine', horse: s.horses.filter(own)[0].id, wrong: 0, ride: false });
+      if (s.xcTrainings >= DATA.badge2.xcTrainings && s.routines < DATA.badge2.routines) act({ type: 'routine', horse: s.horses.filter(own)[0].id, wrong: 0, ride: false });
       const exam = !badge2Waits(s) && fresh(DATA.badge2.energy)[0];
       if (exam) act({ type: 'badge2', horse: exam.id, wrong: 0, faults: xcFaults(exam) });
       if (s.badges >= 2) badge2Day = s.day;

@@ -100,7 +100,7 @@ describe('a cross-country round', () => {
     const E = xcCourse(7, 'E'), A = xcCourse(7, 'A'), L = xcCourse(7, 'L');
     expect([E.obstacles.length, A.obstacles.length, L.obstacles.length]).toEqual([6, 8, 10]);
     expect(E.length < A.length && A.length < L.length).toBe(true);
-    expect((A.window ?? 1) > (L.window ?? 1) && (A.height ?? 1) < (L.height ?? 1)).toBe(true);
+    expect((E.height ?? 1) < (A.height ?? 1) && (A.height ?? 1) < (L.height ?? 1)).toBe(true);
     for (const c of [E, A, L]) {
       expect(c.obstacles.map((o) => o.kind)).toEqual(expect.arrayContaining(['water', 'ditch']));
       expect(c.obstacles.at(-1)!.at).toBeLessThan(c.length - 10);
