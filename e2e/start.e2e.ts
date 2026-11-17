@@ -934,7 +934,7 @@ test('the farm inspection makes a Reitschule: buy a horse into the free stall, b
   await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByRole('heading', { name: t.market })).toBeVisible();
   await expect(page.locator('[data-offer]')).toHaveCount(DATA.market.offers);
-  const offer = page.locator('[data-offer]').first(), name = (await offer.textContent())!.split(' · ')[0];
+  const offer = page.locator('[data-offer]').first(), name = (await offer.getAttribute('aria-label'))!.split(' · ')[0];
   await offer.tap();
   await expect(page.getByText(t.boughtHorse(name))).toBeVisible();
   await page.getByRole('button', { name: t.gotIt }).tap();

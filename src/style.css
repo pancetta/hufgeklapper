@@ -398,3 +398,11 @@ canvas { image-rendering: pixelated; }
 .store-panel .choice { text-align: center; justify-items: center; }
 .full-screen { position: fixed; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, env(safe-area-inset-left, 0px)); } /* top left: the slots' buttons are at the bottom */
 .full-screen .tip { margin: 0; max-width: 22vw; font-size: calc(var(--fs) * 14px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }
+/* the notice board's horses as cards with their picture (#102) */
+.market-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.market-card { display: grid; justify-items: center; align-content: start; gap: 1px; padding: 6px; }
+.market-card canvas { width: 96px; height: 72px; image-rendering: pixelated; }
+.market-card .price { font-size: 1.2em; }
+.market-card small { font-size: calc(var(--fs) * 12px); opacity: 0.9; }
+.market-card .why { color: var(--sun); }
+.sheet.ask.shop { width: min(92vw, 720px); max-height: 88vh; overflow-y: auto; } /* room for a row of horse cards */
