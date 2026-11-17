@@ -724,8 +724,9 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   // stopping: before the first way back to the farm (nothing ridden, nothing paid); after it, asked, the round is given up
   $('jump-quit').addEventListener('click', async () => {
     const r = await round;
+    if (!r.started()) return showFarm(); // nothing ridden yet: just back, nothing to ask
     if (!(await ask(t.jumpQuitSure, t.jumpQuitYes))) return;
-    if (!r.quit()) showFarm();
+    if (!$('jump-quit').hidden) r.quit(); // the round may have ended while asked: then its result stays
   });
   leave = () => { removeEventListener('keydown', key); removeEventListener('keyup', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
 }

@@ -293,12 +293,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     /** "Hopp!": take off, if the horse is lined up for the next jump. */
     /** "Hopp!" from the keyboard: the space bar, held `held` seconds (its momentum, like a finger). */
     hopp(held = Infinity) { takeoff(0, held); },
-    /** The child stops: before the first way nothing has happened (false); after it the round is given up and ends. */
-    quit() {
-      if (!r.started || r.done) return false;
-      r = giveUp(r, c); running = false; done(r.faults);
-      return true;
-    },
+    /** Whether the first way was given: before it nothing has been ridden. */
+    started: () => r.started,
+    /** The child stops: the round is given up and ends (its result as usual). */
+    quit() { if (!r.done) { r = giveUp(r, c); running = false; done(r.faults); } },
     stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }

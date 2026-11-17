@@ -731,7 +731,6 @@ test('a jumping round can be stopped: before the first way back to the farm for 
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await page.getByRole('button', { name: t.routineLeave }).tap();
-  await page.getByRole('button', { name: t.jumpQuitYes }).tap();
   await expect(page.locator('#money')).toHaveText(t.money(300));
   // practice: a way drawn, then stopped: the round ends, every jump left a fault
   await page.getByRole('button', { name: t.places.arena }).tap();

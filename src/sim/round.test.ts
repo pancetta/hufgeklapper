@@ -141,6 +141,15 @@ describe('a round on the show-jumping arena', () => {
     expect(r.t).toBeLessThan(timeAllowed(E) + R.giveUp); // through the finish, not given up for time
   });
 
+  it('a clean jump after two refusals gives the next jump three tries again (#90)', () => {
+    let refusals = 0;
+    const r = ride(E, newRound(E), (a, x) => { if (x.next === 0 && refusals < 2) return false; return a.hopp; }, (x) => {
+      if (x.stopped && x.refused === 0 && x.next === 0) refusals = Math.max(refusals, x.tries);
+      return x.next === 1;
+    });
+    expect([refusals, r.next, r.tries]).toEqual([2, 1, 0]);
+  });
+
   it('giving up ends the round: each jump left a fault (#90)', () => {
     const r = giveUp(newRound(E), E);
     expect([r.done, r.faults]).toEqual([true, E.jumps.length]);
