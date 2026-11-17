@@ -832,7 +832,7 @@ export function showStable() {
       return h
         ? `<div class="box" data-box="${i}"><button class="nameplate${isSick(h) ? ' sick' : ''}${h.owner ? ' guest' : ''}" type="button" data-horse="${h.id}">${esc(h.name)}</button>
             <button class="horse-hit" type="button" data-horse="${h.id}" aria-label="${esc(h.name)}"></button>
-            <div class="needs">${NEEDS.map((n) => needBar(h, n)).join('')}</div></div>`
+            <div class="needs">${NEEDS.map((n) => needBar(h, n, stalls(st) <= 3)).join('')}</div></div>`
         : `<div class="box" data-box="${i}"><span class="nameplate empty">${t.freeStall}</span></div>`;
     }).join('');
     boxes.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => showCard(b.dataset.horse!)));
