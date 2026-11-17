@@ -292,12 +292,12 @@ export const t = {
   badgeReady: 'Oma Hanne sagt: „Jetzt kannst du dein erstes Reitabzeichen machen! Komm zum Reitplatz.“',
   badgeIntro: 'Zuerst stelle ich dir fünf Fragen zur Pferdepflege. Dann reitest du eine Springrunde.',
   quiz: [
-    { q: 'Was frisst ein Pony am meisten?', a: [{ text: 'Heu', icon: 'feed' }, { text: 'Schokolade' }, { text: 'Brötchen' }] },
-    { q: 'Womit machst du die Hufe sauber?', a: [{ text: 'Mit dem Hufkratzer', icon: 'hooves' }, { text: 'Mit einem Kamm' }, { text: 'Mit einer Zahnbürste' }] },
+    { q: 'Was frisst ein Pony am meisten?', a: [{ text: 'Heu' }, { text: 'Schokolade' }, { text: 'Brötchen' }] },
+    { q: 'Womit machst du die Hufe sauber?', a: [{ text: 'Mit dem Hufkratzer' }, { text: 'Mit einem Kamm' }, { text: 'Mit einer Zahnbürste' }] },
     { q: 'Wie gehst du zu einem Pferd?', a: [{ text: 'Schräg von vorne zur Schulter und dabei mit ihm sprechen' }, { text: 'Leise von hinten' }, { text: 'Schnell rennend' }] },
-    { q: 'Was trägst du beim Reiten immer?', a: [{ text: 'Einen Reithelm', icon: 'helmet' }, { text: 'Eine Mütze' }, { text: 'Eine Sonnenbrille' }] },
-    { q: 'Dein Pony humpelt und hat ein dickes Bein. Was tust du?', a: [{ text: 'Einem Erwachsenen Bescheid sagen und den Tierarzt rufen', icon: 'health' }, { text: 'Trotzdem reiten' }, { text: 'Nichts, das geht vorbei' }] },
-  ] as { q: string; a: { text: string; icon?: 'feed' | 'hooves' | 'helmet' | 'health' }[] }[], // the first answer is the right one
+    { q: 'Was trägst du beim Reiten immer?', a: [{ text: 'Einen Reithelm' }, { text: 'Eine Mütze' }, { text: 'Eine Sonnenbrille' }] },
+    { q: 'Dein Pony humpelt und hat ein dickes Bein. Was tust du?', a: [{ text: 'Einem Erwachsenen Bescheid sagen und den Tierarzt rufen' }, { text: 'Trotzdem reiten' }, { text: 'Nichts, das geht vorbei' }] },
+  ] as { q: string; a: { text: string }[] }[], // the first answer is the right one
   quizRight: 'Richtig!',
   quizWrong: (right: string) => `Leider falsch. Richtig ist: ${right}.`,
   quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
@@ -367,11 +367,11 @@ export const t = {
   inspectionIntro: 'Guten Tag! Ich bin Frau Berger und prüfe deinen Hof. Ich habe fünf Fragen an dich.',
   inspectionQuiz: [
     { q: 'Wann braucht ein Pferd frisches Wasser?', a: [{ text: 'Immer, den ganzen Tag' }, { text: 'Einmal in der Woche' }, { text: 'Nur im Sommer' }] },
-    { q: 'Warum mistest du den Stall aus?', a: [{ text: 'Damit das Pferd sauber und gesund bleibt', icon: 'muck' }, { text: 'Damit es mehr Platz zum Rennen hat' }, { text: 'Das muss man nicht' }] },
+    { q: 'Warum mistest du den Stall aus?', a: [{ text: 'Damit das Pferd sauber und gesund bleibt' }, { text: 'Damit es mehr Platz zum Rennen hat' }, { text: 'Das muss man nicht' }] },
     { q: 'Was braucht ein Pferd jeden Tag?', a: [{ text: 'Futter und Bewegung' }, { text: 'Nur einen warmen Stall' }, { text: 'Einen Fernseher' }] },
     { q: 'Wie oft kommt der Hufschmied?', a: [{ text: 'Alle paar Wochen' }, { text: 'Nie' }, { text: 'Nur an Weihnachten' }] },
     { q: 'Wie lebt ein Pferd am liebsten?', a: [{ text: 'Mit anderen Pferden zusammen' }, { text: 'Ganz allein' }, { text: 'Im Haus' }] },
-  ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
+  ] as { q: string; a: { text: string }[] }[], // the first answer is the right one
   inspectionPassed: 'Herzlichen Glückwunsch! Dein Hof ist jetzt eine Reitschule. Du kannst Pferde kaufen und bauen!',
   // the second farm inspection: Reitschule to Pensionsstall
   inspectionIntro2: 'Guten Tag, da bin ich wieder! Heute geht es um einen Pensionsstall: Dort wohnen auch Pferde von anderen Leuten. Ich habe fünf Fragen.',
@@ -381,7 +381,7 @@ export const t = {
     { q: 'Ein Pferd frisst jede Nacht einen Heuballen. Du hast 4 Pferde und 12 Ballen. Wie viele Nächte reicht das Heu?', a: [{ text: '3 Nächte' }, { text: '4 Nächte' }, { text: '12 Nächte' }] },
     { q: 'Was ist eine Reitbeteiligung?', a: [{ text: 'Jemand reitet regelmäßig dein Pferd und bezahlt dafür' }, { text: 'Ein Pferd, das dir nur halb gehört' }, { text: 'Eine Reitstunde für Anfänger' }] },
     { q: 'Das Pferd eines Einstellers sieht ungepflegt aus. Was tust du?', a: [{ text: 'Ich pflege es so gut wie meine eigenen' }, { text: 'Nichts, es gehört mir ja nicht' }, { text: 'Ich reite damit ein Turnier' }] },
-  ] as { q: string; a: { text: string; icon?: 'muck' | 'hooves' }[] }[], // the first answer is the right one
+  ] as { q: string; a: { text: string }[] }[], // the first answer is the right one
   inspectionPassed2: 'Herzlichen Glückwunsch! Dein Hof ist jetzt ein Pensionsstall. Am Schwarzen Brett findest du Einsteller, Reitbeteiligungen und einen Pferdepfleger.',
   inspectionFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht noch nicht. Morgen komme ich wieder.`,
   // the Reitschule: market and building
