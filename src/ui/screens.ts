@@ -635,20 +635,21 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
       end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
         <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
         <ol class="ranking">${table.map((r) => `<li${r.you ? ' class="you"' : ''}>${row(r)} · ${t.points(r.score)}</li>`).join('')}</ol>`);
-      end.querySelector('p')!.textContent = t.showPlace(rank, prize);
+      end.querySelector('p')!.textContent = `${t.showPlace(rank, prize)} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`; // a show doesn't train: where the horse stands
     } else if (kind === 'badge') {
       game.dispatch({ type: 'badge', horse: id, faults });
       const passed = game.get().badges >= 1;
       // the ceremony: the big rosette over the congratulations
       if (passed) end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badgeName}">`);
-      end.querySelector('p')!.textContent = passed ? t.badgePassed : t.badgeFailed;
+      end.querySelector('p')!.textContent = `${passed ? t.badgePassed : t.badgeFailed} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`;
     } else {
       const practising = badgeWaits(game.get())?.why === 'practise';
       game.dispatch({ type: 'train', horse: id, faults });
       // Oma Hanne points to the badge once the practice is enough
       const ready = practising && !badgeWaits(game.get()) ? ` ${t.badgeReady}` : '';
       const now = game.get().horses.find((x) => x.id === id)!.skills.jumping; // how much it grew, out of what it can reach
-      end.querySelector('p')!.textContent = `${faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name)} ${t.skillGain(t.jumping, now - h.skills.jumping, now, scope(h))}${ready}`;
+      const top = h.skills.jumping >= scope(h); // already at the breed's limit: no 'better' to say
+      end.querySelector('p')!.textContent = `${faults ? t.jumpFaults(faults, h.name) : top ? t.cleanRound : t.jumpClear(h.name)} ${t.skillGain(t.jumping, now - h.skills.jumping, now, scope(h))}${ready}`;
     }
     end.hidden = false;
   }, { once: true });
@@ -759,7 +760,7 @@ export function showStable() {
   // all own horses side by side: both skills against their breed's limit, and this week's gain
   $('compare').addEventListener('click', () => {
     const card = $('card'), mine = game.get().horses.filter(own);
-    const row = (name: string, value: number, max: number, week: number, kind: string) => `<div class="need"><span>${name}</span><span class="bar skill ${kind}" style="--scope:${max}%"><i style="width:${value}%"></i></span><small>${t.thisWeek(week)}</small></div>`;
+    const row = (name: string, value: number, max: number, week: number, kind: string) => `<div class="need"><span>${name}</span><span class="bar skill ${kind}" style="--scope:${max}%"><i style="width:${value}%"></i></span><small>${t.thisWeek(week, value >= max)}</small></div>`;
     card.innerHTML = `<div class="sheet compare"><h2>${t.compareTitle}</h2><p class="oma">${t.compareHow}</p>
       ${mine.map((h) => { const [j, x] = gained(h, 7); return `<section><h3>${esc(h.name)} <small>${BREEDS[h.breed].label}</small></h3>
         ${row(t.jumping, h.skills.jumping, scope(h), j, 'jump')}${row(t.crossCountry, h.skills.crossCountry, xcScope(h), x, 'xc')}</section>`; }).join('')}
@@ -793,7 +794,7 @@ export function showStable() {
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill jump" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.crossCountry}</span><span class="bar skill xc" style="--scope:${xcScope(h)}%"><i style="width:${h.skills.crossCountry}%"></i></span></div>
       ${own(h) ? progressChart(h) : ''}
-      <p>${t.jumpsUpTo(topClass(h))}</p>
+      <p>${t.canReach(topClass(h))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
       <button id="care" type="button">${t.care}</button>
       ${own(h) ? `<button id="routine" type="button"${cantWork(h, DATA.routine.energy) ? ' disabled' : ''}>${t.routine}</button>${cantWork(h, DATA.routine.energy) ? `<p class="status">${t.routineCant} ${t.cantWork[cantWork(h, DATA.routine.energy)!]}</p>` : ''}` : ''}
@@ -1051,7 +1052,7 @@ function showCrossCountry(id: string) {
     clearTimeout(tipTimer); tip.hidden = true;
     game.dispatch({ type: 'xcTrain', horse: id, faults });
     const now = game.get().horses.find((x) => x.id === id)!.skills.crossCountry, grew = t.skillGain(t.crossCountry, now - h.skills.crossCountry, now, xcScope(h));
-    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)} ${grew}` : `${t.xcClear(h.name)} ${grew}`;
+    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)} ${grew}` : `${h.skills.crossCountry >= xcScope(h) ? t.xcCleanTop : t.xcClear(h.name)} ${grew}`;
     $('xc-end').hidden = false;
   }, { once: true });
   $('xc-back').addEventListener('click', () => showFarm());
@@ -1064,15 +1065,19 @@ function showCrossCountry(id: string) {
  * the last 7 days brought. Plain SVG in the game's colours, sized with the card.
  */
 function progressChart(h: Horse) {
-  const pts = [...h.log, [h.skills.jumping, h.skills.crossCountry]], W = 200, H = 64, n = Math.max(1, pts.length - 1);
-  const x = (i: number) => Math.round(4 + (i * (W - 8)) / n), y = (v: number) => Math.round(H - 4 - (v * (H - 8)) / 100);
+  // days from the left (two weeks ago) to the right (today); a young horse's line starts where its log does; the
+  // height goes up to the higher of its two limits, so a round's step shows
+  const D = DATA.progress.days, pts = [...h.log, [h.skills.jumping, h.skills.crossCountry]], W = 200, H = 64, top = Math.max(scope(h), xcScope(h), 1);
+  const x = (i: number) => Math.round(4 + ((D + 1 - pts.length + i) * (W - 8)) / D), y = (v: number) => Math.round(H - 4 - (v * (H - 8)) / top);
   const line = (k: 0 | 1) => pts.map((p, i) => `${x(i)},${y(p[k])}`).join(' ');
-  const limit = (v: number, c: string) => `<line x1="4" x2="${W - 4}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-dasharray="3 3" opacity="0.6"/>`;
+  const limit = (v: number, c: string) => `<line x1="4" x2="${W - 4}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-width="2" stroke-dasharray="4 3"/>`;
+  const days = Array.from({ length: D + 1 }, (_, i) => `<line x1="${x(i - (D + 1 - pts.length))}" x2="${x(i - (D + 1 - pts.length))}" y1="${H - 4}" y2="${H}" stroke="#7f4d2b"/>`).join('');
   const [j, xc] = gained(h, 7);
-  return `<div class="progress"><h3>${t.progressTitle(DATA.progress.days)}</h3>
+  return `<div class="progress"><h3>${t.progressTitle(D)}</h3>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t.weekGain(j, xc)}" shape-rendering="crispEdges">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="#efe6d0"/>${limit(scope(h), '#3c9a3c')}${limit(xcScope(h), '#3d6fd9')}
-      <polyline points="${line(0)}" fill="none" stroke="#3c9a3c" stroke-width="3"/><polyline points="${line(1)}" fill="none" stroke="#3d6fd9" stroke-width="3"/>
+      <rect x="0" y="0" width="${W}" height="${H}" fill="#efe6d0"/>${days}${limit(scope(h), '#3c9a3c')}${limit(xcScope(h), '#3d6fd9')}
+      <polyline points="${line(0)}" fill="none" stroke="#3c9a3c" stroke-width="5"/><polyline points="${line(1)}" fill="none" stroke="#3d6fd9" stroke-width="2"/>
     </svg>
-    <p class="legend"><span class="jump">■ ${t.jumping}</span> <span class="xc">■ ${t.crossCountry}</span></p><p>${t.weekGain(j, xc)}</p></div>`;
+    <p class="axis"><span>${t.chartFrom}</span><span>${t.chartToday}</span></p>
+    <p class="legend"><span class="jump">■ ${t.jumping}</span> <span class="xc">■ ${t.crossCountry}</span> <span>${t.chartLimits}</span></p><p>${t.weekGain(j, xc)}</p></div>`;
 }

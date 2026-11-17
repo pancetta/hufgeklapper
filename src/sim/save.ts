@@ -41,7 +41,7 @@ function isHorse(x: unknown): x is Horse {
   return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
     && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.skills.crossCountry, 0, 100)
-    && Array.isArray(x.log) && x.log.length >= 1 && x.log.length <= DATA.progress.days && x.log.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => isInt(v, 0, 100))) && isInt(x.rest, 0, 30)
+    && Array.isArray(x.log) && x.log.length >= 1 && x.log.length <= 100 && x.log.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => isInt(v, 0, 100))) && isInt(x.rest, 0, 30)
     && Array.isArray(x.cared) && x.cared.length <= CARE.length && x.cared.every((c) => CARE.includes(c as Care))
     && (x.owner === undefined || (isObj(x.owner) && isText(x.owner.name, 30) && isInt(x.owner.pay, 0, 1000) && isInt(x.owner.unhappy, 0, 30)))
     && (x.rider === undefined || (isObj(x.rider) && isText(x.rider.name, 30) && isInt(x.rider.pay, 0, 1000)));

@@ -41,16 +41,18 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
   };
   /** Refusals cross-country: one obstacle in six on a new pony, fewer the wider its take-off window (#73). */
   const xcBase = xcWindow(newGame(seed).horses[0]);
+  let xcLuck = seed ^ 0xbeef; // its own dice: riding cross-country doesn't shuffle the jumping rounds
   const xcFaults = (h: Horse) => {
     let n = 0, r: number;
-    for (let i = 0; i < DATA.crossCountry.obstacles; i++) { [r, luck] = roll(luck); if (r < (1 / 6) * (xcBase / xcWindow(h))) n++; }
+    for (let i = 0; i < DATA.crossCountry.obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h))) n++; }
     return n;
   };
   let invested = 0, xcRides = 0;
   const best = (c: Horse[]) => [...c].sort((a, b) => b.skills.jumping - a.skills.jumping)[0];
   /** The highest class a horse may start in today: a child picks the class with the biggest prize. */
   const topClass = (h: Horse) => SHOW_CLASSES.filter((c) => !classWaits(s, h, c)).pop();
-  const fresh = (energy: number) => s.horses.filter((h) => own(h) && !cantWork(h, energy)) // boarders' horses aren't ours to ride.sort((a, b) => b.needs.energy - a.needs.energy);
+  // boarders' horses aren't ours to ride; the freshest first
+  const fresh = (energy: number) => s.horses.filter((h) => own(h) && !cantWork(h, energy)).sort((a, b) => b.needs.energy - a.needs.energy);
 
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day

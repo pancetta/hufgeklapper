@@ -552,7 +552,7 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await expect(page.locator('#card .progress')).toContainText(t.weekGain(after.skills.jumping - 10, 0));
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.compare, exact: true }).tap();
-  await expect(page.locator('.sheet.compare')).toContainText(t.thisWeek(after.skills.jumping - 10));
+  await expect(page.locator('.sheet.compare')).toContainText(t.thisWeek(after.skills.jumping - 10, false));
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.sleep }).tap();
   await expect(page.getByText(t.diaryGain('Kiwi', after.skills.jumping - 10, 0))).toBeVisible();

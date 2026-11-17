@@ -356,12 +356,13 @@ canvas { image-rendering: pixelated; }
 .progress svg { width: 100%; height: auto; border: 2px solid var(--wood-dark); border-radius: 4px; }
 .progress .legend { font-size: calc(var(--fs) * 14px); }
 .progress .jump { color: #3c9a3c; } .progress .xc { color: #3d6fd9; }
+.progress .axis { display: flex; justify-content: space-between; margin: 0; font-size: calc(var(--fs) * 13px); opacity: 0.8; }
 .corner.left { right: auto; left: max(12px, env(safe-area-inset-left, 0px)); }
 .sheet.compare { width: min(90vw, 560px); max-height: 80vh; overflow-y: auto; text-align: left; }
 .compare h3 { margin: 10px 0 2px; font-size: calc(var(--fs) * 18px); }
-.compare h3 small, .compare .need small { font-size: calc(var(--fs) * 13px); opacity: 0.8; }
+.compare h3 small, .compare .need small { font-size: calc(var(--fs) * 15px); }
 .compare > button { margin-top: 12px; }
-.compare .need { display: grid; grid-template-columns: 7em 1fr 9em; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px); }
+.compare .need { display: grid; grid-template-columns: 7em 1fr 11em; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px); }
 .diary-line { margin: 2px 0; font-size: calc(var(--fs) * 16px); }
 
 /* the farm diary before the night: one bar per kind of money, green in, red out */
