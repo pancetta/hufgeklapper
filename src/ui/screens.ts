@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -136,7 +136,7 @@ export function showStart() {
       <div class="slots">${slots.map((slot, i) => `
         <section class="slot ${slot.kind}" aria-label="${t.slot(i + 1)}">
           <h2>${slotTitle(slot)}</h2>
-          <p>${slot.kind === 'save' ? (gameOver(slot.save.state) ? t.lostFarm : t.slotInfo(slot.save.state.day, slot.save.state.money)) : '&nbsp;'}</p>
+          <p>${slot.kind === 'save' ? (gameOver(slot.save.state) ? t.lostFarm : t.slotInfo(slot.save.state.day, slot.save.state.money, slot.save.state.debt)) : '&nbsp;'}</p>
           ${slot.kind === 'save' && !gameOver(slot.save.state) ? `<button type="button" data-do="resume" data-slot="${i}">${t.resumeGame}</button>` : ''}
           <button type="button" data-do="new" data-slot="${i}" class="${slot.kind === 'save' ? 'small' : ''}">${t.newGame}</button>
           <span class="file-buttons">
@@ -197,6 +197,7 @@ function topBar() {
     <header class="topbar">
       <span class="stat farm-name">${esc(game.name())}</span>
       <span class="stat" id="money"><img class="icon" src="${icon('coin')}" alt="">${t.money(game.get().money)}</span>
+      <span class="stat debt" id="debt" role="img" aria-label="${t.debtLabel(game.get().debt)}" title="${t.debtLabel(game.get().debt)}"${game.get().debt ? '' : ' hidden'}>${t.debt(game.get().debt)}</span>
       <span class="stat" id="hay"><img class="icon" src="${icon('feed')}" alt="">${t.hay(game.get().feed)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
@@ -283,6 +284,10 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   });
   const unsubscribe = game.subscribe(() => {
     $('money').lastChild!.textContent = t.money(game.get().money);
+    $('debt').hidden = !game.get().debt;
+    $('debt').textContent = t.debt(game.get().debt);
+    $('debt').setAttribute('aria-label', t.debtLabel(game.get().debt));
+    $('debt').title = t.debtLabel(game.get().debt);
     $('day').textContent = t.day(game.get().day);
     $('hay').lastChild!.textContent = t.hay(game.get().feed);
     onChange();
@@ -904,8 +909,11 @@ export function showStore() {
   const render = () => {
     const s = game.get();
     $('stock').textContent = t.stock(s.feed, hayNights(s));
-    $('packs').innerHTML = DATA.hayPacks.map((p, i) => `<button type="button" data-pack="${i}">${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</button>`).join('');
-    $('credit').hidden = !DATA.hayPacks.some((_, i) => hayOnCredit(s, i));
+    $('packs').innerHTML = DATA.hayPacks.map((p, i) => {
+      const why = hayWaits(s, i);
+      return `<button type="button" class="choice" data-pack="${i}"${why ? ' disabled' : ''}><b>${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</b>${why ? `<small>${t.hayWaits[why]}</small>` : ''}</button>`;
+    }).join('');
+    $('credit').hidden = !DATA.hayPacks.some((_, i) => hayOnCredit(s, i) && !hayWaits(s, i));
     $('packs').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
       game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
       bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));

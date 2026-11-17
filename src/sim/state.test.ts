@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, hayWaits, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -136,8 +136,24 @@ describe('Sim', () => {
   it('sells hay for money, and on credit when the money is short', () => {
     const s = newGame(1), bought = apply(s, { type: 'buyHay', pack: 1 });
     expect([bought.feed, bought.money, bought.debt]).toEqual([s.feed + 10, s.money - 45, 0]);
-    const broke = { ...s, money: 10 }, credit = apply(broke, { type: 'buyHay', pack: 0 });
-    expect([credit.feed, credit.money, credit.debt]).toEqual([s.feed + 5, 10, 25]);
+    const broke = { ...s, money: 10, feed: 0 }, credit = apply(broke, { type: 'buyHay', pack: 0 });
+    expect([credit.feed, credit.money, credit.debt]).toEqual([5, 10, 25]);
+  });
+
+  it('gives hay on credit only while the store is low, and never more than the store holds (#87)', () => {
+    const s = { ...newGame(1), money: 0, feed: 0 };
+    // tapping again and again: credit stops once there is hay for a few nights
+    let spree = s;
+    for (let i = 0; i < 50; i++) spree = apply(spree, { type: 'buyHay', pack: 1 });
+    expect(hayNights(spree)).toBeGreaterThanOrEqual(DATA.hay.creditNights);
+    expect(spree.debt).toBeLessThanOrEqual(2 * DATA.hayPacks[1].price);
+    expect(hayWaits(spree, 1)).toBe('enough');
+    // with money: up to the store's size, then full
+    let rich = { ...s, money: 99999 };
+    for (let i = 0; i < 50; i++) rich = apply(rich, { type: 'buyHay', pack: 0 });
+    expect(rich.feed).toBe(DATA.hay.store);
+    expect(hayWaits(rich, 0)).toBe('full');
+    expect(apply(rich, { type: 'buyHay', pack: 0 })).toBe(rich);
   });
 
   it('never leaves the horses without a way to be fed, however long the money is gone', () => {

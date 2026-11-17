@@ -42,6 +42,8 @@ export const DATA = {
   hayLowNights: 2,
   /** Hay for sale in the feed store: bales and price per pack. */
   hayPacks: [{ bales: 5, price: 25 }, { bales: 10, price: 45 }],
+  /** The feed store holds `store` bales; Oma lets you buy on credit only while there is hay for fewer than `creditNights`. */
+  hay: { store: 80, creditNights: 3 },
   /** The bank lends this much at a time, while the debt stays below the limit. */
   loan: { amount: 100, debtLimit: 200 },
   /** Of every income, this share goes to paying back debt first. */

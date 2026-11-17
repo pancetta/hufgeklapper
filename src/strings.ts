@@ -15,7 +15,7 @@ export const t = {
   // save slots on the start screen
   slot: (n: number) => `Platz ${n}`,
   slotEmpty: 'Freier Platz',
-  slotInfo: (day: number, money: number) => `Tag ${day} · ${money} €`,
+  slotInfo: (day: number, money: number, debt = 0) => `Tag ${day} · ${money} €${debt ? ` · ${debt} € Schulden` : ''}`,
   resumeGame: 'Weiterspielen',
   newGame: 'Neues Spiel',
   exportSave: 'Sichern',
@@ -176,6 +176,9 @@ export const t = {
   endPartSure: 'Wirklich beenden?',
   boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
   owe: (n: number) => `Du schuldest ${n} €.`,
+  hayWaits: { full: 'So viel passt nicht mehr ins Futterlager.', enough: 'Anschreiben geht erst, wenn das Heu knapp wird.' } as Record<string, string>,
+  debt: (n: number) => `−${n} €`,
+  debtLabel: (n: number) => `Schulden: ${n} €`,
   omaCredit: 'Oma Hanne sagt: „Kein Geld? Dann lass das Heu anschreiben. Du zahlst später, wenn du etwas verdienst.“',
   loan: (n: number) => `${n} € von der Bank leihen`,
   omaLoan: 'Oma Hanne sagt: „Die Bank leiht dir Geld für den Tierarzt. Zurückgezahlt wird, wenn du etwas verdienst.“',

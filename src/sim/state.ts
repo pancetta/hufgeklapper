@@ -236,8 +236,16 @@ export const isSick = (h: Horse) => h.needs.health < DATA.needs.sickBelow;
 export const canPayVet = (s: State) => s.money >= DATA.vet.cost;
 export const canQuickCare = (s: State, what: Care) => s.careDone[what] >= DATA.quickCareAfter;
 export const canFeed = (s: State) => s.feed >= 1;
-/** Hay can always be had: paid if the money is there, else on credit, so the horses never go hungry for lack of it. */
+/** Paid if the money is there, else on credit while the store is low (see hayWaits), so the horses never go hungry for lack of it. */
 export const hayOnCredit = (s: State, pack: number) => s.money < DATA.hayPacks[pack].price;
+/**
+ * Why a hay pack can't be bought now: the store is full, or there's no money and still hay for a few nights (credit is
+ * help in need, not a shopping spree; with the store low it is always there, so the horses never go without).
+ */
+export function hayWaits(s: State, pack: number): 'full' | 'enough' | null {
+  if (s.feed + DATA.hayPacks[pack].bales > DATA.hay.store) return 'full';
+  return hayOnCredit(s, pack) && hayNights(s) >= DATA.hay.creditNights ? 'enough' : null;
+}
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
 /** A dead end: every horse of your own sick, no money for the vet and no more loans; nothing earns money any more. */
 export const stuck = (s: State) => s.horses.some(own) && s.horses.filter(own).every(isSick) && !canPayVet(s) && !canLoan(s);
@@ -680,7 +688,7 @@ function step(state: State, action: Action): State {
     }
     case 'buyHay': {
       const p = DATA.hayPacks[action.pack];
-      if (!p) return state;
+      if (!p || hayWaits(state, action.pack)) return state;
       const credit = hayOnCredit(state, action.pack);
       return {
         ...state, feed: state.feed + p.bales,
