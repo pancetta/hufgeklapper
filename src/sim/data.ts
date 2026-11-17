@@ -95,7 +95,7 @@ export const DATA = {
      * the course's straight length ridden at `speed`, times `time`; each started `timeFault` seconds over it is a
      * fault, and `giveUp` seconds over it the round ends, each jump left a fault.
      */
-    ride: { speed: 90, speedUp: 150, brake: 400, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, time: 3, timeFault: 5, giveUp: 45 },
+    ride: { speed: 90, speedUp: 150, brake: 400, turn: 4, reach: 10, takeoff: 26, half: 26, refuse: 35, stop: 0.9, tries: 3, time: 3, timeFault: 5, giveUp: 45 },
     arena: { w: 480, h: 300, fence: 14 },
     /** How high a class's poles rest (arena pixels): low for E, higher for A and L; the oxer spreads with it. */
     height: { E: 5, A: 7, L: 9 },

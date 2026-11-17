@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DATA } from './data';
-import { autopilot, type Course, follow, hopp, touchDown, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
+import { autopilot, type Course, follow, giveUp, hopp, touchDown, newRound, type Round, step, takeOffOffset, timeAllowed } from './round';
 
 const R = DATA.jumping.ride, DT = 1 / 60, E = DATA.jumping.courses.E;
 const judge = (o: number) => (Math.abs(o) <= 0.06 ? 'clear' : o < -DATA.jumping.early ? 'early' : 'fault');
@@ -132,6 +132,18 @@ describe('a round on the show-jumping arena', () => {
     let after = r;
     for (let i = 0; i < Math.ceil(R.stop / DT) + 1; i++) after = step(after, E, DT, null);
     expect(Math.cos(after.heading)).toBeLessThan(-0.99); // turned round: now heading west
+  });
+
+  it('a child who never says "Hopp!" is led round each jump after the third refusal and still finishes (#90)', () => {
+    const r = ride(E, newRound(E), () => false);
+    expect([r.done, r.next]).toEqual([true, E.jumps.length]);
+    expect(r.faults).toBeGreaterThanOrEqual(R.tries * E.jumps.length);
+    expect(r.t).toBeLessThan(timeAllowed(E) + R.giveUp); // through the finish, not given up for time
+  });
+
+  it('giving up ends the round: each jump left a fault (#90)', () => {
+    const r = giveUp(newRound(E), E);
+    expect([r.done, r.faults]).toEqual([true, E.jumps.length]);
   });
 
   it('ridden too askew, "Hopp!" does nothing and the horse refuses', () => {

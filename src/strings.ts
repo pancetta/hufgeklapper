@@ -123,6 +123,8 @@ export const t = {
   routineLeave: 'Aufhören',
   sleepBusy: (name: string) => `${name} ist noch nicht fertig. Trotzdem schlafen gehen?`,
   sleepAnyway: 'Ja, schlafen gehen',
+  jumpQuitSure: 'Wirklich aufhören? Dann zählt jedes Hindernis, das noch fehlt, als Fehler.',
+  jumpQuitYes: 'Ja, aufhören',
   routineLeaveSure: 'Wirklich aufhören?',
   things: {
     hand: 'Hand', halter: 'Halfter', rope: 'Strick', kit: 'Putzkiste', kardaetsche: 'Kardätsche', magic: 'Magic Brush', root: 'Wurzelbürste', hoofpick: 'Hufkratzer',
