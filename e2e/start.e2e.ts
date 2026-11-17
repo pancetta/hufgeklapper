@@ -761,6 +761,8 @@ test('a jumping round can be stopped: before the first way back to the farm for 
   await expect(page.getByText(t.jumpQuitSure)).toBeVisible();
   await page.getByRole('button', { name: t.jumpQuitYes }).tap();
   await expect(page.locator('#jump-end')).toContainText(t.jumpFaults(0, 'Kiwi').replace(/^0 /, ''));
+});
+
 test('picking a horse to ride: each says how good and how fresh it is, a tired one why not, the best is marked (#101)', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');

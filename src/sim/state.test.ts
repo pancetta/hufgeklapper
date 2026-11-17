@@ -459,6 +459,8 @@ describe('Sim', () => {
     for (let seed = 0; seed < 20; seed++) expect([...answerOrder(3, seed)].sort()).toEqual([0, 1, 2]);
     expect(answerOrder(3, 42)).toEqual(answerOrder(3, 42));
     expect(new Set(Array.from({ length: 20 }, (_, d) => answerOrder(3, d * 31 + 3).indexOf(0))).size).toBe(3);
+  });
+
   it('marks the best horse for a ride: may go today, most skill, then most energy (#101)', () => {
     const s = newGame(1), [a, b] = s.horses;
     const horses = [{ ...a, skills: { ...a.skills, jumping: 30 } }, { ...b, skills: { ...b.skills, jumping: 10 } }];
