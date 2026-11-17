@@ -1,0 +1,23 @@
+src/style.css
+  s_7657db1b41ed88::t_fe8a1cb86852db 125-127,353
+src/scene/routine.ts
+  s_7657db1b41ed88::t_7556c271c0cb9c 194-202
+  s_7657db1b41ed88::t_fe8a1cb86852db 242
+  s_7657db1b41ed88::t_421c921bded14a 324
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "35ae154173587ad3c3346322d1d31a71ce7daf69",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
