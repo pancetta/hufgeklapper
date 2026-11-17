@@ -122,6 +122,8 @@ canvas { image-rendering: pixelated; }
   pointer-events: none;
 }
 .topbar > * { pointer-events: auto; }
+.topbar > .stat, .topbar > button { flex-shrink: 0; white-space: nowrap; }
+.topbar > .farm-name { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
 .topbar button { font-size: calc(var(--fs) * 9 * var(--px)); padding: calc(3 * var(--px)) calc(8 * var(--px)); }
 .stat {
   display: inline-flex; align-items: center; gap: calc(3 * var(--px));
@@ -226,6 +228,7 @@ canvas { image-rendering: pixelated; }
 .routine-bar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: calc(4 * var(--px)); align-items: center;
   font-size: calc(var(--fs) * 8 * var(--px)); color: var(--paper); text-shadow: var(--px) var(--px) 0 var(--wood-dark); }
 .overlay.ride { padding: 0; background: var(--wood-dark); }
+.stat.debt { color: #b23a2b; }
 .status { color: #3c7a2a; }
 .status.sick { color: #c0392b; }
 
@@ -391,3 +394,4 @@ canvas { image-rendering: pixelated; }
 
 /* a boarder's horse in the stable: a blue nameplate (the card says whose it is) */
 .nameplate.guest { background: #d6e6f5; }
+.store-panel .choice { text-align: center; justify-items: center; }

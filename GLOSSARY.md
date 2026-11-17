@@ -211,4 +211,4 @@ pasture can be enlarged ("Weide vergrößern"), a paddock at a time.
 A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.
 
 **Safety net**:
-With no money, feed comes on credit ("anschreiben") and the bank gives a small loan ("Kredit"); an empty money box alone is never game over.
+With no money, feed comes on credit ("anschreiben") while the store is low (hay for fewer than three nights), up to what the feed store holds, and the bank gives a small loan ("Kredit"); an empty money box alone is never game over.

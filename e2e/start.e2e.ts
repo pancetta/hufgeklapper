@@ -145,6 +145,22 @@ test('no two labels on the farm overlap, on the smallest and the largest iPad', 
   }
 });
 
+test('the top bar fits on one line on every iPad, even with a long name, big money and debt (#87)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof am Bachufer');
+  await changeSave(page, (s) => { Object.assign(s, { money: 12345, debt: 1999, feed: 88, day: 123 }); });
+  await expect(page.getByRole('img', { name: t.debtLabel(1999) })).toBeVisible();
+  for (const size of [{ width: 1024, height: 768 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
+    await page.setViewportSize(size);
+    await page.evaluate(() => dispatchEvent(new Event('resize')));
+    await page.waitForTimeout(300);
+    const items = await page.locator('.topbar > :not(.spacer)').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
+    for (const r of items) expect(r.right, `at ${size.width}`).toBeLessThanOrEqual(size.width);
+    const mid = items.map((r) => (r.top + r.bottom) / 2);
+    expect(Math.max(...mid) - Math.min(...mid), `one line at ${size.width}`).toBeLessThan(8);
+  }
+});
+
 test('a new game: farm map, stable, horse card, then sleeping through the night', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Sonnenhof');
@@ -343,6 +359,7 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   await page.evaluate(() => {
     const save = JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!);
     save.state.money = 0;
+    save.state.feed = 2;
     localStorage.setItem('hufgeklapper.slot.0', JSON.stringify(save));
   });
   await page.reload();
@@ -350,7 +367,13 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   await page.getByRole('button', { name: t.places.feed }).tap();
   await expect(page.getByText(t.omaCredit)).toBeVisible();
   await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
-  await expect(page.locator('#hay')).toHaveText(t.hay(20));
+  await expect(page.locator('#hay')).toHaveText(t.hay(12));
+  // a quick second tap: hay for six nights now, so no more credit; the debt shows in the top bar
+  await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap({ force: true });
+  await expect(page.locator('#hay')).toHaveText(t.hay(12));
+  await expect(page.getByRole('button', { name: t.hayPackCredit(10, 45) })).toBeDisabled();
+  await expect(page.getByText(t.hayWaits.enough).first()).toBeVisible();
+  await expect(page.getByRole('img', { name: t.debtLabel(45) })).toHaveText(t.debt(45));
   await page.getByRole('button', { name: t.toFarm }).tap();
   await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByText(t.owe(45))).toBeVisible();
