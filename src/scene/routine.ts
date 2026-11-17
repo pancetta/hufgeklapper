@@ -219,11 +219,12 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
 
   // the horse walks to its new place (out of the box, back in, to the ring) instead of jumping there (#88); taps and
   // gestures use where it is going, so they don't wait for the walk
-  let shownX: number | null = null, lastT = 0, walking = 0;
+  let shownX: number | null = null, lastT = 0, walking = 0, was = where();
   function walk() {
     const goal = hx(), dt = Math.min(0.1, t - lastT);
     lastT = t;
-    if (shownX === null || Math.abs(goal - shownX) > m(6)) shownX = goal; // the first frame, or a far way (to the arena): no long walk
+    if (shownX === null || (where() !== was && (where() === 'arena' || was === 'arena'))) shownX = goal; // the first frame, or to and from the arena (the ride shows that way): no walk
+    was = where();
     const dx = goal - shownX, step = m(3) * dt; // a brisk walk
     walking = Math.abs(dx) < 0.5 ? 0 : Math.sign(dx);
     shownX = Math.abs(dx) <= step ? goal : shownX + Math.sign(dx) * step;
@@ -253,7 +254,8 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     if (has('reins', 'bridleOff')) line(LEATHER, bridle ? chx - 3 : nx - 4, bridle ? chy - 2 : ny + 8, ...P(x0 + w * 0.45, back - 1));
     // the rope from the halter to the ring
     const tied = has('tie', 'untie') || has('tie2', 'untie2');
-    if (tied) line(ROPE, halterNeck ? nx - 2 : chx, halterNeck ? ny + 10 : chy, L.ring, L.foot - L.ringY + 7);
+    if (tied && !walking) line(ROPE, // (not while it walks mirrored: tied mid-walk, the rope waits until it stands)
+      halterNeck ? nx - 2 : chx, halterNeck ? ny + 10 : chy, L.ring, L.foot - L.ringY + 7);
     // hooves and buckles a gesture waits for; arrows where to brush
     if (gesture?.kind === 'hooves') for (const h of hooves) ring(X + h.x, L.foot + 2, h.done);
     if (gesture?.kind === 'buckles') for (const b of buckles) ring(X + b.x, Y + b.y - up, b.done);
