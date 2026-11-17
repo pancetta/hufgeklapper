@@ -163,12 +163,6 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     const bx = L.box, bw = L.boxW, bh = m(2.3);
     rect('#3b2412', bx, L.foot - bh, bw, bh); rect('#c9a75a', bx, L.foot - 8, bw, 8);
     rect(LEATHER_DARK, bx - 3, L.foot - bh - 4, bw + 6, 4); rect(LEATHER_DARK, bx - 3, L.foot - bh, 3, bh); rect(LEATHER_DARK, bx + bw, L.foot - bh, 3, bh);
-    // a hook by the box for halter and rope, while they aren't on the horse
-    const hook = bx + bw + 6, hookY = L.foot - m(1.6);
-    rect(METAL, hook, hookY, 2, 3);
-    const halterOn = has('halter', 'halterOff') || has('halterNeck2', 'halterOff2'), tied = has('tie', 'untie') || has('tie2', 'untie2') || has('leadOut', 'tie');
-    if (!halterOn) { line(HALTER, hook, hookY + 3, hook - 3, hookY + 12); line(HALTER, hook + 1, hookY + 3, hook + 4, hookY + 12); line(HALTER, hook - 3, hookY + 12, hook + 4, hookY + 12); }
-    if (!tied) for (let i = 0; i < 3; i++) line(ROPE, hook - 2 + i, hookY + 4, hook - 2 + i * 2, hookY + 18);
     // the tie ring on its plate, at the height of a horse's head
     const ry = L.foot - L.ringY;
     rect('#4a4a5e', L.ring - 3, ry - 6, 6, 6);
@@ -195,6 +189,15 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     rect('#f5f0e0', L.arena + 4, L.foot - m(0.8), W - L.arena, 2); rect('#f5f0e0', L.arena + 4, L.foot - m(0.45), W - L.arena, 2);
     for (let x = L.arena + 8; x < W; x += m(1.2)) rect('#f5f0e0', x, L.foot - m(0.9), 2, m(0.9) - 6);
     rect(LEATHER_DARK, L.arena - 4, L.foot - ah - 4, W - L.arena + 4, 4); rect(LEATHER_DARK, L.arena - 4, L.foot - ah, 4, ah - 6);
+  }
+
+  /** The hook by the box for halter and rope, while they aren't on the horse; in front of the door swung open against it (#119). */
+  function drawHook() {
+    const hook = L.box + L.boxW + 6, hookY = L.foot - m(1.6);
+    rect(METAL, hook, hookY, 2, 3);
+    const halterOn = has('halter', 'halterOff') || has('halterNeck2', 'halterOff2'), tied = has('tie', 'untie') || has('tie2', 'untie2') || has('leadOut', 'tie');
+    if (!halterOn) { line(HALTER, hook, hookY + 3, hook - 3, hookY + 12); line(HALTER, hook + 1, hookY + 3, hook + 4, hookY + 12); line(HALTER, hook - 3, hookY + 12, hook + 4, hookY + 12); }
+    if (!tied) for (let i = 0; i < 3; i++) line(ROPE, hook - 2 + i, hookY + 4, hook - 2 + i * 2, hookY + 18);
   }
 
   /**
@@ -236,7 +239,7 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     if (walking > 0) { ctx.translate(2 * X + x0 + x1, 0); ctx.scale(-1, 1); } // walking to the right: it faces the way it goes
     const sheet = has('saddleOn', 'saddleOff') ? saddled : plain;
     shadow(ctx, X + x0 + w / 2, L.foot - 1, w / 2, 3, 0.25);
-    ctx.drawImage(sheet, 128, 0, 128, legs, X, Y - up, 128, legs);
+    ctx.drawImage(sheet, 128, 0, 128, legs + up, X, Y - up, 128, legs + up); // bobbing up: one more row, no gap above the legs (#119)
     ctx.drawImage(sheet, 128, legs, 128, 128 - legs, X, Y + legs, 128, 128 - legs);
     const P = (x: number, y: number) => [X + x, Y + y - up] as const;
     const [mx, my] = P(x0 + 5, muzzle[0]), [px_, py] = P(headX, poll + 1), [chx, chy] = P(x0 + 7, muzzle[1] + 1);
@@ -318,7 +321,7 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     drawAisle(); drawThings();
     walk();
     const horse = () => { drawHorse(); ctx.restore(); };
-    if (where() === 'box' && !walking) { horse(); drawDoor(); } else { drawDoor(); horse(); }
+    if (where() === 'box' && !walking) { horse(); drawDoor(); drawHook(); } else { drawDoor(); drawHook(); horse(); }
     drawRider(); drawBits();
     requestAnimationFrame(frameDraw);
   }

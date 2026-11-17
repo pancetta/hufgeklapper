@@ -122,6 +122,9 @@ canvas { image-rendering: pixelated; }
   pointer-events: none;
 }
 .topbar > * { pointer-events: auto; }
+/* in Safari's whole screen its own close button (X) sits top left and the status bar on top (#119) */
+:fullscreen .topbar { padding-left: max(76px, env(safe-area-inset-left, 0px)); padding-top: max(24px, env(safe-area-inset-top, 0px)); }
+:fullscreen .jump-hud { top: max(28px, calc(env(safe-area-inset-top, 0px) + 12px)); }
 .topbar > .stat, .topbar > button { flex-shrink: 0; white-space: nowrap; }
 .topbar > .farm-name { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
 .topbar button { font-size: calc(var(--fs) * 9 * var(--px)); padding: calc(3 * var(--px)) calc(8 * var(--px)); }
@@ -347,6 +350,7 @@ canvas { image-rendering: pixelated; }
 /* cross-country: the horse's breath top left, the paces along the bottom; the land itself is "Hopp!" */
 #xc { touch-action: none; }
 #xc-tip { top: 64px; } /* under the counters, never over them */
+#jump-tip { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); } /* the start is at the top of the arena: the hint below it (#119) */
 .rules { text-align: left; margin: 0; padding-left: 1.2em; font-size: calc(var(--fs) * 18px); }
 .rules li { margin: 2px 0; }
 .xc-breath { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px; display: flex; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px);
