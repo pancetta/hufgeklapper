@@ -121,6 +121,8 @@ export const t = {
   routineYes: 'Ja, Schritt für Schritt',
   routineNo: 'Nein, gleich los',
   routineLeave: 'Aufhören',
+  sleepBusy: (name: string) => `${name} ist noch nicht fertig. Trotzdem schlafen gehen?`,
+  sleepAnyway: 'Ja, schlafen gehen',
   routineLeaveSure: 'Wirklich aufhören?',
   things: {
     hand: 'Hand', halter: 'Halfter', rope: 'Strick', kit: 'Putzkiste', kardaetsche: 'Kardätsche', magic: 'Magic Brush', root: 'Wurzelbürste', hoofpick: 'Hufkratzer',
