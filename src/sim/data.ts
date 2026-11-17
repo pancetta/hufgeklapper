@@ -208,7 +208,12 @@ export const DATA = {
     breeds: ['haflinger', 'islaender', 'reitpony', 'warmblut', 'quarter'],
     names: ['Blitz', 'Sternchen', 'Fanny', 'Moritz', 'Pünktchen', 'Lotte', 'Max', 'Wolke', 'Karamell', 'Nugget', 'Bella', 'Sammy', 'Flocke', 'Sunny'],
   },
-  build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 } },
+  build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 }, pasture: { cost: 200, places: 2, max: 3 } },
+  /**
+   * The pasture (#79): every horse on the farm grazes there, boarders' too; a pony needs 1 place, a big horse 2. It
+   * starts with `start` places; from the Reitschule on it can be enlarged (`build.pasture`) step by step.
+   */
+  pasture: { start: 4, need: { pony: 1, horse: 2 } },
   /**
    * The Pensionsstall (#62, #63). A groom ("Pferdepfleger") cares for `horses` horses each night for `wage` a day;
    * one of each of `names` at most. Boarders ("Einsteller") bring their horse into a free stall and pay each day; badly kept

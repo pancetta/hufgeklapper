@@ -25,7 +25,7 @@ export function random(seed: number) {
   };
 }
 
-type Dir = 'N' | 'W' | 'S' | 'E';
+export type Dir = 'N' | 'W' | 'S' | 'E';
 const ROW: Record<Dir, number> = { N: 0, W: 1, S: 2, E: 3 };
 const dirOf = (dx: number, dy: number): Dir => (Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'W' : 'E') : dy < 0 ? 'N' : 'S');
 
@@ -35,7 +35,7 @@ type HorseAnim = Anim | 'eat';
  * Where a horse's sheet for an animation lives in the image map. Walking, standing and galloping use the look's
  * composed sheet; grazing comes from the classic LPC sheet, which has no layers.
  */
-function horseKey(look: Look, anim: HorseAnim) {
+export function horseKey(look: Look, anim: HorseAnim) {
   if (anim === 'eat') return `horses/${look.build === 'pony' ? 'pony-' : ''}classic-${COATS[look.coat].sheet}.png`;
   return `horse:${anim}:${JSON.stringify(look)}`;
 }
@@ -47,7 +47,7 @@ function horseFrame(anim: HorseAnim, dir: Dir, f: number): Rect {
 }
 
 /** A horse drawn at its hooves (x, y); lift raises it for a jump while the shadow stays on the ground. */
-function drawHorse(ctx: CanvasRenderingContext2D, img: Images, look: Look, anim: HorseAnim, dir: Dir, f: number, x: number, y: number, lift = 0) {
+export function drawHorse(ctx: CanvasRenderingContext2D, img: Images, look: Look, anim: HorseAnim, dir: Dir, f: number, x: number, y: number, lift = 0) {
   const side = dir === 'W' || dir === 'E';
   shadow(ctx, x, y - 1, side ? (look.build === 'pony' ? 22 : 26) : 11, 4, 0.24 - lift * 0.004);
   blit(ctx, img[horseKey(look, anim)], horseFrame(anim, dir, f), x - 64, y - 93 - lift);
@@ -111,7 +111,7 @@ const RIDER_PONY: Look = { build: 'pony', coat: 'schimmel', mane: 'blond', blank
  * Grazing uses the classic sheet, which has no layers and a black mane painted in: only plain horses whose coat
  * has a black mane can graze without changing their looks.
  */
-const grazes = (l: Look) => l.build === 'horse' && !l.mane && !l.face && !l.legs && !l.saddle && !l.blanket && COATS[l.coat].mane === 'schwarz';
+export const grazes = (l: Look) => l.build === 'horse' && !l.mane && !l.face && !l.legs && !l.saddle && !l.blanket && COATS[l.coat].mane === 'schwarz';
 
 /** Every plain image the farm's life draws from (for preloading). */
 export function lifeSheets(herd: Look[]) {

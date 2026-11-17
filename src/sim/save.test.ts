@@ -48,6 +48,13 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives a save from version 15 a pasture not enlarged yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { pasture: _p, ...built } = now.state.built;
+    const p = parseSave(text({ ...now, version: 15, state: { ...now.state, version: 15, built } }));
+    expect(p.ok && p.save.state.built.pasture).toBe(0);
+  });
+
   it('gives the horses of a save from version 14 a progress log that starts with their skills now', () => {
     const now = toSave(played(), 'Hof');
     const horses = now.state.horses.map(({ log: _l, ...h }) => h);
@@ -97,7 +104,7 @@ describe('save files', () => {
     const now = toSave(played(), 'Hof');
     const { inspectionFailedDay: _a, market: _b, built: _c, ...old } = now.state;
     const p = parseSave(text({ ...now, version: 9, state: { ...old, version: 9 } }));
-    expect(p.ok && [p.save.state.inspectionFailedDay, p.save.state.market, p.save.state.built]).toEqual([0, [], { stalls: 0, arena: 0 }]);
+    expect(p.ok && [p.save.state.inspectionFailedDay, p.save.state.market, p.save.state.built]).toEqual([0, [], { stalls: 0, arena: 0, pasture: 0 }]);
   });
 
   it('gives a save from version 8 (before goals) no goals and nothing explained', () => {

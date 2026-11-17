@@ -6,7 +6,7 @@
 import { DATA } from './data';
 import {
   type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck, gameOver,
-  showWaits, stalls, xcWindow,
+  showWaits, stalls, xcWindow, noRoom,
 } from './state';
 
 export type Strategy = 'careful' | 'careless' | 'sport';
@@ -48,6 +48,10 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     return n;
   };
   let invested = 0, xcRides = 0;
+  /** A stall is free but the pasture is full (#79): enlarge it, if the money allows. */
+  const roomOnPasture = (build: Horse['look']['build']) => {
+    if (noRoom(s, build) === 'pasture' && !buildWaits(s, 'pasture') && s.money > DATA.build.pasture.cost + 150) act({ type: 'build', what: 'pasture' });
+  };
   const best = (c: Horse[]) => [...c].sort((a, b) => b.skills.jumping - a.skills.jumping)[0];
   /** The highest class a horse may start in today: a child picks the class with the biggest prize. */
   const topClass = (h: Horse) => SHOW_CLASSES.filter((c) => !classWaits(s, h, c)).pop();
@@ -108,14 +112,14 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     // the Pensionsstall: a groom once there is money for a few days' wages, boarders into free stalls, any rider
     if (s.stage === 'pensionsstall' && strategy !== 'careless') {
       if (!s.staff && s.money > DATA.staff.wage * 10) act({ type: 'hire' });
-      for (const o of [...s.boardOffers]) if (s.horses.length < stalls(s)) act({ type: 'board', offer: o.id });
+      for (const o of [...s.boardOffers]) { roomOnPasture(o.look.build); act({ type: 'board', offer: o.id }); }
       if (s.partOffer) act({ type: 'partBoard' });
     }
     if (atLeast(s, 'reitschule') && strategy !== 'careless') {
       if (!buildWaits(s, 'stalls') && s.money > DATA.build.stalls.cost + 200) act({ type: 'build', what: 'stalls' });
       // the careful player buys the cheapest horse, the sport player the best jumper it can afford (class L needs one)
       const offer = s.market.filter((o) => o.price + 150 < s.money).sort((a, b) => (strategy === 'sport' ? scope(b) - scope(a) : 0) || a.price - b.price)[0];
-      if (offer && s.horses.length < stalls(s)) act({ type: 'buyHorse', offer: offer.id });
+      if (offer && s.horses.length < stalls(s)) { roomOnPasture(offer.look.build); act({ type: 'buyHorse', offer: offer.id }); }
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }
     invested -= s.today.filter((e) => e.what === 'horse' || e.what === 'build').reduce((n, e) => n + e.amount, 0);

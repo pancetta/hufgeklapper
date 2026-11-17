@@ -477,6 +477,37 @@ test('cross-country practice: closed before the riding badge; then pace, breath 
   await expect(page.getByRole('button', { name: t.places.arena })).toBeVisible();
 });
 
+test('the pasture: places for every horse, enlarged step by step; a horse that does not fit on it says so at the market', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  // a Reitschule with money, two ponies (2 of 4 places) and a big horse already bought (4 of 4)
+  await changeSave(page, (s) => {
+    Object.assign(s, { stage: 'reitschule', money: 2000 });
+    (s.built as { stalls: number }).stalls = 1;
+    const horses = s.horses as { id: string; name: string; breed: string; look: object; log: number[][] }[];
+    horses.push({ ...horses[0], id: 'big', name: 'Bruno', breed: 'warmblut', look: { build: 'horse', coat: 'brauner' } });
+    s.market = [{ id: 'nugget', name: 'Nugget', breed: 'haflinger', look: { build: 'pony', coat: 'fuchs' }, price: 300 }];
+  });
+  await expect(page.getByRole('button', { name: t.pastureLabel(4, DATA.pasture.start) })).toBeVisible();
+  // the market: a stall is free, but the pasture is full
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.locator('[data-offer="nugget"]')).toBeDisabled();
+  await expect(page.locator('[data-offer="nugget"]')).toContainText(t.pastureFullShort);
+  await expect(page.getByText(t.pastureFull)).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  // on the pasture: enlarge it, then the pony can come
+  await page.getByRole('button', { name: t.pastureLabel(4, DATA.pasture.start) }).tap();
+  await expect(page.locator('#use')).toHaveText(t.pastureUse(4, DATA.pasture.start));
+  await page.getByRole('button', { name: t.pastureGrow(DATA.build.pasture.places, DATA.build.pasture.cost) }).tap();
+  await expect(page.getByText(t.pastureGrown)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.locator('#use')).toHaveText(t.pastureUse(4, DATA.pasture.start + DATA.build.pasture.places));
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await page.locator('[data-offer="nugget"]').tap();
+  await expect(page.getByText(t.boughtHorse('Nugget'))).toBeVisible();
+});
+
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('./');

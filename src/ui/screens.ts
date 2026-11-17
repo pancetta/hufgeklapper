@@ -22,9 +22,10 @@ import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
 import { startRoutine } from '../scene/routine';
 import { startCrossCountry } from '../scene/xc';
+import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -352,7 +353,7 @@ export function showFarm(intro = false) {
     if (target === 'stall') showStable();
     else if (target === 'board') explain('board').then(showShop);
     else if (target === 'arena') explain('arena').then(arena);
-    else if (target === 'pasture') bar.toast(t.pasture);
+    else if (target === 'pasture') showPasture();
     else if (target === 'xc') { if (s.badges < 1) bar.toast(t.xcLater); else pickHorse(t.whichHorseXc, showCrossCountry, undefined, undefined, DATA.crossCountry.energy); }
     else if (target === 'feed') explain('store').then(showStore);
     else if (!canBuild(s)) bar.toast(t.freePlot);
@@ -483,9 +484,10 @@ export function showFarm(intro = false) {
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${atLeast(s, 'pensionsstall') ? pension(s) : ''}
       ${atLeast(s, 'reitschule') ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
-        const full = s.horses.length >= stalls(s), poor = s.money < o.price;
-        return `<button type="button" data-offer="${o.id}"${full || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))}${!full && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
-      }).join('') + (s.horses.length >= stalls(s) ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.marketEmpty}</p>`}` : ''}
+        // each offer says why it can't come: no stall, no room on the pasture (a big horse takes two places), no money
+        const room = noRoom(s, o.look.build), poor = s.money < o.price;
+        return `<button type="button" data-offer="${o.id}"${room || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : !room && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
+      }).join('') + roomNote(s) : `<p>${t.marketEmpty}</p>`}` : ''}
       <button type="button" id="close-shop">${t.close}</button>`;
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
       const o = game.get().market.find((x) => x.id === b.dataset.offer);
@@ -509,14 +511,19 @@ export function showFarm(intro = false) {
   let shopFrom = { staff: 0, horses: 0 };
   function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
   /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
+  /** What stands in the way of another horse: the stalls, or the pasture with a word on enlarging it. */
+  function roomNote(s: State) {
+    if (s.horses.length >= stalls(s)) return `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>`;
+    return grazing(s) + 1 > pasture(s) ? `<p class="oma">${buildWaits(s, 'pasture') === 'built' ? t.pastureBiggest : t.pastureFull}</p>` : '';
+  }
   function pension(s: State) {
-    const S = DATA.staff, full = s.horses.length >= stalls(s), offer = s.partOffer, horse = offer && s.horses.find((h) => h.id === offer.horse);
+    const S = DATA.staff, offer = s.partOffer, horse = offer && s.horses.find((h) => h.id === offer.horse);
     return `<h3>${t.staffTitle}</h3>
       ${s.staff ? `<p>${t.hired(S.names.slice(0, s.staff).join(' und '), s.staff > 1)}</p><button type="button" id="fire" class="small">${t.fire(S.names[s.staff - 1])}</button>` : ''}
       ${s.staff < S.names.length ? `<button type="button" id="hire">${t.hire(S.names[s.staff], S.wage, S.horses)}</button>` : ''}
       <h3>${t.boardersTitle}</h3>
-      ${s.boardOffers.length ? s.boardOffers.map((o) => `<button type="button" data-board="${o.id}"${full ? ' disabled' : ''}>${t.boardOffer(esc(o.owner), esc(o.name), BREEDS[o.breed].label, o.pay)}</button>`).join('')
-        + (full ? `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>` : '') : `<p>${t.noBoarders}</p>`}
+      ${s.boardOffers.length ? s.boardOffers.map((o) => { const room = noRoom(s, o.look.build); return `<button type="button" data-board="${o.id}"${room ? ' disabled' : ''}>${t.boardOffer(esc(o.owner), esc(o.name), BREEDS[o.breed].label, o.pay)} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : ''}</button>`; }).join('')
+        + roomNote(s) : `<p>${t.noBoarders}</p>`}
       ${offer && horse ? `<h3>${t.partTitle}</h3><p>${t.partOffer(esc(offer.rider), esc(horse.name), offer.pay)}</p><button type="button" id="part">${t.partYes}</button>` : ''}`;
   }
   /** Builds on a plot after asking: the price and what it brings, or why not now; the map shows it at once. */
@@ -539,7 +546,7 @@ export function showFarm(intro = false) {
     ['xc', WORLD.width - 60, 14 * 32 + 14], // where the lane leaves the farm (kept on the screen, see place)
   ];
   const labels = $('labels');
-  labels.innerHTML = places.map(([id, x, y]) => `<button class="label" type="button" data-place="${id}" data-x="${x}" data-y="${y}">${id === 'free' && game.get().built.stalls ? t.shelter : t.places[id] ?? id}</button>`).join('')
+  labels.innerHTML = places.map(([id, x, y]) => `<button class="label" type="button" data-place="${id}" data-x="${x}" data-y="${y}">${id === 'free' && game.get().built.stalls ? t.shelter : id === 'pasture' ? t.pastureLabel(grazing(game.get()), pasture(game.get())) : t.places[id] ?? id}</button>`).join('')
     + '<span id="pupils"></span>';
   labels.querySelectorAll<HTMLButtonElement>('[data-place]').forEach((b) => b.addEventListener('click', () => tap(b.dataset.place!)));
   /** Puts every label over its world point, centred (set here, not with a CSS transform: WebKit then misses taps on it). */
@@ -1080,4 +1087,24 @@ function progressChart(h: Horse) {
     </svg>
     <p class="axis"><span>${t.chartFrom}</span><span>${t.chartToday}</span></p>
     <p class="legend"><span class="jump">■ ${t.jumping}</span> <span class="xc">■ ${t.crossCountry}</span> <span>${t.chartLimits}</span></p><p>${t.weekGain(j, xc)}</p></div>`;
+}
+
+/**
+ * The pasture (#79): every horse of the farm grazing, how many places they take of how many there are (a pony 1, a
+ * big horse 2), and land to add, step by step from the Reitschule on.
+ */
+function showPasture() {
+  const s = game.get(), why = buildWaits(s, 'pasture'), P = DATA.build.pasture;
+  const $ = screen(`<canvas id="pasture" aria-hidden="true"></canvas>${topBar()}
+    <aside class="pasture-panel"><h2>${t.pastureTitle}</h2><p id="use" role="status">${t.pastureUse(grazing(s), pasture(s))}</p>
+      <button type="button" id="grow"${why ? ' disabled aria-describedby="grow-why"' : ''}>${t.pastureGrow(P.places, P.cost)}</button><button type="button" id="to-farm">${t.toFarm}</button>
+      <p class="oma"${why ? ' id="grow-why"' : ''}>${why ? `${t.pastureHow} ${t.pastureWaits[why]}` : t.pastureHow}</p></aside>`);
+  const scene = startPasture($<HTMLCanvasElement>('pasture'), { herd: s.horses.map((h) => h.look), built: s.built.pasture, max: P.max });
+  const bar = wireTopBar($, () => {});
+  $('grow').addEventListener('click', () => {
+    game.dispatch({ type: 'build', what: 'pasture' });
+    if (game.get().built.pasture > s.built.pasture) { showPasture(); omaSays(t.pastureGrown); } // the new fence on the picture
+  });
+  $('to-farm').addEventListener('click', () => showFarm());
+  leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
 }

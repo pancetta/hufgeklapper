@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -577,6 +577,28 @@ describe('Sim', () => {
     expect([gained(kiwi()), gained(kiwi(), 7)]).toEqual([[0, 0], [DATA.jumping.gain.clear, DATA.crossCountry.gain.faults]]); // a new day; the week still has it
     for (let i = 0; i < DATA.progress.days + 3; i++) s = apply(s, { type: 'sleep' });
     expect(kiwi().log).toHaveLength(DATA.progress.days); // only the last days are kept
+  });
+
+  it('the pasture: a pony takes 1 place, a big horse 2; a horse comes only with a free stall and room on the pasture; it grows step by step', () => {
+    const P = DATA.build.pasture;
+    const school: State = { ...newGame(1), stage: 'reitschule', money: 5000, built: { stalls: 1, arena: 0, pasture: 0 } };
+    expect([pasture(school), grazing(school)]).toEqual([DATA.pasture.start, 2]); // two ponies
+    const big = { id: 'big', name: 'Big', breed: 'warmblut' as const, look: { build: 'horse' as const, coat: 'brauner' as const }, price: 400 };
+    const pony = { ...big, id: 'small', name: 'Small', breed: 'haflinger' as const, look: { build: 'pony' as const, coat: 'fuchs' as const } };
+    // the big horse fits (2 + 2 = 4), then the pasture is full for a pony too, though a stall is free
+    let s = apply({ ...school, market: [big, pony] }, { type: 'buyHorse', offer: 'big' });
+    expect([s.horses.length, grazing(s), noRoom(s, 'pony')]).toEqual([3, 4, 'pasture']);
+    expect(apply(s, { type: 'buyHorse', offer: 'small' })).toBe(s);
+    // more land: +2 places for its price, up to the most there is
+    s = apply(s, { type: 'build', what: 'pasture' });
+    expect([pasture(s), s.money]).toEqual([DATA.pasture.start + P.places, 5000 - 400 - P.cost]);
+    s = apply(s, { type: 'buyHorse', offer: 'small' });
+    expect(s.horses.length).toBe(4);
+    for (let i = 0; i < P.max + 2; i++) s = apply(s, { type: 'build', what: 'pasture' });
+    expect([s.built.pasture, buildWaits(s, 'pasture')]).toEqual([P.max, 'built']);
+    // not before the Reitschule; and a full stable says so first
+    expect(buildWaits(newGame(1), 'pasture')).toBe('stage');
+    expect(noRoom({ ...s, built: { ...s.built, stalls: 0 } }, 'pony')).toBe('stall');
   });
 
   describe('the Pensionsstall', () => {
