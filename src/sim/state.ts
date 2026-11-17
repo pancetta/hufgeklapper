@@ -411,6 +411,16 @@ export function showResult(s: State, h: Horse, faults: number, rider: string, c:
 
 /** The quiz's score: in the quiz data the right answer of each question comes first (index 0). */
 export const quizScore = (answers: number[]) => answers.filter((a) => a === 0).length;
+/**
+ * The order to show a question's `n` answers in (indices into its answers, 0 the right one): shuffled, the same for
+ * the same `seed` (the day and the question), so a reload mid-exam doesn't reshuffle (#98).
+ */
+export function answerOrder(n: number, seed: number) {
+  let r = Math.abs(Math.floor(seed)) % 2147483646 + 1;
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { r = (r * 16807) % 2147483647; const j = r % (i + 1); [order[i], order[j]] = [order[j], order[i]]; }
+  return order;
+}
 
 /** How a pupil and a horse fit: a small child belongs on a pony, a big one on a horse. */
 export function fit(p: Pupil, h: Horse): keyof typeof DATA.lessons.fit {

@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -730,7 +730,7 @@ function podium(end: HTMLElement, table: ShowRow[]) {
 }
 
 /**
- * Riding badge 1: Oma Hanne asks five care questions (the answers in turn order, the right one not always first),
+ * Riding badge 1: Oma Hanne asks five care questions (the answers shuffled per day, the right one not always first),
  * then the player picks a horse for the jumping round.
  */
 function showBadge() {
@@ -757,10 +757,10 @@ function showInspection() {
 }
 
 /**
- * A quiz in a speech bubble over the farm: the speaker asks each question (the answers in turn order, so the right
- * one, first in the data, moves around), says right or wrong, then hands the chosen answers to `done`.
+ * A quiz in a speech bubble over the farm: the speaker asks each question (the answers shuffled per day by
+ * answerOrder, so the right one, first in the data, moves around), says right or wrong, then hands the chosen answers to `done`.
  */
-function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: string; a: { text: string; icon?: Parameters<typeof icon>[0] }[] }[],
+function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: string; a: { text: string }[] }[],
   done: (picked: number[], ui: { say: (text: string) => void; buttons: (html: string, on: (b: HTMLButtonElement) => void) => void; end: (text: string) => void }) => void) {
   const $ = screen(`<canvas id="farm" aria-hidden="true"></canvas>
     <section class="overlay talk"><div class="sheet bubble"><img src="${portrait(who)}" alt="${who === 'oma' ? t.omaHanne : t.inspector}"><p aria-live="polite"></p>
@@ -783,9 +783,9 @@ function quizScreen(who: 'oma' | 'inspector', intro: string, questions: { q: str
       say: (text) => { say.textContent = text; }, buttons,
       end: (text) => { say.textContent = text; buttons(`<button type="button">${t.toFarm}</button>`, () => showFarm()); },
     });
-    const q = questions[i], order = q.a.map((_, k) => (k + i) % q.a.length);
+    const q = questions[i], order = answerOrder(q.a.length, game.get().day * 31 + i * 7 + 3);
     say.textContent = q.q;
-    buttons(order.map((k) => `<button type="button" data-a="${k}">${q.a[k].icon ? `<img class="icon" src="${icon(q.a[k].icon!)}" alt="">` : ''}${q.a[k].text}</button>`).join(''), (b) => {
+    buttons(order.map((k) => `<button type="button" data-a="${k}">${q.a[k].text}</button>`).join(''), (b) => {
       picked.push(Number(b.dataset.a)); // shown right or wrong here; the Sim scores the answers itself
       say.textContent = b.dataset.a === '0' ? t.quizRight : t.quizWrong(q.a[0].text);
       next(() => ask(i + 1));

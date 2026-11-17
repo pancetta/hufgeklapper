@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, hayWaits, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, hayWaits, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -453,6 +453,12 @@ describe('Sim', () => {
 
   it('shows no minus points on the podium, however bad the round (#104)', () => {
     expect([t.points(-39), t.points(0), t.points(82)]).toEqual(['0 Punkte', '0 Punkte', '82 Punkte']);
+  });
+
+  it('shuffles quiz answers: every answer once, the same for the same day, the right one not always in one place (#98)', () => {
+    for (let seed = 0; seed < 20; seed++) expect([...answerOrder(3, seed)].sort()).toEqual([0, 1, 2]);
+    expect(answerOrder(3, 42)).toEqual(answerOrder(3, 42));
+    expect(new Set(Array.from({ length: 20 }, (_, d) => answerOrder(3, d * 31 + 3).indexOf(0))).size).toBe(3);
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
