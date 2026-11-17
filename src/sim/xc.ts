@@ -15,7 +15,7 @@ export type XcCourse = { length: number; obstacles: XcObstacle[]; optimum: [numb
  * Why a refusal: no "Hopp!" in time, a tap too early, too fast at water or a ditch, or too slow (a walk) to jump;
  * `skip` after the third refusal at one obstacle: the horse is led round it.
  */
-export type Refusal = 'late' | 'early' | 'fast' | 'slow' | 'skip';
+export type Refusal = 'late' | 'early' | 'fast' | 'slow' | 'blown' | 'skip';
 export type XcRound = {
   s: number; v: number; // metres along, metres a second
   pace: Pace; stamina: number; // 0–1
@@ -126,8 +126,8 @@ function finishLine(r: XcRound, c: XcCourse): XcRound {
 export function xcHopp(r: XcRound, c: XcCourse, window: number): XcRound {
   const off = xcOffset(r, c), o = c.obstacles[r.next], half = windowNow(r, window) / 2;
   if (off === null || !o || off < -half - X.early) return r;
+  if (r.v < X.pace.trot - 0.2) return refuse(r, o, r.blown ? 'blown' : 'slow'); // a walk never jumps (out of breath it can't trot yet)
   if (off < -half) return refuse(r, o, 'early');
-  if (r.v < X.pace.trot - 0.2) return refuse(r, o, 'slow');
   if (careful(o.kind) && tooFast(r.v)) return refuse(r, o, 'fast');
   const fly = (X.takeoff + X.landing - off * r.v) / Math.max(r.v, 1);
   return { ...r, air: { from: r.t, to: r.t + Math.max(0.3, fly) } };

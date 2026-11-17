@@ -75,6 +75,7 @@ describe('a cross-country round', () => {
     expect(xcHopp(at(0, X.pace.trot), c, 0.4).air).not.toBeNull();
     expect(xcHopp(at(-0.5, X.pace.trot), c, 0.4)).toMatchObject({ refused: 'early', faults: 1 });
     expect(xcHopp(at(-3, X.pace.trot), c, 0.4)).toEqual(at(-3, X.pace.trot)); // far off: nothing yet
+    expect(xcHopp({ ...at(-0.5, X.pace.walk), blown: true }, c, 0.4)).toMatchObject({ refused: 'blown' }); // out of breath: why it can't jump
     const course = xcCourse(1), drummed = ride(course, careful(course), { drum: true });
     expect(drummed.r.faults).toBeGreaterThan(2);
   });

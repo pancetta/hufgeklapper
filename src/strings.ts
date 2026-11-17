@@ -223,6 +223,7 @@ export const t = {
     late: 'Verweigert! Tippe „Hopp!“, wenn ihr am grünen Streifen seid.', early: 'Zu früh! Erst am grünen Streifen „Hopp!“ tippen.',
     fast: 'Zu schnell! Vor Wasser und Graben erst langsamer werden.', slow: 'Im Schritt springt es nicht. Erst antraben!',
     skip: 'Dreimal verweigert – ihr reitet außen herum und weiter geht es.',
+    blown: 'Aus der Puste – im Schritt springt es nicht. Erst verschnaufen, dann antraben.',
   } as Record<string, string>,
   xcAhead: { water: 'Wasser! Langsamer werden: Trab oder Schritt.', ditch: 'Ein Graben! Langsamer werden: Trab.' } as Record<string, string>,
   xcTired: (pony: boolean) => `Dein ${pony ? 'Pony' : 'Pferd'} ist aus der Puste! Reite ein Stück im Schritt – vor dem nächsten Sprung wieder antraben.`,

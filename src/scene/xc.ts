@@ -142,7 +142,7 @@ export async function startCrossCountry(canvas: HTMLCanvasElement, o: XcOptions)
       if (x < -X.waterLength * M - 40 || x > W + 60) return;
       // the green take-off strip in front of the next jump: as wide as the window at this speed
       if (i === r.next && ob.kind !== 'water') {
-        const v = Math.max(r.v, X.pace.trot), half = (windowNow(r, o.window) / 2) * v * M, tx = (ob.at - X.takeoff) * M - cam + horseX();
+        const v = Math.max(r.v, 1), half = (windowNow(r, o.window) / 2) * v * M, tx = (ob.at - X.takeoff) * M - cam + horseX();
         rect('rgba(110, 230, 90, 0.9)', tx - half, g - 1, half * 2, 10); rect('#3c9a3c', tx - half, g + 9, half * 2, 2);
         rect('#3c9a3c', tx - 1, g - 14, 2, 14); rect('#6ee65a', tx + 1, g - 14, 7, 5); // a little green flag where to tap
       }
