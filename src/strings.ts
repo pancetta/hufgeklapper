@@ -397,6 +397,7 @@ export const t = {
   // the Reitschule: market and building
   market: 'Pferdemarkt',
   marketEmpty: 'Heute gibt es keine Pferde mehr. Morgen kommen neue.',
+  offerKind: (pony: boolean, breed: string) => `${pony ? 'Pony' : 'Pferd'} · ${breed}`,
   offer: (name: string, pony: boolean, breed: string, coat: string, price: number) => `${name} · ${pony ? 'Pony' : 'Pferd'} · ${breed}, ${coat} · ${price}\u00a0€`,
   noStall: 'Kein Stallplatz frei. Bau neue Stallplätze auf dem Bauplatz!',
   stallsFull: 'Alle Stallplätze sind voll. Du kannst unten ein Pferd verkaufen.',

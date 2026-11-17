@@ -47,6 +47,10 @@ const fullscreen = {
   html: (id: string) => fullscreen.standalone() || fullscreen.on() ? '' : fullscreen.api() ? `<button id="${id}" type="button" class="small">${t.fullscreen}</button>` : `<p class="tip">${t.homeScreenTip}</p>`,
 };
 
+/** A horse as a card on the notice board (#102): its picture, name, price big, short facts, why not; `label` says it all. */
+const horseCard = (data: string, label: string, shut: unknown, name: string, price: string, facts: string[], why: string) =>
+  `<button type="button" class="market-card" ${data} aria-label="${label}"${shut ? ' disabled' : ''}><canvas width="96" height="72" aria-hidden="true"></canvas>
+    <b>${name}</b><span class="price">${price}</span>${facts.map((f) => `<small>${f}</small>`).join('')}${why ? `<small class="why">${why}</small>` : ''}</button>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&${({ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot' })[c]};`);
 let leave = () => {};
 
@@ -546,18 +550,25 @@ export function showFarm(intro = false) {
       ${s.badges >= 2 ? `<p class="calendar">${t.nextXcShow(nextXcShowDay(s), nextXcShowDay(s) === s.day)}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${atLeast(s, 'pensionsstall') ? pension(s) : ''}
-      ${atLeast(s, 'reitschule') ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
-        // each offer says why it can't come: no stall, no room on the pasture (a big horse takes two places), no money
-        const room = noRoom(s, o.look.build), poor = s.money < o.price;
-        return `<button type="button" data-offer="${o.id}"${room || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : !room && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
-      }).join('') : `<p>${t.marketEmpty}</p>`}` : ''}
+      ${atLeast(s, 'reitschule') ? `<h3>${t.market}</h3>${s.market.length ? `<div class="market-cards">${s.market.map((o) => {
+        // a card per offer, the horse drawn (#102); each says why it can't come: no stall, no room on the pasture (a
+        // big horse takes two places), no money
+        const room = noRoom(s, o.look.build), poor = s.money < o.price, why = room === 'pasture' ? t.pastureFullShort : !room && poor ? t.tooExpensive : '';
+        const all = `${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${why ? ` · ${why}` : ''}`;
+        return horseCard(`data-offer="${o.id}"`, all, room || poor, esc(o.name), t.money(o.price), [t.offerKind(o.look.build === 'pony', BREEDS[o.breed].label), t.jumpsUpTo(topClass(o)), t.needsPlaces(DATA.pasture.need[o.look.build])], why);
+      }).join('')}</div>` : `<p>${t.marketEmpty}</p>`}` : ''}
       ${roomNote(s, [...(atLeast(s, 'reitschule') ? s.market : []), ...(atLeast(s, 'pensionsstall') ? s.boardOffers : [])])}
-      ${atLeast(s, 'reitschule') ? `<h3>${t.sellTitle}</h3>${s.horses.filter(own).map((h) => {
+      ${atLeast(s, 'reitschule') ? `<h3>${t.sellTitle}</h3><div class="market-cards">${s.horses.filter(own).map((h) => {
         // each own horse with its price, or why it stays (the last one, a part-boarder rides it, sick)
-        const why = saleWaits(s, h);
-        return `<button type="button" data-sell="${h.id}"${why ? ' disabled' : ''}>${t.sellLine(esc(h.name), salePrice(h))}${why ? ` · ${t.saleWaits[why]}` : ''}</button>`;
-      }).join('')}` : ''}
+        const why = saleWaits(s, h), line = t.sellLine(esc(h.name), salePrice(h));
+        return horseCard(`data-sell="${h.id}"`, why ? `${line} · ${t.saleWaits[why]}` : line, !!why, esc(h.name), t.money(salePrice(h)), [BREEDS[h.breed].label], why ? t.saleWaits[why] : '');
+      }).join('')}</div>` : ''}
       <button type="button" id="close-shop">${t.close}</button>`;
+    // each card's horse, drawn from its look (the side view, as on the horse card)
+    $('shop').querySelectorAll<HTMLCanvasElement>('.market-card canvas').forEach((c) => {
+      const b = c.closest('button')!, look = (b.dataset.offer ? s.market.find((o) => o.id === b.dataset.offer) : s.horses.find((h) => h.id === b.dataset.sell))?.look;
+      if (look) horseSheet(look, 'idle').then((sheet) => c.getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
+    });
     $('shop').querySelectorAll<HTMLButtonElement>('[data-sell]').forEach((b) => b.addEventListener('click', () => sell(b.dataset.sell!)));
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
       const o = game.get().market.find((x) => x.id === b.dataset.offer);
