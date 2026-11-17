@@ -1,0 +1,21 @@
+src/scene/routine.ts
+  s_7657db1b41ed88::t_2e65d6537f8290 200-203,207-208,214-226,228-229,233-235,317-319,327
+  s_7657db1b41ed88::t_b8ddbc738e9608 67-69
+  s_7657db1b41ed88::t_7b27e44e72c358 227
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a11d3863a4ec85f7e137bd989b3c0abe8038c020",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
