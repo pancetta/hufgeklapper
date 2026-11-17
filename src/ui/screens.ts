@@ -164,7 +164,7 @@ export function showStart() {
       </div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
       <button id="show-credits" class="small corner" type="button">${t.credits}</button>
-      <div class="corner left full-screen">${fullscreen.html('fullscreen')}</div>
+      <div class="full-screen">${fullscreen.html('fullscreen')}</div>
     </main>
     <p id="toast" class="toast" role="status" hidden></p>
     ${creditsSheet()}`);

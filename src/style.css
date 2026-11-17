@@ -396,4 +396,5 @@ canvas { image-rendering: pixelated; }
 /* a boarder's horse in the stable: a blue nameplate (the card says whose it is) */
 .nameplate.guest { background: #d6e6f5; }
 .store-panel .choice { text-align: center; justify-items: center; }
-.full-screen .tip { margin: 0; max-width: 34vw; font-size: calc(var(--fs) * 14px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }
+.full-screen { position: fixed; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, env(safe-area-inset-left, 0px)); } /* top left: the slots' buttons are at the bottom */
+.full-screen .tip { margin: 0; max-width: 22vw; font-size: calc(var(--fs) * 14px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }
