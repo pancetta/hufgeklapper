@@ -64,7 +64,9 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     L.rider = L.horse + x1 + m(0.5); L.rack = L.rider + m(0.75); L.tap = L.rack + m(0.95); L.tack = L.tap + m(0.95);
     const need = L.tack + m(0.5) + m(0.4) + m(1.5);
     // as big as the aisle allows on the screen: its width, and the roof above the box over the bar of things below
-    S = Math.max(1, Math.min(Math.floor(innerWidth / need), Math.floor((innerHeight - 170) / m(3.6))));
+    // in whole device pixels (crisp), not whole CSS pixels: on a 2× iPad steps of ½, so the aisle grows (#103)
+    const d = devicePixelRatio || 1;
+    S = Math.max(1, Math.min(Math.floor((innerWidth * d) / need), Math.floor(((innerHeight - 170) * d) / m(3.6)))) / d;
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
@@ -195,22 +197,43 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     rect(LEATHER_DARK, L.arena - 4, L.foot - ah - 4, W - L.arena + 4, 4); rect(LEATHER_DARK, L.arena - 4, L.foot - ah, 4, ah - 6);
   }
 
-  /** The box front: bars above and the door below, in front of a horse inside; swung open against the wall when open. */
+  /**
+   * The box door, the whole front: wood below, bars above, in front of a horse inside. Open, it has swung right round
+   * against the wall (seen edge on), so the opening is as high as the box and the horse walks out under nothing (#88).
+   */
   function drawDoor() {
     const bx = L.box, bw = L.boxW, top_ = L.foot - m(2.3), door = m(1.3);
-    ctx.fillStyle = METAL; for (let x = bx + 3; x < bx + bw; x += 7) ctx.fillRect(x, top_, 2, m(2.3) - door);
-    rect(LEATHER_DARK, bx, L.foot - door - 2, bw, 2);
     if (!done.has('open') || done.has('close')) {
+      ctx.fillStyle = METAL; for (let x = bx + 3; x < bx + bw; x += 7) ctx.fillRect(x, top_, 2, m(2.3) - door);
+      rect(LEATHER_DARK, bx, top_ - 2, bw, 2); rect(LEATHER_DARK, bx, L.foot - door - 2, bw, 2);
       rect(WOOD, bx, L.foot - door, bw, door);
       ctx.fillStyle = WOOD_DARK; for (let x = bx; x < bx + bw; x += 8) ctx.fillRect(x, L.foot - door, 1, door);
       line(WOOD_DARK, bx + 2, L.foot - 3, bx + bw - 3, L.foot - door + 2); // the brace
       rect('#2b2b3a', bx + bw - 10, L.foot - m(0.75), 7, 3); // the bolt
       rect('#efe6d0', bx + Math.round(bw / 2) - 8, L.foot - door + 4, 16, 6); // the name plate
-    } else { rect(WOOD, bx + bw, L.foot - door, 7, door); rect(WOOD_DARK, bx + bw, L.foot - door, 1, door); }
+    } else { // swung open: the door's edge against the wall, bars and wood, the full height
+      rect(METAL, bx + bw + 1, top_, 5, m(2.3) - door); rect(LEATHER_DARK, bx + bw, top_ - 2, 7, 2);
+      rect(WOOD, bx + bw, L.foot - door, 7, door); rect(WOOD_DARK, bx + bw, L.foot - door, 1, door);
+    }
+  }
+
+  // the horse walks to its new place (out of the box, back in, to the ring) instead of jumping there (#88); taps and
+  // gestures use where it is going, so they don't wait for the walk
+  let shownX: number | null = null, lastT = 0, walking = 0, was = where();
+  function walk() {
+    const goal = hx(), dt = Math.min(0.1, t - lastT);
+    lastT = t;
+    if (shownX === null || (where() !== was && (where() === 'arena' || was === 'arena'))) shownX = goal; // the first frame, or to and from the arena (the ride shows that way): no walk
+    was = where();
+    const dx = goal - shownX, step = m(3) * dt; // a brisk walk
+    walking = Math.abs(dx) < 0.5 ? 0 : Math.sign(dx);
+    shownX = Math.abs(dx) <= step ? goal : shownX + Math.sign(dx) * step;
   }
 
   function drawHorse() {
-    const X = hx(), Y = hy(), up = Math.sin(t * 1.8) > 0.6 ? 1 : 0;
+    const X = Math.round(shownX ?? hx()), Y = hy(), up = walking ? (Math.sin(t * 9) > 0 ? 1 : 0) : Math.sin(t * 1.8) > 0.6 ? 1 : 0;
+    ctx.save();
+    if (walking > 0) { ctx.translate(2 * X + x0 + x1, 0); ctx.scale(-1, 1); } // walking to the right: it faces the way it goes
     const sheet = has('saddleOn', 'saddleOff') ? saddled : plain;
     shadow(ctx, X + x0 + w / 2, L.foot - 1, w / 2, 3, 0.25);
     ctx.drawImage(sheet, 128, 0, 128, legs, X, Y - up, 128, legs);
@@ -231,7 +254,8 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     if (has('reins', 'bridleOff')) line(LEATHER, bridle ? chx - 3 : nx - 4, bridle ? chy - 2 : ny + 8, ...P(x0 + w * 0.45, back - 1));
     // the rope from the halter to the ring
     const tied = has('tie', 'untie') || has('tie2', 'untie2');
-    if (tied) line(ROPE, halterNeck ? nx - 2 : chx, halterNeck ? ny + 10 : chy, L.ring, L.foot - L.ringY + 7);
+    if (tied && !walking) line(ROPE, // (not while it walks mirrored: tied mid-walk, the rope waits until it stands)
+      halterNeck ? nx - 2 : chx, halterNeck ? ny + 10 : chy, L.ring, L.foot - L.ringY + 7);
     // hooves and buckles a gesture waits for; arrows where to brush
     if (gesture?.kind === 'hooves') for (const h of hooves) ring(X + h.x, L.foot + 2, h.done);
     if (gesture?.kind === 'buckles') for (const b of buckles) ring(X + b.x, Y + b.y - up, b.done);
@@ -292,7 +316,9 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
     if (!running) return;
     t = now / 1000;
     drawAisle(); drawThings();
-    if (where() === 'box') { drawHorse(); drawDoor(); } else { drawDoor(); drawHorse(); }
+    walk();
+    const horse = () => { drawHorse(); ctx.restore(); };
+    if (where() === 'box' && !walking) { horse(); drawDoor(); } else { drawDoor(); horse(); }
     drawRider(); drawBits();
     requestAnimationFrame(frameDraw);
   }
@@ -300,7 +326,7 @@ export async function startRoutine(canvas: HTMLCanvasElement, o: RoutineOptions)
   const finish = () => {
     const g = gesture!;
     gesture = null;
-    for (let i = 0; i < 8; i++) sparkles.push({ x: hx() + x0 + Math.random() * w, y: hy() + top + Math.random() * (bottom - top), age: -i * 0.08 });
+    for (let i = 0; i < 8; i++) sparkles.push({ x: (shownX ?? hx()) + x0 + Math.random() * w, y: hy() + top + Math.random() * (bottom - top), age: -i * 0.08 });
     targets();
     g.ok(true);
   };
