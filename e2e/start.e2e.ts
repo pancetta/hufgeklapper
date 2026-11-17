@@ -459,6 +459,7 @@ test('cross-country practice: closed before the riding badge; then pace, breath 
   const kiwi = () => page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.horses[0]);
   const before = await kiwi();
   await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: t.practiseXc }).tap();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await expect(page.getByText(t.xcHow(true)[0])).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
@@ -506,6 +507,54 @@ test('the pasture: places for every horse, enlarged step by step; a horse that d
   await page.getByRole('button', { name: t.places.board }).tap();
   await page.locator('[data-offer="nugget"]').tap();
   await expect(page.getByText(t.boughtHorse('Nugget'))).toBeVisible();
+});
+
+test('riding badge 2: locked until practice and a care course, then the care course without tips and a cross-country round', async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { s.badges = 1; });
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await expect(page.getByRole('button', { name: t.badge2Name })).toBeDisabled();
+  await expect(page.getByText(t.badge2Practise(DATA.badge2.xcTrainings))).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  // as if practised and the care course done once
+  await changeSave(page, (s) => { Object.assign(s, { xcTrainings: DATA.badge2.xcTrainings, routines: 1 }); });
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: t.badge2Name }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await expect(page.locator('#say')).toHaveText(t.badge2Course('Kiwi', DATA.badge2.maxWrong));
+  await expect(page.locator('#tip')).toHaveCount(0); // no tips in the exam
+  await expect(page.locator('#count')).toContainText(t.badge2Mistakes(0, DATA.badge2.maxWrong));
+  await playRoutine(page);
+  await expect(page.getByText(t.badge2CourseDone(0))).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await expect(page.getByText(t.badge2Xc(DATA.badge2.maxFaults))).toBeVisible();
+  await page.getByRole('button', { name: t.go }).tap();
+  const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
+  while (await end.isHidden()) {
+    const [advice, hopp] = await canvas.evaluate((c) => [c.dataset.advice ?? '', c.dataset.hopp ?? '']);
+    if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
+    if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
+  }
+  await expect(end).toContainText(t.badge2Passed);
+  await expect(page.getByRole('img', { name: t.badge2Name })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.badges)).toBe(2);
+});
+
+test('riding badge 2: stopping the exam counts as not passed; another try tomorrow', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { Object.assign(s, { badges: 1, xcTrainings: DATA.badge2.xcTrainings, routines: 1 }); });
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: t.badge2Name }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.routineLeave }).tap();
+  await page.getByRole('button', { name: t.badge2LeaveSure }).tap();
+  await expect(page.getByText(t.badge2Left)).toBeVisible();
+  await page.getByRole('button', { name: t.gotIt }).tap();
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await expect(page.getByText(t.badge2Waits.tomorrow)).toBeVisible();
 });
 
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {

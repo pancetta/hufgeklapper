@@ -48,6 +48,13 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives a save from version 16 no cross-country practice and no care course counted yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { xcTrainings: _x, routines: _r, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 16, state: { ...old, version: 16 } }));
+    expect(p.ok && [p.save.state.xcTrainings, p.save.state.routines]).toEqual([0, 0]);
+  });
+
   it('gives a save from version 15 the pasture its horses need (two ponies: none added; more horses: land up to the most)', () => {
     const now = toSave(played(), 'Hof');
     const { pasture: _p, ...built } = now.state.built;

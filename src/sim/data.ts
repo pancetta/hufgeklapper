@@ -154,7 +154,13 @@ export const DATA = {
   /** The progress kept per horse (#78): its skills at the start of each of the last `days` days. */
   progress: { days: 14 },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
-  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
+  badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 },
+  /**
+   * Riding badge 2 (#74): open after badge 1, some cross-country practice and the care course done once. The exam: the
+   * care course with at most `maxWrong` wrong steps, then a cross-country round with at most `maxFaults` faults. The horse
+   * needs `energy` to start.
+   */
+  badge2: { xcTrainings: 3, routines: 1, maxWrong: 2, maxFaults: 2, energy: 70 }, // a rested horse: after the care course it still has breath for the round // a refusal and a pole, or a refusal and its lost time
   /**
    * Jumping shows ("Turniere"): one on every few days once riding badge 1 is passed. Scores: 100, minus points per
    * knocked pole, plus a little for the horse's jumping skill. Rivals ride horses of random skill; each of their
@@ -181,8 +187,8 @@ export const DATA = {
   goals: {
     kleinerHof: [{ id: 'groom', need: 5 }, { id: 'lessons', need: 25 }, { id: 'badge', need: 1 }, { id: 'savings', need: 500 }, { id: 'reputation', need: 60 }],
     reitschule: [{ id: 'horses', need: 3 }, { id: 'lessons', need: 30 }, { id: 'reputation', need: 70 }, { id: 'savings', need: 600 }],
-    pensionsstall: [{ id: 'boarders', need: 2 }, { id: 'staff', need: 1 }, { id: 'partBoard', need: 1 }, { id: 'reputation', need: 75 }, { id: 'savings', need: 900 }],
-  } as Record<'kleinerHof' | 'reitschule' | 'pensionsstall', { id: 'groom' | 'lessons' | 'badge' | 'savings' | 'reputation' | 'horses' | 'boarders' | 'staff' | 'partBoard'; need: number }[]>,
+    pensionsstall: [{ id: 'boarders', need: 2 }, { id: 'staff', need: 1 }, { id: 'partBoard', need: 1 }, { id: 'reputation', need: 75 }, { id: 'savings', need: 900 }, { id: 'badge2', need: 1 }],
+  } as Record<'kleinerHof' | 'reitschule' | 'pensionsstall', { id: 'groom' | 'lessons' | 'badge' | 'badge2' | 'savings' | 'reputation' | 'horses' | 'boarders' | 'staff' | 'partBoard'; need: number }[]>,
   /** Oma Hanne's hints: a need below this is worth a word; hay for fewer than this many nights too. */
   hints: { needBelow: 30, hayNights: 2 },
   /** What Oma Hanne explains the first time the player opens it. */
