@@ -96,6 +96,9 @@ export async function startCrossCountry(canvas: HTMLCanvasElement, o: XcOptions)
   /** One obstacle where it stands, sized in metres like the horse; water is a pond the track runs through. */
   function drawObstacle(kind: string, x: number) {
     const g = ground(), m = (v: number) => Math.round(v * M);
+    // a show class's obstacles stand higher (#75): the jumps stretched upwards from the ground, the pond as it is
+    const up = kind === 'water' ? 1 : c.height ?? 1;
+    ctx.save(); ctx.translate(0, g); ctx.scale(1, up); ctx.translate(0, -g);
     if (kind === 'log') { // a tree trunk, about 0.8 m high
       rect('#6b4226', x - m(0.9), g - m(0.75), m(1.8), m(0.75)); rect('#8a5530', x - m(0.9), g - m(0.75), m(1.8), 4); rect('#5a3419', x - m(0.9), g - 4, m(1.8), 4);
       ctx.fillStyle = '#c49a6c'; ctx.beginPath(); ctx.arc(x - m(0.9), g - m(0.375), m(0.375), 0, 7); ctx.fill();
@@ -116,11 +119,12 @@ export async function startCrossCountry(canvas: HTMLCanvasElement, o: XcOptions)
       for (let k = 0; k < 5; k++) rect('#d8eef8', x + 14 + k * (w / 5), g + 8 + (k % 2) * 4, 10, 1);
       for (const ex of [x - 6, x + w - 2]) for (let k = 0; k < 5; k++) rect(k % 2 ? '#5d8a3a' : '#4f7a32', ex + k * 2, g - m(0.5) - (k % 3) * 4, 2, m(0.5) + (k % 3) * 4);
     }
+    ctx.restore();
   }
 
   function drawHorse(t: number) {
     const g = ground(), x = horseX();
-    const phase = r.air ? (r.t - r.air.from) / (r.air.to - r.air.from) : -1, lift = phase < 0 ? 0 : Math.sin(Math.max(0, Math.min(1, phase)) * Math.PI) * 18;
+    const phase = r.air ? (r.t - r.air.from) / (r.air.to - r.air.from) : -1, lift = phase < 0 ? 0 : Math.sin(Math.max(0, Math.min(1, phase)) * Math.PI) * 18 * (c.height ?? 1);
     const ob = c.obstacles[r.next], wet = ob?.kind === 'water' && r.s >= ob.at && r.s < ob.at + X.waterLength;
     shadow(ctx, x, g + 2, 22 - lift / 3, 3, 0.26);
     const standing = !r.v || r.stopped, fast = r.pace === 'gallop' && r.v > X.pace.trot;

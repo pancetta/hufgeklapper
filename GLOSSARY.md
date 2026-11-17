@@ -169,11 +169,14 @@ The horse stops in front of the next jump: ridden at it too askew, or without a 
 Riding the **Jumping** minigame at home: raises the horse's skill, uses **Energie**.
 
 **Show** ("Turnier"):
-A competition against AI rivals with prize money ("Preisgeld"); opened by a **Riding badge**.
+A competition against AI rivals with prize money ("Preisgeld"); opened by a **Riding badge**. A jumping show
+("Turnier") after *Reitabzeichen 1*; a cross-country show ("Gelände-Turnier", #75) after *Reitabzeichen 2*, on the
+days between the jumping shows.
 
 **Show class** ("Klasse"):
-The level a horse starts at in a **Show**: E, A or L. A horse may start in a class once its jumping skill is high
-enough; higher classes cost more and pay more.
+The level a horse starts at in a **Show**: E, A or L. A horse may start in a class once its jumping skill (in a
+cross-country show its **Cross-country ability**) is high enough; higher classes cost more and pay more. In a
+cross-country show a higher class also means a longer track with more and higher obstacles.
 
 ### Economy
 

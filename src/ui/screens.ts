@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -396,16 +396,18 @@ export function showFarm(intro = false) {
   $('goals-toggle').addEventListener('click', () => { goalsOpen = !goalsOpen; guide(); });
   $('hint-close').addEventListener('click', () => { hintAway = $('hint').querySelector('p')!.textContent!; guide(); });
   guide();
-  /** Out to the fields (#73, #74): cross-country practice, and riding badge 2 until it is passed (or why not yet). */
+  /** Out to the fields (#73–#75): cross-country practice, and riding badge 2 (or why not yet), once passed the shows. */
   function fields() {
-    const sheet = $('lesson'), w = badge2Waits(game.get());
-    if (w?.why === 'passed') return pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy); // only practice left: no extra tap
+    const sheet = $('lesson'), s = game.get(), w = badge2Waits(s), show = w?.why === 'passed' && xcShowWaits(s);
+    const showWhy = show === 'notToday' ? t.xcShowWaits.notToday(nextXcShowDay(s)) : show === 'money' ? t.xcShowWaits.money(DATA.xcShows.classes.E.fee) : '';
     sheet.firstElementChild!.innerHTML = `<h2>${t.places.xc}</h2><button type="button" id="xc-practise">${t.practiseXc}</button>
-      <button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
-      ${w ? `<p class="oma" id="badge2-why">${w.why === 'practise' ? t.badge2Practise(w.rounds) : t.badge2Waits[w.why]}</p>` : ''}
+      ${w?.why === 'passed' ? `<button type="button" id="xc-show"${show ? ' disabled aria-describedby="xc-show-why"' : ''}>${t.xcShow}</button>${showWhy ? `<p class="oma" id="xc-show-why">${showWhy}</p>` : ''}`
+        : `<button type="button" id="badge2"${w ? ' disabled aria-describedby="badge2-why"' : ''}>${t.badge2Name}</button>
+      ${w ? `<p class="oma" id="badge2-why">${w.why === 'practise' ? t.badge2Practise(w.rounds) : t.badge2Waits[w.why]}</p>` : ''}`}
       <button type="button" id="close-lesson">${t.close}</button>`;
     $('xc-practise').addEventListener('click', () => pickHorse(t.whichHorseXc, (id) => showCrossCountry(id), undefined, undefined, DATA.crossCountry.energy));
     sheet.querySelector('#badge2')?.addEventListener('click', () => pickHorse(t.whichHorseBadge2, badge2Exam, undefined, undefined, DATA.badge2.energy));
+    sheet.querySelector('#xc-show')?.addEventListener('click', () => enterShow(true));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
     sheet.hidden = false;
   }
@@ -422,7 +424,7 @@ export function showFarm(intro = false) {
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelector('#badge')?.addEventListener('click', showBadge);
     sheet.querySelector('#upgrade')?.addEventListener('click', () => build('arena', t.upgradeArena(DATA.build.arena.cost), t.builtArena));
-    sheet.querySelector('#show')?.addEventListener('click', enterShow);
+    sheet.querySelector('#show')?.addEventListener('click', () => enterShow());
     $('give-lesson').addEventListener('click', () => {
       const p = game.get().pupils[0];
       if (p) chooseHorse(p); else { sheet.hidden = true; bar.toast(t.noPupils); }
@@ -432,18 +434,19 @@ export function showFarm(intro = false) {
     sheet.hidden = false;
   }
   /**
-   * A show: the class first, once a horse may start higher than E (each class says why not, if it can't), then the horse.
-   * While only E is open, straight to the horse, with a word on what practice opens.
+   * A show, jumping or cross-country (`xc`, #75): the class first, once a horse may start higher than E (each class says
+   * why not, if it can't), then the horse. While only E is open, straight to the horse, with a word on what practice opens.
    */
-  function enterShow() {
-    const s = game.get(), C = DATA.shows.classes, ride = (c: ShowClass, title: string, note?: string) =>
-      pickHorse(title, (id) => showJumping(id, 'show', c), (h) => ({ skill: t.notSkilled, scope: t.notScope, money: null, ok: null })[classWaits(s, h, c) ?? 'ok'], note);
-    if (SHOW_CLASSES.slice(1).every((c) => classShut(s, c) === 'skill' || classShut(s, c) === 'scope')) return ride('E', t.showEnter(C.E.fee), t.classesLater);
+  function enterShow(xc = false) {
+    const s = game.get(), C = xc ? DATA.xcShows.classes : DATA.shows.classes, shut = xc ? xcClassShut : classShut, T = xc ? t.xcShows : t.jumpShows;
+    const ride = (c: ShowClass, title: string, note?: string) => pickHorse(title, (id) => (xc ? showCrossCountry(id, undefined, c) : showJumping(id, 'show', c)),
+      (h) => ({ skill: T.notSkilled, scope: T.notScope, money: null, ok: null })[(xc ? xcClassWaits : classWaits)(s, h, c) ?? 'ok'], note, xc ? DATA.crossCountry.energy : undefined);
+    if (SHOW_CLASSES.slice(1).every((c) => shut(s, c) === 'skill' || shut(s, c) === 'scope')) return ride('E', T.enter(C.E.fee), T.classesLater);
     const sheet = $('lesson');
-    sheet.firstElementChild!.innerHTML = `<h2>${t.whichClass}</h2><p class="oma">${t.classesHow}</p>
+    sheet.firstElementChild!.innerHTML = `<h2>${T.whichClass}</h2><p class="oma">${T.classesHow}</p>
       ${SHOW_CLASSES.map((c) => {
-        const w = classShut(s, c);
-        return `<button type="button" data-class="${c}"${w ? ' disabled' : ''}>${t.showClass(c, C[c].fee, C[c].prizes[0])}${w ? ` · ${t.classWaits[w]}` : ''}</button>`;
+        const w = shut(s, c);
+        return `<button type="button" data-class="${c}"${w ? ' disabled' : ''}>${t.showClass(c, C[c].fee, C[c].prizes[0])}${w ? ` · ${T.classWaits[w]}` : ''}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-class]').forEach((b) => b.addEventListener('click', () => {
@@ -509,6 +512,7 @@ export function showFarm(intro = false) {
       ${!s.debt && !s.badges && !(s.money < DATA.vet.cost && canLoan(s)) && !atLeast(s, 'reitschule') ? `<p>${t.boardEmpty}</p>` : ''}
       ${s.debt ? `<p>${t.owe(s.debt)}</p>` : ''}
       ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
+      ${s.badges >= 2 ? `<p class="calendar">${t.nextXcShow(nextXcShowDay(s), nextXcShowDay(s) === s.day)}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
       ${atLeast(s, 'pensionsstall') ? pension(s) : ''}
       ${atLeast(s, 'reitschule') ? `<h3>${t.market}</h3>${s.market.length ? s.market.map((o) => {
@@ -666,10 +670,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
       const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name, showClass);
       game.dispatch({ type: 'show', horse: id, faults, showClass });
       if (game.get().lastShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
-      const row = (r: ShowRow) => `<b>${esc(r.rider)}</b><span>${esc(r.horse)}</span>`;
-      end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
-        <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
-        <ol class="ranking">${table.map((r) => `<li${r.you ? ' class="you"' : ''}>${row(r)} · ${t.points(r.score)}</li>`).join('')}</ol>`);
+      podium(end, table);
       end.querySelector('p')!.textContent = `${t.showPlace(rank, prize)} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`; // a show doesn't train: where the horse stands
     } else if (kind === 'badge') {
       game.dispatch({ type: 'badge', horse: id, faults });
@@ -691,6 +692,14 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
   leave = () => { removeEventListener('keydown', key); removeEventListener('keyup', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
+}
+
+/** The podium over a show's result: the first three on their steps, then everyone with their points. */
+function podium(end: HTMLElement, table: ShowRow[]) {
+  const row = (r: ShowRow) => `<b>${esc(r.rider)}</b><span>${esc(r.horse)}</span>`;
+  end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
+    <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
+    <ol class="ranking">${table.map((r) => `<li${r.you ? ' class="you"' : ''}>${row(r)} · ${t.points(r.score)}</li>`).join('')}</ol>`);
 }
 
 /**
@@ -1053,12 +1062,14 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
  * Cross-country practice (#73): Oma Hanne explains, then the ride from the side. The pace buttons pick Schritt, Trab or
  * Galopp; a tap on the land is "Hopp!". The round ends with how it went; the horse trains its cross-country skill.
  */
-function showCrossCountry(id: string, examWrong?: number) {
-  const exam = examWrong !== undefined; // riding badge 2's second part (#74)
+function showCrossCountry(id: string, examWrong?: number, show?: ShowClass) {
+  const exam = examWrong !== undefined; // riding badge 2's second part (#74); `show`: a cross-country show's class (#75)
   const s0 = game.get(), h = s0.horses.find((x) => x.id === id)!, pony = h.look.build === 'pony';
-  const course = xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length; // a new track each ride: the skill grows
-  const $ = screen(`<canvas id="xc" aria-label="${t.crossCountry}"></canvas>
-    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><div>${exam ? `<p><b>${t.badge2Xc(DATA.badge2.maxFaults)}</b></p>` : ''}<ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul></div>
+  // a new track each ride (the skill grows); a show's the same all day, longer and higher by class
+  const course = show ? xcCourse(s0.day * 1013 + 7, show) : xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length;
+  const rule = exam ? t.badge2Xc(DATA.badge2.maxFaults) : show ? t.xcShowRule(show, N) : '';
+  const $ = screen(`<canvas id="xc" aria-label="${show ? t.xcShows.name(show) : t.crossCountry}"></canvas>
+    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><div>${rule ? `<p><b>${rule}</b></p>` : ''}<ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul></div>
       <div class="answers"><button type="button" id="xc-go">${t.go}</button>${exam ? '' : `<button type="button" id="xc-leave">${t.back}</button>`}</div></div></section>
     <p id="xc-hud" class="jump-hud" aria-live="off"></p><p id="xc-tip" class="jump-tip" role="status" hidden></p>
     <div class="xc-breath"><span>${t.stamina}</span><span class="bar"><i id="xc-breath"></i></span></div>
@@ -1078,7 +1089,7 @@ function showCrossCountry(id: string, examWrong?: number) {
     if (o && (o.kind === 'water' || o.kind === 'ditch') && o.at - r.s < 16 && o.at - r.s > 0 && r.pace === 'gallop' && warned !== r.next) { warned = r.next; say(t.xcAhead[o.kind]); }
   };
   const ride = startCrossCountry($<HTMLCanvasElement>('xc'), {
-    look: h.look, kid: avatarKid(s0.avatar), course, window: xcWindow(h), drain: xcDrain(h), stamina: h.needs.energy / 100,
+    look: h.look, kid: avatarKid(s0.avatar), course, window: xcWindow(h) * (course.window ?? 1), drain: xcDrain(h), stamina: h.needs.energy / 100,
     // too fast at water or a ditch, or too slow to jump: the horse comes again at a trot
     onChange: hud, onRefuse: (why) => { say(t.xcRefused[why]); if (why !== 'late') pick('trot'); },
   });
@@ -1098,7 +1109,13 @@ function showCrossCountry(id: string, examWrong?: number) {
     const end = await (await ride).run(), faults = end.faults;
     clearTimeout(tipTimer); tip.hidden = true;
     const p = $('xc-end').querySelector('p')!;
-    if (exam) {
+    if (show) {
+      const s = game.get(), { table, rank, prize } = showResult(s, s.horses.find((x) => x.id === id)!, faults, s.avatar.name, show, true);
+      game.dispatch({ type: 'xcShow', horse: id, faults, showClass: show });
+      if (game.get().lastXcShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
+      podium($('xc-end').firstElementChild as HTMLElement, table);
+      p.textContent = `${t.showPlace(rank, prize)} ${t.xcTime(end.t, lo, hi)} ${t.skillNow(t.crossCountry, h.skills.crossCountry, xcScope(h))}`; // a show doesn't train
+    } else if (exam) {
       // the badge's round: passed or another try tomorrow; the rosette for a pass
       game.dispatch({ type: 'badge2', horse: id, wrong: examWrong, faults });
       const passed = game.get().badges >= 2;

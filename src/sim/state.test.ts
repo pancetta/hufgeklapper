@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -627,6 +627,29 @@ describe('Sim', () => {
     const course = apply(tiredAfter, { type: 'routine', horse: id, wrong: 0, ride: true });
     expect(badge2Waits(course)).toEqual({ why: 'tired' });
     expect(apply(course, { type: 'badge2', horse: id, wrong: 0, faults: 0 }).badges).toBe(2);
+  });
+
+  it('cross-country shows: after riding badge 2, on the days between the jumping shows; classes by cross-country skill; a prize for the first three', () => {
+    const XS = DATA.xcShows;
+    const days = (s: State) => [...Array(9)].map((_, i) => ({ ...s, day: i + 1 })).filter((d) => nextXcShowDay(d) === d.day).map((d) => d.day);
+    const s0: State = { ...newGame(1), badges: 2, money: 1000 };
+    const xcDays = days(s0), jumpDays = [...Array(9)].map((_, i) => i + 1).filter((d) => nextShowDay({ ...s0, day: d }) === d);
+    expect(xcDays.every((d) => d % XS.every === XS.on)).toBe(true);
+    expect(xcDays.some((d) => jumpDays.includes(d))).toBe(false); // never on a jumping show day
+    expect(xcShowWaits({ ...s0, badges: 1, day: xcDays[0] })).toBe('badge');
+    const s = { ...s0, day: xcDays[0] }, h = s.horses[0];
+    expect([xcShowWaits(s), xcClassWaits(s, h, 'E'), xcClassWaits(s, h, 'A')]).toEqual([null, null, 'skill']);
+    // a clear round over a pony of top cross-country skill: the podium, the prize minus the fee
+    const pro = { ...s, horses: s.horses.map((x, i) => (i ? x : { ...x, skills: { ...x.skills, crossCountry: xcScope(x) } })) };
+    const { rank, prize } = showResult(pro, pro.horses[0], 0, 'Mara', 'E', true);
+    const after = apply(pro, { type: 'xcShow', horse: h.id, faults: 0, showClass: 'E' });
+    expect([after.lastXcShowDay, after.money - pro.money, after.horses[0].needs.energy]).toEqual([pro.day, prize - XS.classes.E.fee, h.needs.energy - DATA.crossCountry.energy]);
+    expect(rank).toBeLessThanOrEqual(3);
+    expect(apply(after, { type: 'xcShow', horse: s.horses[1].id, faults: 0, showClass: 'E' })).toBe(after); // one a day
+    expect(nextXcShowDay(after)).toBe(pro.day + XS.every);
+    // the jumping skill counts nothing here: a horse good over poles but new cross-country stays out of class A
+    const jumper = { ...h, skills: { jumping: 90, crossCountry: 10 } };
+    expect(xcClassWaits(s, jumper, 'A')).toBe('skill');
   });
 
   describe('the Pensionsstall', () => {
