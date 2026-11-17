@@ -270,6 +270,15 @@ export function cantWork(h: Horse, energy: number): 'sick' | 'resting' | 'tired'
   return isSick(h) ? 'sick' : h.rest ? 'resting' : h.needs.energy < energy ? 'tired' : null;
 }
 
+/**
+ * For a ride in `what` (jumping or cross-country): the horse that may go today and is best at it (most skill, then
+ * most energy), so the pick can mark it (#101); null if none may go.
+ */
+export function bestRider(horses: Horse[], what: 'jumping' | 'crossCountry', energy: number, not: (h: Horse) => unknown = () => null) {
+  const can = horses.filter((h) => own(h) && !cantWork(h, energy) && !not(h));
+  return can.sort((a, b) => b.skills[what] - a.skills[what] || b.needs.energy - a.needs.energy)[0]?.id ?? null;
+}
+
 /** How well a horse is kept: its fed, clean and happy needs as a share of full (0–1). */
 const keptShare = (h: Horse) => (h.needs.fed + h.needs.clean + h.needs.happy) / 300;
 

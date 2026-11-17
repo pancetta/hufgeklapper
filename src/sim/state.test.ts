@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, hayWaits, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, hayWaits, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder, bestRider } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -459,6 +459,15 @@ describe('Sim', () => {
     for (let seed = 0; seed < 20; seed++) expect([...answerOrder(3, seed)].sort()).toEqual([0, 1, 2]);
     expect(answerOrder(3, 42)).toEqual(answerOrder(3, 42));
     expect(new Set(Array.from({ length: 20 }, (_, d) => answerOrder(3, d * 31 + 3).indexOf(0))).size).toBe(3);
+  });
+
+  it('marks the best horse for a ride: may go today, most skill, then most energy (#101)', () => {
+    const s = newGame(1), [a, b] = s.horses;
+    const horses = [{ ...a, skills: { ...a.skills, jumping: 30 } }, { ...b, skills: { ...b.skills, jumping: 10 } }];
+    expect(bestRider(horses, 'jumping', DATA.jumping.energy)).toBe(a.id);
+    expect(bestRider([{ ...horses[0], needs: { ...horses[0].needs, energy: 0 } }, horses[1]], 'jumping', DATA.jumping.energy)).toBe(b.id); // too tired
+    expect(bestRider(horses, 'jumping', DATA.jumping.energy, (h) => h.id === a.id)).toBe(b.id); // not allowed
+    expect(bestRider([], 'crossCountry', 10)).toBeNull();
   });
 
   it('tracks the stage goals; a goal once reached stays done, even if the money goes again', () => {
