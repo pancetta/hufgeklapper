@@ -79,7 +79,7 @@ export type State = {
 };
 
 /** One line of the bill: what for, and the amount (+ in, − out). */
-export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize' | 'horse' | 'build' | 'wage' | 'board' | 'partBoard'; amount: number };
+export type Entry = { what: 'hay' | 'hayOnCredit' | 'vet' | 'loan' | 'repay' | 'lesson' | 'showFee' | 'prize' | 'horse' | 'build' | 'wage' | 'board' | 'partBoard' | 'sale'; amount: number };
 
 /** A horse for sale at the Reitschule's market. */
 export type Offer = { id: string; name: string; breed: Breed; look: Look; price: number };
@@ -105,7 +105,7 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'show'; horse: string; faults: number; showClass: ShowClass } | { type: 'xcShow'; horse: string; faults: number; showClass: ShowClass }
   | { type: 'explained'; what: Feature } | { type: 'rename'; horse: string; name: string }
   | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: Buildable }
-  | { type: 'hire' } | { type: 'fire' } | { type: 'board'; offer: string } | { type: 'partBoard' } | { type: 'endPartBoard'; horse: string };
+  | { type: 'hire' } | { type: 'fire' } | { type: 'board'; offer: string } | { type: 'partBoard' } | { type: 'endPartBoard'; horse: string } | { type: 'sell'; horse: string };
 
 const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
@@ -197,6 +197,26 @@ export const grazing = (s: State) => s.horses.reduce((n, h) => n + DATA.pasture.
 /** Why one more horse of `build` can't come to the farm: no free stall, or no room on the pasture; null if it can. */
 export const noRoom = (s: State, build: Look['build']): 'stall' | 'pasture' | null =>
   s.horses.length >= stalls(s) ? 'stall' : grazing(s) + DATA.pasture.need[build] > pasture(s) ? 'pasture' : null;
+
+/** How well trained horse `h` is, 0–1: its jumping and cross-country skill against what its breed can reach. */
+const trained = (h: Horse) => Math.min(1, (h.skills.jumping + h.skills.crossCountry) / (scope(h) + xcScope(h)));
+/** What horse `h` fetches at the market (#85): half the middle price for its build, more the better trained it is. */
+export function salePrice(h: Horse) {
+  const [lo, hi] = DATA.market.price[h.look.build], S = DATA.sale;
+  return Math.round((((lo + hi) / 2) * (S.base + S.trained * trained(h))) / 10) * 10;
+}
+/**
+ * Why horse `h` can't be sold now, or null: only at the market (Reitschule on), never the last horse, never a
+ * boarder's, not while a part-boarder rides it, not sick.
+ */
+export function saleWaits(s: State, h: Horse): 'market' | 'last' | 'boarder' | 'rider' | 'sick' | null {
+  return !atLeast(s, 'reitschule') ? 'market' : !own(h) ? 'boarder' : s.horses.filter(own).length <= 1 ? 'last' : h.rider ? 'rider' : isSick(h) ? 'sick' : null;
+}
+/** Oma Hanne's word on a sale: the last pony (small pupils need one), well trained (a good price), or worth more with practice. */
+export function saleAdvice(s: State, h: Horse): 'lastPony' | 'good' | 'practise' {
+  if (h.look.build === 'pony' && s.horses.filter((x) => own(x) && x.look.build === 'pony').length === 1) return 'lastPony';
+  return trained(h) >= DATA.sale.good ? 'good' : 'practise';
+}
 
 /** A new game on Oma Hanne's small farm: two ponies of different breeds and coats. */
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
@@ -556,6 +576,13 @@ function step(state: State, action: Action): State {
       if (!o || state.money < o.price || noRoom(state, o.look.build) || state.horses.some((h) => h.id === o.id)) return state; // a stall and room on the pasture
       return { ...state, money: state.money - o.price, market: state.market.filter((x) => x !== o),
         horses: [...state.horses, horse(o.id, o.name, o.breed, o.look)], today: [...state.today, { what: 'horse', amount: -o.price }] };
+    }
+    case 'sell': {
+      // the money (some of it pays debts, like any income), the stall and pasture places free; an offer for it goes
+      const h = state.horses.find((x) => x.id === action.horse);
+      if (!h || saleWaits(state, h)) return state;
+      const price = salePrice(h), sold = earn({ ...state, today: [...state.today, { what: 'sale', amount: price }] }, price);
+      return { ...sold, horses: state.horses.filter((x) => x !== h), partOffer: state.partOffer?.horse === h.id ? null : state.partOffer };
     }
     case 'build': {
       if (buildWaits(state, action.what)) return state;

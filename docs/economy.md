@@ -15,6 +15,11 @@ in five on a new pony, less often the wider the horse's take-off window (skill a
   that it rides a cross-country show (#75) on show days, in the highest class its best cross-country horse may start
   in (more obstacles and a narrower window there, so more refusals), and practises cross-country on the other days.
 
+- **dealer** (#85, not in the table): like careful, but trains before the lessons (one lesson a day, like sport), in
+  both disciplines, the horse closest to a good price first; sells a bought horse as soon as it fetches more than it
+  cost, any horse once Oma calls it well trained, and buys the next. Its farm worth counts a sold horse's price out
+  again. It checks that trading alone doesn't make anyone rich.
+
 When a stall is free but the pasture is full (#79), the careful and sport players enlarge the pasture first, if the money
 allows (its price plus 150 € to spare); before buying a horse only if the horse is still affordable afterwards.
 
@@ -31,6 +36,7 @@ the arena is not poorer for it.
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 21–22 (60-day run, median ≤ 30) |
 | Progress (#78): with a clear round every other time, a ride a day reaches class A in 10 rides, in jumping and cross-country alike; riding cross-country keeps the balance | met: 10 rides each (the gains in DATA); sport's best jumper and best cross-country horse are 60 / 70 (median, day 40); sport/careful worth with cross-country riding 0.86 at 40 days and 1.18 at 80, without it 0.89 / 1.09 (cross-country rolls its own dice); with the pasture limit (#79) 0.86 / 1.09 |
 | Pasture (#79): a horse needs room on the pasture too (a pony 1 place, a big horse 2); strategies enlarge it when it is in the way, and the balance holds | met: careful reaches the Pensionsstall on day 21–22 as before; sport/careful worth 0.86 at 40 days, 1.09 at 80 (1.18 before: big horses now cost pasture too) |
+| Selling (#85): buying, training and selling horses must not pay more than careful or sport play | met: on ten seeds the dealer sells 2–3 horses and its median farm worth is 1573 € after 40 days (careful 1794 €, sport 1599 €) and 2111 € after 80 (careful 2496 €, sport 2807 €) |
 | Cross-country shows (#75): a second way to earn with sport, without making sport the best way to play | met: sport takes riding badge 2 on day 6–8 and rides 9–10 cross-country shows in 40 days; sport/careful worth 0.89 at 40 days and 1.12 at 80 (ten seeds) |
 
 ## Current numbers

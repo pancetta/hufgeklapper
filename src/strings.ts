@@ -187,7 +187,7 @@ export const t = {
   diaryOut: 'Ausgegeben',
   diaryDebts: 'Schulden',
   diaryTotal: (total: number, money: number) => `Heute ${total ? (total > 0 ? '+' : '−') : ''}${Math.abs(total)} € · In der Kasse: ${money} €`,
-  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut', wage: 'Lohn Pferdepfleger', board: 'Einsteller', partBoard: 'Reitbeteiligung' },
+  billWhat: { hay: 'Heu', hayOnCredit: 'Heu, angeschrieben', vet: 'Tierarzt', loan: 'Geld von der Bank', repay: 'Schulden bezahlt', lesson: 'Reitstunde', showFee: 'Startgeld fürs Turnier', prize: 'Preisgeld', horse: 'Pferd gekauft', build: 'Gebaut', wage: 'Lohn Pferdepfleger', board: 'Einsteller', partBoard: 'Reitbeteiligung', sale: 'Pferd verkauft' },
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
@@ -384,12 +384,12 @@ export const t = {
   marketEmpty: 'Heute gibt es keine Pferde mehr. Morgen kommen neue.',
   offer: (name: string, pony: boolean, breed: string, coat: string, price: number) => `${name} · ${pony ? 'Pony' : 'Pferd'} · ${breed}, ${coat} · ${price} €`,
   noStall: 'Kein Stallplatz frei. Bau neue Stallplätze auf dem Bauplatz!',
-  stallsFull: 'Alle Stallplätze sind voll.',
+  stallsFull: 'Alle Stallplätze sind voll. Du kannst unten ein Pferd verkaufen.',
   // the pasture (#79)
   needsPlaces: (n: number) => (n === 1 ? 'braucht 1 Weideplatz' : `braucht ${n} Weideplätze`),
   pastureFullShort: 'Weide zu klein',
   pastureFull: 'Auf der Weide ist kein Platz mehr. Auf dem Hof kannst du die Weide größer machen: tippe auf „Weide“.',
-  pastureBiggest: 'Die Weide ist voll und so groß, wie sie werden kann.',
+  pastureBiggest: 'Die Weide ist voll und so groß, wie sie werden kann. Du kannst unten ein Pferd verkaufen.',
   pastureTitle: 'Die Weide',
   pastureHow: 'Jedes Pferd auf dem Hof braucht Platz auf der Weide: ein Pony 1 Platz, ein Pferd 2. Daneben ist Land für neue Koppeln.',
   pastureCrowded: 'zu voll',
@@ -401,6 +401,18 @@ export const t = {
 
   tooExpensive: 'zu teuer',
   boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
+  // selling a horse (#85)
+  sellTitle: 'Pferd verkaufen',
+  sellLine: (name: string, price: number) => `${name} verkaufen · ${price} €`,
+  saleWaits: { market: 'erst ab der Reitschule', last: 'dein letztes Pferd bleibt', boarder: 'gehört einem Einsteller', rider: 'hat eine Reitbeteiligung', sick: 'ist krank – erst zum Tierarzt' },
+  sellAsk: (name: string) => `${name} verkaufen?`,
+  saleAdvice: {
+    good: (name: string, price: number) => `${name} ist gut ausgebildet. ${price} € sind ein guter Preis.`,
+    practise: (name: string, price: number) => `Für ${name} bekommst du jetzt ${price} €. Wenn du mit ${name} noch übst, bekommst du mehr.`,
+    lastPony: (name: string, price: number) => `${name} ist dein letztes Pony. Kleine Reitschüler brauchen aber ein Pony! Du bekommst ${price} €.`,
+  },
+  sellYes: (price: number) => `Ja, verkaufen · ${price} €`,
+  sold: (name: string, price: number) => `${name} hat ein neues Zuhause. +${price} €`,
   shelter: 'Offenstall',
   buildStalls: (cost: number) => `Stallplätze bauen (${cost} €)`,
   upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost} €)`,

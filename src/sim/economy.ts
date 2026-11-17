@@ -6,10 +6,10 @@
 import { DATA } from './data';
 import {
   type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck, gameOver,
-  showWaits, stalls, xcWindow, noRoom, badge2Waits, xcShowWaits, xcClassWaits,
+  showWaits, stalls, xcWindow, noRoom, badge2Waits, xcShowWaits, xcClassWaits, saleAdvice, saleWaits, salePrice, xcScope,
 } from './state';
 
-export type Strategy = 'careful' | 'careless' | 'sport';
+export type Strategy = 'careful' | 'careless' | 'sport' | 'dealer';
 export type Report = {
   strategy: Strategy; seed: number; days: number;
   money: number[]; // at the end of each day
@@ -17,7 +17,7 @@ export type Report = {
   worth: number;
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number;
-  xcRides: number; xcShows: number; badge2Day: number | null; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
+  xcRides: number; xcShows: number; sold: number; badge2Day: number | null; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
   deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
   lostDay: number | null; // the day the farm was lost (game over), if it was
 };
@@ -51,7 +51,8 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     for (let i = 0; i < obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h, c))) n++; }
     return n;
   };
-  let invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
+  let sold = 0, invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
+  const paid: Record<string, number> = {}; // what each bought horse cost, so a sale takes it out of the farm's worth again
   /** A stall is free but the pasture is full (#79): enlarge it, if the money allows. */
   const roomOnPasture = (build: Horse['look']['build']) => {
     if (noRoom(s, build) === 'pasture' && !buildWaits(s, 'pasture') && s.money > DATA.build.pasture.cost + 150) act({ type: 'build', what: 'pasture' });
@@ -98,7 +99,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       const first = s.pupils[0];
       for (const p of [...s.pupils]) {
         const best = fresh(DATA.lessons.energy).sort((a: Horse, b: Horse) => lessonOutcome(p, b).pay - lessonOutcome(p, a).pay)[0];
-        if (best && (strategy !== 'sport' || s.horses.filter(own).length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
+        if (best && ((strategy !== 'sport' && strategy !== 'dealer') || s.horses.filter(own).length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
       }
     };
     // the sport player, once practised cross-country: one care course, then riding badge 2 (#74) with a fresh horse in
@@ -109,7 +110,22 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (exam) act({ type: 'badge2', horse: exam.id, wrong: 0, faults: xcFaults(exam) });
       if (s.badges >= 2) badge2Day = s.day;
     }
-    if (strategy === 'sport') { sport(); lessons(); } else { lessons(); sport(); }
+    // the dealer (#85): like careful, but trains before the lessons (and gives one a day, like sport), the horse closest to a good
+    // price first, in both disciplines; sells a bought horse as soon as it fetches more than it cost, any horse once Oma
+    // calls it well trained, and buys the next (below)
+    const deal = () => {
+      if (!s.badges) return;
+      const ahead = (a: Horse, b: Horse) => b.skills.jumping + b.skills.crossCountry - a.skills.jumping - a.skills.crossCountry;
+      const j = fresh(DATA.jumping.energy).filter((x) => x.skills.jumping < scope(x)).sort(ahead)[0];
+      if (j) act({ type: 'train', horse: j.id, faults: faults(j) });
+      const x = fresh(DATA.crossCountry.energy).filter((h) => h.skills.crossCountry < xcScope(h)).sort(ahead)[0];
+      if (x) act({ type: 'xcTrain', horse: x.id, faults: xcFaults(x) });
+      for (const h of s.horses.filter(own)) {
+        if (saleWaits(s, h) || !(salePrice(h) > (paid[h.id] ?? Infinity) || saleAdvice(s, h) === 'good')) continue;
+        invested -= paid[h.id] ?? 0; act({ type: 'sell', horse: h.id }); sold++;
+      }
+    };
+    if (strategy === 'sport') { sport(); lessons(); } else if (strategy === 'dealer') { sport(); deal(); lessons(); } else { lessons(); sport(); }
     // the sport player also rides cross-country (#73), with whatever horse has energy left after jumping and lessons:
     // after riding badge 2 a cross-country show on show days (#75)
     if (strategy === 'sport' && s.badges) {
@@ -134,7 +150,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (!buildWaits(s, 'stalls') && s.money > DATA.build.stalls.cost + 200) act({ type: 'build', what: 'stalls' });
       // the careful player buys the cheapest horse, the sport player the best jumper it can afford (class L needs one)
       const offer = s.market.filter((o) => o.price + 150 < s.money).sort((a, b) => (strategy === 'sport' ? scope(b) - scope(a) : 0) || a.price - b.price)[0];
-      if (offer && s.horses.length < stalls(s) && (!noRoom(s, offer.look.build) || s.money > offer.price + DATA.build.pasture.cost)) { roomOnPasture(offer.look.build); act({ type: 'buyHorse', offer: offer.id }); }
+      if (offer && s.horses.length < stalls(s) && (!noRoom(s, offer.look.build) || s.money > offer.price + DATA.build.pasture.cost)) { roomOnPasture(offer.look.build); act({ type: 'buyHorse', offer: offer.id }); paid[offer.id] = offer.price; }
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }
     invested -= s.today.filter((e) => e.what === 'horse' || e.what === 'build').reduce((n, e) => n + e.amount, 0);
@@ -143,7 +159,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     act({ type: 'sleep' });
   }
   const top = (k: 'jumping' | 'crossCountry') => Math.max(0, ...s.horses.filter(own).map((h) => h.skills[k]));
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, xcShows, badge2Day, jumping: top('jumping'), crossCountry: top('crossCountry') };
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, xcShows, sold, badge2Day, jumping: top('jumping'), crossCountry: top('crossCountry') };
 }
 
 /** One line per run, for docs/economy.md and the console. */

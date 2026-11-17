@@ -228,6 +228,11 @@ export const DATA = {
     breeds: ['haflinger', 'islaender', 'reitpony', 'warmblut', 'quarter'],
     names: ['Blitz', 'Sternchen', 'Fanny', 'Moritz', 'Pünktchen', 'Lotte', 'Max', 'Wolke', 'Karamell', 'Nugget', 'Bella', 'Sammy', 'Flocke', 'Sunny'],
   },
+  /**
+   * Selling a horse at the market (#85): `base` of the middle market price for its build, plus up to `trained` of it
+   * for skill (jumping and cross-country, against what its breed can reach). Oma calls it well trained from `good`.
+   */
+  sale: { base: 0.5, trained: 0.55, good: 0.7 },
   build: { stalls: { cost: 300, places: 2 }, arena: { cost: 250, pupils: 1 }, pasture: { cost: 200, places: 2, max: 3 } },
   /**
    * The pasture (#79): every horse on the farm grazes there, boarders' too; a pony needs 1 place, a big horse 2. It

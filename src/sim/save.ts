@@ -9,7 +9,7 @@ import { CARE, type Care, type Entry, type Horse, NEEDS, type News, pupilsFor, t
 
 // every kind of morning news; typed, so a new kind can't be forgotten here (that would make saves unreadable)
 const NEWS: Record<News['kind'], 1> = { sick: 1, noHay: 1, hayLow: 1, rested: 1, bill: 1, staffUnpaid: 1, boarderLeft: 1, omaHelped: 1, lastWarning: 1, gameOver: 1 };
-const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1, showFee: 1, prize: 1, horse: 1, build: 1, wage: 1, board: 1, partBoard: 1 };
+const ENTRIES: Record<Entry['what'], 1> = { hay: 1, hayOnCredit: 1, vet: 1, loan: 1, repay: 1, lesson: 1, showFee: 1, prize: 1, horse: 1, build: 1, wage: 1, board: 1, partBoard: 1, sale: 1 };
 const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-9-]{1,40}$/.test(p.id) && isText(p.name, 30)
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
