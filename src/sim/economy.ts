@@ -119,7 +119,7 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       if (!buildWaits(s, 'stalls') && s.money > DATA.build.stalls.cost + 200) act({ type: 'build', what: 'stalls' });
       // the careful player buys the cheapest horse, the sport player the best jumper it can afford (class L needs one)
       const offer = s.market.filter((o) => o.price + 150 < s.money).sort((a, b) => (strategy === 'sport' ? scope(b) - scope(a) : 0) || a.price - b.price)[0];
-      if (offer && s.horses.length < stalls(s)) { roomOnPasture(offer.look.build); act({ type: 'buyHorse', offer: offer.id }); }
+      if (offer && s.horses.length < stalls(s) && (!noRoom(s, offer.look.build) || s.money > offer.price + DATA.build.pasture.cost)) { roomOnPasture(offer.look.build); act({ type: 'buyHorse', offer: offer.id }); }
       if (!buildWaits(s, 'arena') && s.money > DATA.build.arena.cost + 300) act({ type: 'build', what: 'arena' });
     }
     invested -= s.today.filter((e) => e.what === 'horse' || e.what === 'build').reduce((n, e) => n + e.amount, 0);

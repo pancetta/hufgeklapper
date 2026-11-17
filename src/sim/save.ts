@@ -173,11 +173,16 @@ function fromVersion14(x: Obj): unknown {
   return { ...x, version: 15, state: { ...s, version: 15, horses } };
 }
 
-/** Version 15 to 16: the pasture can be enlarged (#79); nothing added yet. */
+/**
+ * Version 15 to 16: the pasture has places (#79). A farm that already has its horses gets the land they need (up to
+ * the most there is), so an update doesn't leave it crowded.
+ */
 function fromVersion15(x: Obj): unknown {
   const s = x.state;
   if (!isObj(s) || !isObj(s.built)) return x;
-  return { ...x, version: 16, state: { ...s, version: 16, built: { ...s.built, pasture: 0 } } };
+  const P = DATA.pasture, need = Array.isArray(s.horses) ? s.horses.reduce((n: number, h) => n + (isObj(h) && isObj(h.look) && h.look.build === 'horse' ? P.need.horse : P.need.pony), 0) : 0;
+  const pasture = Math.min(DATA.build.pasture.max, Math.max(0, Math.ceil((need - P.start) / DATA.build.pasture.places)));
+  return { ...x, version: 16, state: { ...s, version: 16, built: { ...s.built, pasture } } };
 }
 
 /** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */

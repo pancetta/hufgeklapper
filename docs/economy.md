@@ -13,7 +13,7 @@ in five on a new pony, less often the wider the horse's take-off window (skill a
   obstacle in six, fewer the wider its take-off window. Its refusals use their own random numbers, so they don't change the jumping rounds.
 
 When a stall is free but the pasture is full (#79), the careful and sport players enlarge the pasture first, if the money
-allows (its price plus 150 € to spare).
+allows (its price plus 150 € to spare); before buying a horse only if the horse is still affordable afterwards.
 
 The farm's worth ("Hof-Wert") is money minus debt plus what was spent on horses and building: a player who built
 the arena is not poorer for it.
@@ -24,10 +24,10 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player gets a long chance: Oma Hanne helps out of the first dead end (all horses sick, no money for the vet, no more loans) once (#66); a second dead end that lasts 7 mornings loses the farm (#68) | met: careful never loses (120 days); careless is lost on 8 of 10 seeds between day 66 and 93 of 120, never before day 60 |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.86× careful's after 40 days and 1.04× after 80 (with cross-country riding, #78, and the pasture limit, #79); careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.86× careful's after 40 days and 1.09× after 80 (with cross-country riding, #78, and the pasture limit, #79); careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 21–22 (60-day run, median ≤ 30) |
-| Progress (#78): with a clear round every other time, a ride a day reaches class A in 10 rides, in jumping and cross-country alike; riding cross-country keeps the balance | met: 10 rides each (the gains in DATA); sport's best jumper and best cross-country horse are 60 / 70 (median, day 40); sport/careful worth with cross-country riding 0.86 at 40 days and 1.18 at 80, without it 0.89 / 1.09 (cross-country rolls its own dice); with the pasture limit (#79) 0.86 / 1.04 |
-| Pasture (#79): a horse needs room on the pasture too (a pony 1 place, a big horse 2); strategies enlarge it when it is in the way, and the balance holds | met: careful reaches the Pensionsstall on day 21–22 as before; sport/careful worth 0.86 at 40 days, 1.04 at 80 (1.18 before: big horses now cost pasture too) |
+| Progress (#78): with a clear round every other time, a ride a day reaches class A in 10 rides, in jumping and cross-country alike; riding cross-country keeps the balance | met: 10 rides each (the gains in DATA); sport's best jumper and best cross-country horse are 60 / 70 (median, day 40); sport/careful worth with cross-country riding 0.86 at 40 days and 1.18 at 80, without it 0.89 / 1.09 (cross-country rolls its own dice); with the pasture limit (#79) 0.86 / 1.09 |
+| Pasture (#79): a horse needs room on the pasture too (a pony 1 place, a big horse 2); strategies enlarge it when it is in the way, and the balance holds | met: careful reaches the Pensionsstall on day 21–22 as before; sport/careful worth 0.86 at 40 days, 1.09 at 80 (1.18 before: big horses now cost pasture too) |
 
 ## Current numbers
 
@@ -48,7 +48,7 @@ Sick days are counted in the morning, before the vet comes.
 | sport | 1 | 375 € | 416 € | 208 € | 1178 € | 3 | 27 | 51 | 13 | 0 | 0 € | – | 60 / 60 (30) |
 | sport | 2 | 422 € | 454 € | 221 € | 1536 € | 3 | 26 | 63 | 13 | 0 | 0 € | – | 60 / 64 (31) |
 | sport | 3 | 344 € | 383 € | 297 € | 1137 € | 3 | 25 | 63 | 13 | 0 | 0 € | – | 60 / 64 (29) |
-| sport | 4 | 426 € | 618 € | 486 € | 1681 € | 5 | 25 | 67 | 12 | 0 | 0 € | – | 60 / 70 (30) |
+| sport | 4 | 426 € | 618 € | 350 € | 1632 € | 5 | 25 | 67 | 12 | 0 | 16 € | – | 60 / 70 (30) |
 | sport | 5 | 421 € | 643 € | 224 € | 1515 € | 4 | 26 | 65 | 12 | 0 | 0 € | – | 60 / 70 (32) |
 
 ## What changed because of it

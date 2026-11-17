@@ -32,10 +32,16 @@ export async function startPasture(canvas: HTMLCanvasElement, o: PastureOptions)
   const ground = document.createElement('canvas');
   ground.width = COLS * TILE; ground.height = ROWS * TILE;
   paintTerrain(ground.getContext('2d')!, img['nature/terrain.png'], map);
-  const scenery: Drawable[] = [field, ...more].flatMap((p) => plotDrawables(p, img));
+  // the farm's hay roll (its last drawable) is too big for this field: fence and trough only
+  const scenery: Drawable[] = [...plotDrawables(field, img).slice(0, -1), ...more.flatMap((p) => plotDrawables(p, img))];
 
   const rnd = random(11), area = inside(field);
-  const horses = o.herd.map((look) => ({ look, w: walker(area, rnd) }));
+  // spread over the field at first, so every horse can be counted
+  const horses = o.herd.map((look, i) => {
+    const w = walker(area, rnd);
+    w.x = w.tx = area[0] + ((i + 0.5) / o.herd.length) * (area[2] - area[0]);
+    return { look, w };
+  });
   const ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, ox = 0, oy = 0, last = performance.now(), running = true;
 
@@ -44,7 +50,7 @@ export async function startPasture(canvas: HTMLCanvasElement, o: PastureOptions)
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
-    ox = Math.round((W - COLS * TILE) / 2); oy = Math.round(Math.max(TILE / 2, Math.min(TILE * 2, (H - 110 - ROWS * TILE) / 2 + TILE))); // between the top bar and the bar at the bottom // above the bar at the bottom
+    ox = Math.round((W - COLS * TILE) / 2); oy = Math.round(Math.max(TILE / 2, Math.min(TILE * 2, (H - 110 - ROWS * TILE) / 2 + TILE))); // between the top bar and the bar at the bottom
   }
 
   function frame(now: number) {

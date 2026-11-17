@@ -48,11 +48,17 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
-  it('gives a save from version 15 a pasture not enlarged yet', () => {
+  it('gives a save from version 15 the pasture its horses need (two ponies: none added; more horses: land up to the most)', () => {
     const now = toSave(played(), 'Hof');
     const { pasture: _p, ...built } = now.state.built;
-    const p = parseSave(text({ ...now, version: 15, state: { ...now.state, version: 15, built } }));
+    const old = (horses: typeof now.state.horses) => parseSave(text({ ...now, version: 15, state: { ...now.state, version: 15, built, horses } }));
+    const p = old(now.state.horses);
     expect(p.ok && p.save.state.built.pasture).toBe(0);
+    const big = { ...now.state.horses[0], look: { build: 'horse' as const, coat: 'brauner' as const } };
+    const more = old([...now.state.horses, { ...big, id: 'b1' }, { ...big, id: 'b2' }]); // 2 + 4 = 6 places: one step
+    expect(more.ok && more.save.state.built.pasture).toBe(1);
+    const lots = old([...now.state.horses, ...[1, 2, 3, 4, 5, 6].map((i) => ({ ...big, id: `b${i}` }))]); // 14 places: the most there is
+    expect(lots.ok && lots.save.state.built.pasture).toBe(DATA.build.pasture.max);
   });
 
   it('gives the horses of a save from version 14 a progress log that starts with their skills now', () => {

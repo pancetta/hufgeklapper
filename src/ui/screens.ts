@@ -487,7 +487,8 @@ export function showFarm(intro = false) {
         // each offer says why it can't come: no stall, no room on the pasture (a big horse takes two places), no money
         const room = noRoom(s, o.look.build), poor = s.money < o.price;
         return `<button type="button" data-offer="${o.id}"${room || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : !room && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
-      }).join('') + roomNote(s) : `<p>${t.marketEmpty}</p>`}` : ''}
+      }).join('') : `<p>${t.marketEmpty}</p>`}` : ''}
+      ${roomNote(s, [...(atLeast(s, 'reitschule') ? s.market : []), ...(atLeast(s, 'pensionsstall') ? s.boardOffers : [])])}
       <button type="button" id="close-shop">${t.close}</button>`;
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
       const o = game.get().market.find((x) => x.id === b.dataset.offer);
@@ -511,10 +512,11 @@ export function showFarm(intro = false) {
   let shopFrom = { staff: 0, horses: 0 };
   function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
   /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
-  /** What stands in the way of another horse: the stalls, or the pasture with a word on enlarging it. */
-  function roomNote(s: State) {
-    if (s.horses.length >= stalls(s)) return `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>`;
-    return grazing(s) + 1 > pasture(s) ? `<p class="oma">${buildWaits(s, 'pasture') === 'built' ? t.pastureBiggest : t.pastureFull}</p>` : '';
+  /** Once, under the offers: what stands in the way of one of them — the stalls, or the pasture with a word on enlarging it. */
+  function roomNote(s: State, offers: { look: Horse['look'] }[]) {
+    const why = offers.map((o) => noRoom(s, o.look.build)).find(Boolean);
+    if (why === 'stall') return `<p class="oma">${s.built.stalls ? t.stallsFull : t.noStall}</p>`;
+    return why === 'pasture' ? `<p class="oma">${buildWaits(s, 'pasture') === 'built' ? t.pastureBiggest : t.pastureFull}</p>` : '';
   }
   function pension(s: State) {
     const S = DATA.staff, offer = s.partOffer, horse = offer && s.horses.find((h) => h.id === offer.horse);
@@ -523,7 +525,7 @@ export function showFarm(intro = false) {
       ${s.staff < S.names.length ? `<button type="button" id="hire">${t.hire(S.names[s.staff], S.wage, S.horses)}</button>` : ''}
       <h3>${t.boardersTitle}</h3>
       ${s.boardOffers.length ? s.boardOffers.map((o) => { const room = noRoom(s, o.look.build); return `<button type="button" data-board="${o.id}"${room ? ' disabled' : ''}>${t.boardOffer(esc(o.owner), esc(o.name), BREEDS[o.breed].label, o.pay)} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : ''}</button>`; }).join('')
-        + roomNote(s) : `<p>${t.noBoarders}</p>`}
+        : `<p>${t.noBoarders}</p>`}
       ${offer && horse ? `<h3>${t.partTitle}</h3><p>${t.partOffer(esc(offer.rider), esc(horse.name), offer.pay)}</p><button type="button" id="part">${t.partYes}</button>` : ''}`;
   }
   /** Builds on a plot after asking: the price and what it brings, or why not now; the map shows it at once. */
@@ -1096,11 +1098,11 @@ function progressChart(h: Horse) {
 function showPasture() {
   const s = game.get(), why = buildWaits(s, 'pasture'), P = DATA.build.pasture;
   const $ = screen(`<canvas id="pasture" aria-hidden="true"></canvas>${topBar()}
-    <aside class="pasture-panel"><h2>${t.pastureTitle}</h2><p id="use" role="status">${t.pastureUse(grazing(s), pasture(s))}</p>
+    <aside class="pasture-panel"><h2>${t.pastureTitle}</h2><p id="use" role="status">${t.pastureUse(grazing(s), pasture(s))}${grazing(s) > pasture(s) ? ` – ${t.pastureCrowded}` : ''}</p>
       <button type="button" id="grow"${why ? ' disabled aria-describedby="grow-why"' : ''}>${t.pastureGrow(P.places, P.cost)}</button><button type="button" id="to-farm">${t.toFarm}</button>
       <p class="oma"${why ? ' id="grow-why"' : ''}>${why ? `${t.pastureHow} ${t.pastureWaits[why]}` : t.pastureHow}</p></aside>`);
   const scene = startPasture($<HTMLCanvasElement>('pasture'), { herd: s.horses.map((h) => h.look), built: s.built.pasture, max: P.max });
-  const bar = wireTopBar($, () => {});
+  const bar = wireTopBar($, () => { if (game.get().day !== s.day) showPasture(); }); // a new morning: money and horses may have changed
   $('grow').addEventListener('click', () => {
     game.dispatch({ type: 'build', what: 'pasture' });
     if (game.get().built.pasture > s.built.pasture) { showPasture(); omaSays(t.pastureGrown); } // the new fence on the picture
