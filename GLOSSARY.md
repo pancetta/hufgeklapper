@@ -193,6 +193,11 @@ Bought and stored; every horse eats one bale from the store each night. With non
 Where the feed lies and is bought: every bale in stock on a stack, and how many nights it lasts. Later also
 concentrate feed ("Kraftfutter").
 
+**Pasture** ("Weide"):
+Where every horse of the farm grazes, boarders' horses too. It has **Pasture places** ("Weideplätze"): a pony takes 1, a
+big horse 2. A horse can come to the farm only with a free stall **and** room on the pasture. From the Reitschule on the
+pasture can be enlarged ("Weide vergrößern"), a paddock at a time.
+
 **Plot** ("Bauplatz"):
 A fixed place on the farm map where a building can be built and later upgraded. A free plot shows stakes, a string and a sign.
 

@@ -12,6 +12,9 @@ in five on a new pony, less often the wider the horse's take-off window (skill a
   After the badge it also rides cross-country (#73) with whatever horse has energy left; a new pony refuses at one
   obstacle in six, fewer the wider its take-off window. Its refusals use their own random numbers, so they don't change the jumping rounds.
 
+When a stall is free but the pasture is full (#79), the careful and sport players enlarge the pasture first, if the money
+allows (its price plus 150 € to spare); before buying a horse only if the horse is still affordable afterwards.
+
 The farm's worth ("Hof-Wert") is money minus debt plus what was spent on horses and building: a player who built
 the arena is not poorer for it.
 
@@ -21,9 +24,10 @@ the arena is not poorer for it.
 |---|---|
 | A careful player reaches the first farm inspection in about 10–15 days (median of the seeds) | met: day 11–12 |
 | A careless player gets a long chance: Oma Hanne helps out of the first dead end (all horses sick, no money for the vet, no more loans) once (#66); a second dead end that lasts 7 mornings loses the farm (#68) | met: careful never loses (120 days); careless is lost on 8 of 10 seeds between day 66 and 93 of 120, never before day 60 |
-| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.86× careful's after 40 days and 1.18× after 80 (with cross-country riding, #78); careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
+| No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.86× careful's after 40 days and 1.09× after 80 (with cross-country riding, #78, and the pasture limit, #79); careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 21–22 (60-day run, median ≤ 30) |
-| Progress (#78): with a clear round every other time, a ride a day reaches class A in 10 rides, in jumping and cross-country alike; riding cross-country keeps the balance | met: 10 rides each (the gains in DATA); sport's best jumper and best cross-country horse are 60 / 70 (median, day 40); sport/careful worth with cross-country riding 0.86 at 40 days and 1.18 at 80, without it 0.89 / 1.09 (cross-country rolls its own dice) |
+| Progress (#78): with a clear round every other time, a ride a day reaches class A in 10 rides, in jumping and cross-country alike; riding cross-country keeps the balance | met: 10 rides each (the gains in DATA); sport's best jumper and best cross-country horse are 60 / 70 (median, day 40); sport/careful worth with cross-country riding 0.86 at 40 days and 1.18 at 80, without it 0.89 / 1.09 (cross-country rolls its own dice); with the pasture limit (#79) 0.86 / 1.09 |
+| Pasture (#79): a horse needs room on the pasture too (a pony 1 place, a big horse 2); strategies enlarge it when it is in the way, and the balance holds | met: careful reaches the Pensionsstall on day 21–22 as before; sport/careful worth 0.86 at 40 days, 1.09 at 80 (1.18 before: big horses now cost pasture too) |
 
 ## Current numbers
 
@@ -31,21 +35,21 @@ Sick days are counted in the morning, before the vet comes.
 
 | Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) | Können Springen / Gelände (Geländeritte) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 632 € | 230 € | 510 € | 1662 € | 3 | 12 | 101 | 9 | 0 | 0 € | – | 14 / 10 (0) |
-| careful | 2 | 711 € | 212 € | 609 € | 1733 € | 3 | 12 | 102 | 8 | 0 | 0 € | – | 18 / 10 (0) |
-| careful | 3 | 696 € | 284 € | 611 € | 1750 € | 3 | 11 | 102 | 9 | 0 | 0 € | – | 16 / 10 (0) |
-| careful | 4 | 648 € | 228 € | 659 € | 1750 € | 3 | 11 | 102 | 8 | 0 | 0 € | – | 14 / 10 (0) |
-| careful | 5 | 676 € | 266 € | 747 € | 1862 € | 4 | 12 | 102 | 7 | 0 | 0 € | – | 16 / 10 (0) |
+| careful | 1 | 632 € | 230 € | 272 € | 1571 € | 3 | 12 | 101 | 10 | 0 | 0 € | – | 14 / 10 (0) |
+| careful | 2 | 711 € | 212 € | 317 € | 1794 € | 3 | 12 | 101 | 9 | 0 | 0 € | – | 18 / 10 (0) |
+| careful | 3 | 696 € | 284 € | 380 € | 1671 € | 3 | 11 | 102 | 9 | 0 | 0 € | – | 16 / 10 (0) |
+| careful | 4 | 648 € | 228 € | 363 € | 1600 € | 3 | 11 | 101 | 9 | 0 | 0 € | – | 14 / 10 (0) |
+| careful | 5 | 676 € | 266 € | 496 € | 2008 € | 4 | 12 | 101 | 8 | 0 | 0 € | – | 16 / 10 (0) |
 | careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | – | 14 / 10 (0) |
 | careless | 2 | 549 € | 513 € | 476 € | 476 € | 3 | 18 | 44 | 10 | 14 | 0 € | – | 16 / 10 (0) |
 | careless | 3 | 581 € | 525 € | 329 € | 329 € | 3 | 18 | 37 | 10 | 14 | 0 € | – | 16 / 10 (0) |
 | careless | 4 | 524 € | 402 € | 202 € | 202 € | 5 | – | 35 | 9 | 14 | 0 € | – | 14 / 10 (0) |
 | careless | 5 | 514 € | 498 € | 563 € | 563 € | 4 | 21 | 49 | 9 | 14 | 0 € | – | 16 / 10 (0) |
 | sport | 1 | 375 € | 416 € | 208 € | 1178 € | 3 | 27 | 51 | 13 | 0 | 0 € | – | 60 / 60 (30) |
-| sport | 2 | 422 € | 454 € | 371 € | 1498 € | 3 | 26 | 64 | 13 | 0 | 0 € | – | 60 / 60 (31) |
+| sport | 2 | 422 € | 454 € | 221 € | 1536 € | 3 | 26 | 63 | 13 | 0 | 0 € | – | 60 / 64 (31) |
 | sport | 3 | 344 € | 383 € | 297 € | 1137 € | 3 | 25 | 63 | 13 | 0 | 0 € | – | 60 / 64 (29) |
-| sport | 4 | 426 € | 618 € | 399 € | 1664 € | 5 | 25 | 68 | 12 | 0 | 0 € | – | 60 / 70 (30) |
-| sport | 5 | 421 € | 643 € | 445 € | 1503 € | 4 | 26 | 65 | 12 | 0 | 0 € | – | 60 / 70 (32) |
+| sport | 4 | 426 € | 618 € | 350 € | 1632 € | 5 | 25 | 67 | 12 | 0 | 16 € | – | 60 / 70 (30) |
+| sport | 5 | 421 € | 643 € | 224 € | 1515 € | 4 | 26 | 65 | 12 | 0 | 0 € | – | 60 / 70 (32) |
 
 ## What changed because of it
 

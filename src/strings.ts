@@ -60,7 +60,6 @@ export const t = {
 
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz', xc: 'Ins Gelände' } as Record<string, string>,
-  pasture: 'Hier grasen deine Ponys.',
   freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist.',
 
   // the stable and the horse card
@@ -345,6 +344,20 @@ export const t = {
   offer: (name: string, pony: boolean, breed: string, coat: string, price: number) => `${name} · ${pony ? 'Pony' : 'Pferd'} · ${breed}, ${coat} · ${price} €`,
   noStall: 'Kein Stallplatz frei. Bau neue Stallplätze auf dem Bauplatz!',
   stallsFull: 'Alle Stallplätze sind voll.',
+  // the pasture (#79)
+  needsPlaces: (n: number) => (n === 1 ? 'braucht 1 Weideplatz' : `braucht ${n} Weideplätze`),
+  pastureFullShort: 'Weide zu klein',
+  pastureFull: 'Auf der Weide ist kein Platz mehr. Auf dem Hof kannst du die Weide größer machen: tippe auf „Weide“.',
+  pastureBiggest: 'Die Weide ist voll und so groß, wie sie werden kann.',
+  pastureTitle: 'Die Weide',
+  pastureHow: 'Jedes Pferd auf dem Hof braucht Platz auf der Weide: ein Pony 1 Platz, ein Pferd 2. Daneben ist Land für neue Koppeln.',
+  pastureCrowded: 'zu voll',
+  pastureUse: (used: number, all: number) => `${used} von ${all} Plätzen belegt`,
+  pastureLabel: (used: number, all: number) => `Weide ${used}/${all}`,
+  pastureGrow: (places: number, cost: number) => `Weide vergrößern: +${places} Plätze für ${cost} €`,
+  pastureGrown: 'Die Weide ist größer! Der neue Zaun steht.',
+  pastureWaits: { stage: 'Mehr Land gibt es ab der Reitschule.', built: 'Größer geht die Weide nicht.', money: 'Dafür reicht das Geld noch nicht.' } as Record<string, string>,
+
   tooExpensive: 'zu teuer',
   boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
   shelter: 'Offenstall',
