@@ -654,6 +654,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
     <section id="jump-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.jumpHow(h.look.build === 'pony')}</p>
       <div class="answers"><button type="button" id="jump-go">${t.go}</button><button type="button" id="jump-leave">${t.back}</button></div></div></section>
     <p id="jump-hud" class="jump-hud" aria-live="off"></p><p id="jump-tip" class="jump-tip" role="status" hidden></p>
+    <button type="button" id="jump-quit" class="small corner left" hidden>${t.routineLeave}</button>
     <section id="jump-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="jump-back">${t.toFarm}</button></div></section>`);
   // each round its own course: from the day and the practice so far (the same again after a reload)
   const s0 = game.get(), course = courseFor(kind, showClass, s0.day * 1009 + s0.trainings * 31 + s0.badgeFailedDay), allowed = timeAllowed(course);
@@ -690,7 +691,9 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   document.addEventListener('gesturestart', noZoom);
   $('jump-go').addEventListener('click', async () => { // once: a second click (or the space bar) must not ride it again
     $('jump-start').hidden = true;
+    $('jump-quit').hidden = false;
     const faults = await (await round).run(), end = $('jump-end');
+    $('jump-quit').hidden = true;
     clearTimeout(knockTimer); tip.hidden = true; // no tip over the result
     if (kind === 'show') {
       // the podium: the first three on their steps, then everyone with their points
@@ -718,6 +721,13 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
   }, { once: true });
   $('jump-back').addEventListener('click', () => showFarm());
   $('jump-leave').addEventListener('click', () => showFarm());
+  // stopping: before the first way back to the farm (nothing ridden, nothing paid); after it, asked, the round is given up
+  $('jump-quit').addEventListener('click', async () => {
+    const r = await round;
+    if (!r.started()) return showFarm(); // nothing ridden yet: just back, nothing to ask
+    if (!(await ask(t.jumpQuitSure, t.jumpQuitYes))) return;
+    if (!$('jump-quit').hidden) r.quit(); // the round may have ended while asked: then its result stays
+  });
   leave = () => { removeEventListener('keydown', key); removeEventListener('keyup', key); document.removeEventListener('gesturestart', noZoom); round.then((r) => r.stop()); };
 }
 

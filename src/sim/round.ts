@@ -24,6 +24,7 @@ export type Round = {
   air: { jump: number; from: number; to: number; down: boolean; counts: boolean } | null; // in the air over a jump, from/to in seconds; counts: the next one, taken off for
   stopped: number; // seconds left standing after a refusal
   refused: number | null; // the jump refused last
+  tries: number; // refusals at the next jump: the third time the horse is led round it (#90)
   done: boolean;
 };
 
@@ -51,9 +52,12 @@ export function timeAllowed(c: Course) {
 }
 const timeFaults = (t: number, allowed: number) => (t > allowed ? Math.ceil((t - allowed) / R.timeFault) : 0);
 
+/** Giving up (the child stops, or the time is long over): the round ends, each jump left a fault, plus the time faults. */
+export const giveUp = (r: Round, c: Course): Round => ({ ...r, done: true, faults: r.faults + (c.jumps.length - r.next) + timeFaults(r.t, timeAllowed(c)) });
+
 export function newRound(c: Course): Round {
   const [x, y, dir] = c.start;
-  return { x, y, heading: ANGLE[dir], v: 0, started: false, t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, done: false };
+  return { x, y, heading: ANGLE[dir], v: 0, started: false, t: 0, next: 0, faults: 0, down: [], air: null, stopped: 0, refused: null, tries: 0, done: false };
 }
 
 /**
@@ -64,7 +68,7 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
   if (r.done || (!r.started && !target)) return r;
   const t = r.t + dt, allowed = timeAllowed(c);
   r = { ...r, started: true };
-  if (t > allowed + R.giveUp) return { ...r, t, done: true, faults: r.faults + (c.jumps.length - r.next) + timeFaults(t, allowed) };
+  if (t > allowed + R.giveUp) return giveUp({ ...r, t }, c);
   if (r.stopped > 0) {
     const stopped = Math.max(0, r.stopped - dt);
     return { ...r, t, stopped, heading: stopped ? r.heading : wrap(r.heading + Math.PI) }; // then it turns round
@@ -88,13 +92,20 @@ export function step(r: Round, c: Course, dt: number, target: { x: number; y: nu
     // landed: the next jump is done, a knocked pole is a fault; a jump out of turn counts for nothing
     const { jump, down, counts } = r.air;
     if (!counts) return { ...next, air: null };
-    return { ...next, air: null, next: r.next + 1, faults: r.faults + (down ? 1 : 0), down: down ? [...r.down, jump] : r.down };
+    return { ...next, air: null, next: r.next + 1, tries: 0, faults: r.faults + (down ? 1 : 0), down: down ? [...r.down, jump] : r.down };
   }
   // reaching a jump on the ground: the next one, ridden its way, is refused (a fault); any other the horse hops over
   for (let i = 0; i < c.jumps.length; i++) {
     const j = c.jumps[i], before = rel(r.x, r.y, [j.x, j.y], j.dir), after = rel(x, y, [j.x, j.y], j.dir);
     if (Math.abs(after.lat) > R.half || Math.sign(before.s) === Math.sign(after.s)) continue;
-    if (i === r.next && before.s < 0) return { ...r, t, heading, v: 0, stopped: R.stop, refused: i, faults: r.faults + 1 };
+    if (i === r.next && before.s < 0) {
+      // a refusal: it stands a moment in front of the jump; the third time it is led round it (a fault too), so no child is stuck
+      const tries = r.tries + 1, a = ANGLE[j.dir], back = tries >= R.tries ? R.takeoff : -R.reach;
+      const at = { x: j.x + Math.cos(a) * back - Math.sin(a) * after.lat, y: j.y + Math.sin(a) * back + Math.cos(a) * after.lat };
+      return tries >= R.tries
+        ? { ...r, ...inside(at), t, heading: a, v: 0, stopped: 0, refused: i, faults: r.faults + 1, next: r.next + 1, tries: 0 }
+        : { ...r, ...inside(at), t, heading, v: 0, stopped: R.stop, refused: i, faults: r.faults + 1, tries };
+    }
     return { ...next, v: Math.max(v, R.speed / 2), air: { jump: i, from: t, to: t + (2 * R.takeoff) / R.speed, down: false, counts: false } };
   }
   // through the finish after the last jump

@@ -9,7 +9,7 @@ import { horseSheet } from '../horses/compose';
 import type { Look } from '../horses/look';
 import type { Kid } from '../riders/look';
 import { DATA } from '../sim/data';
-import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, hopp, newRound, type Point, type Round, route, step, takeOffOffset, touchDown } from '../sim/round';
+import { ANGLE, autopilot, type Course, type CourseJump, type Dir, follow, giveUp, hopp, newRound, type Point, type Round, route, step, takeOffOffset, touchDown } from '../sim/round';
 import { blit, pole, shadow, standard } from './draw';
 import { drawKid, drawRider, type Gear } from './kids';
 import { seat } from './life';
@@ -131,7 +131,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
   const result = new Promise<number>((ok) => { done = ok; });
 
   function fit() {
-    S = Math.max(1, Math.floor(Math.min(innerWidth / (A.w + 8), innerHeight / (A.h + 8))));
+    // whole device pixels per arena pixel (crisp), not whole CSS pixels: on a 2× iPad that is steps of ½, so the
+    // arena fills the screen instead of dropping to half its size (#99)
+    const d = devicePixelRatio || 1;
+    S = Math.max(1, Math.floor(Math.min((innerWidth * d) / (A.w + 8), (innerHeight * d) / (A.h + 8)))) / d;
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
@@ -290,6 +293,10 @@ export async function startJumping(canvas: HTMLCanvasElement, o: JumpingOptions)
     /** "Hopp!": take off, if the horse is lined up for the next jump. */
     /** "Hopp!" from the keyboard: the space bar, held `held` seconds (its momentum, like a finger). */
     hopp(held = Infinity) { takeoff(0, held); },
+    /** Whether the first way was given: before it nothing has been ridden. */
+    started: () => r.started,
+    /** The child stops: the round is given up and ends (its result as usual). */
+    quit() { if (!r.done) { r = giveUp(r, c); running = false; done(r.faults); } },
     stop() { stopped = true; running = false; removeEventListener('resize', onResize); },
   };
 }

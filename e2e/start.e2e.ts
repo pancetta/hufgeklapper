@@ -721,6 +721,34 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   await expect(page.getByText(t.diaryGain('Kiwi', after.skills.jumping - 10, 0))).toBeVisible();
 });
 
+test('a jumping round can be stopped: before the first way back to the farm for free, after it as a give-up (#90, #99)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { Object.assign(s, { badges: 1, trainings: 3, day: DATA.shows.every }); });
+  // a show: stopped before the first way, nothing is paid and the show can still be ridden
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.show, exact: true }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.go }).tap();
+  await page.getByRole('button', { name: t.routineLeave }).tap();
+  await expect(page.locator('#money')).toHaveText(t.money(300));
+  // practice: a way drawn, then stopped: the round ends, every jump left a fault
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.practiseJumping }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.go }).tap();
+  const canvas = page.locator('#jumping');
+  await expect(canvas).toHaveAttribute('data-route', /\d/);
+  const points = (await canvas.getAttribute('data-route'))!.split(' ').slice(0, 3).map((p) => p.split(',').map(Number));
+  await page.mouse.move(points[0][0], points[0][1]); await page.mouse.down();
+  for (const [x, y] of points.slice(1)) await page.mouse.move(x, y);
+  await page.mouse.up();
+  await page.getByRole('button', { name: t.routineLeave }).tap();
+  await expect(page.getByText(t.jumpQuitSure)).toBeVisible();
+  await page.getByRole('button', { name: t.jumpQuitYes }).tap();
+  await expect(page.locator('#jump-end')).toContainText(t.jumpFaults(0, 'Kiwi').replace(/^0 /, ''));
+});
+
 test('riding badge 1: Oma asks five questions, a jumping round, then the rosette or another try tomorrow', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('./');
