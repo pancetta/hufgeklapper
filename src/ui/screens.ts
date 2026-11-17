@@ -555,7 +555,7 @@ export function showFarm(intro = false) {
         // big horse takes two places), no money
         const room = noRoom(s, o.look.build), poor = s.money < o.price, why = room === 'pasture' ? t.pastureFullShort : !room && poor ? t.tooExpensive : '';
         const all = `${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${why ? ` · ${why}` : ''}`;
-        return horseCard(`data-offer="${o.id}"`, all, room || poor, esc(o.name), t.money(o.price), [`${o.look.build === 'pony' ? 'Pony' : 'Pferd'} · ${BREEDS[o.breed].label}`, t.jumpsUpTo(topClass(o)), t.needsPlaces(DATA.pasture.need[o.look.build])], why);
+        return horseCard(`data-offer="${o.id}"`, all, room || poor, esc(o.name), t.money(o.price), [t.offerKind(o.look.build === 'pony', BREEDS[o.breed].label), t.jumpsUpTo(topClass(o)), t.needsPlaces(DATA.pasture.need[o.look.build])], why);
       }).join('')}</div>` : `<p>${t.marketEmpty}</p>`}` : ''}
       ${roomNote(s, [...(atLeast(s, 'reitschule') ? s.market : []), ...(atLeast(s, 'pensionsstall') ? s.boardOffers : [])])}
       ${atLeast(s, 'reitschule') ? `<h3>${t.sellTitle}</h3><div class="market-cards">${s.horses.filter(own).map((h) => {
