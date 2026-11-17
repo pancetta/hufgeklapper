@@ -274,7 +274,7 @@ export const t = {
   xcClear: (horse: string) => `Ohne Fehler und genau in der Zielzeit! ${horse} wird im Gelände immer besser.`,
   xcCleanTop: 'Ohne Fehler und genau in der Zielzeit!',
   xcFaults: (n: number, horse: string) => `${n} Fehler. ${horse} hat trotzdem geübt.`,
-  xcTime: (s: number, lo: number, hi: number) => (s < lo ? `Ihr wart ${Math.ceil(lo - s)} s zu schnell.` : s > hi ? `Ihr wart ${Math.ceil(s - hi)} s zu langsam.` : 'Die Zeit passte genau.'),
+  xcTime: (s: number, lo: number, hi: number) => (s < lo ? `Ihr wart ${Math.ceil(lo - s)}\u00a0s zu schnell.` : s > hi ? `Ihr wart ${Math.ceil(s - hi)}\u00a0s zu langsam.` : 'Die Zeit passte genau.'),
   whichHorse: 'Mit welchem Pferd?',
   jumpHow: (pony: boolean, hold = false) => [
     `Mal mit dem Finger einen Weg vom ${pony ? 'Pony' : 'Pferd'} aus.`,
