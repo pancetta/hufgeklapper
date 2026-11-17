@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained, pasture, grazing, noRoom, badge2Waits, nextXcShowDay, xcShowWaits, xcClassWaits, salePrice, saleWaits, saleAdvice } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -654,6 +654,33 @@ describe('Sim', () => {
     expect(xcWindow(h, 'E')).toBe(xcWindow(h));
     expect(xcWindow(h, 'L')).toBeLessThan(xcWindow(h, 'A'));
     expect(xcWindow(h, 'A')).toBeLessThan(xcWindow(h));
+  });
+
+  it('selling a horse at the market: half price new, more trained; never the last, a sick or part-boarded one; the stall frees', () => {
+    const s0: State = { ...newGame(1), stage: 'reitschule' }, [kiwi, luna] = s0.horses;
+    const [lo, hi] = DATA.market.price.pony;
+    expect(salePrice({ ...kiwi, skills: { jumping: 0, crossCountry: 0 } })).toBe(Math.round(((lo + hi) / 2) * DATA.sale.base / 10) * 10);
+    // training raises the price, up to about what a new pony costs: never a fortune
+    const top = { ...kiwi, skills: { jumping: scope(kiwi), crossCountry: xcScope(kiwi) } };
+    expect(salePrice(top)).toBeGreaterThan(salePrice(kiwi));
+    expect(salePrice(top)).toBeLessThanOrEqual(hi);
+    expect([saleAdvice(s0, kiwi), saleAdvice(s0, top)]).toEqual(['practise', 'good']);
+    // why not: before the Reitschule, sick, a part-boarder rides it, the last horse
+    expect(saleWaits(newGame(1), kiwi)).toBe('market');
+    expect(saleWaits(s0, { ...kiwi, needs: { ...kiwi.needs, health: 0 } })).toBe('sick');
+    expect(saleWaits(s0, { ...kiwi, rider: { name: 'Mia', pay: 8 } })).toBe('rider');
+    expect(saleWaits(s0, kiwi)).toBe(null);
+    // sold: the money (part of it pays the debt, like any income), a diary line, the stall free, an offer for it gone
+    const s1 = { ...s0, debt: 100, partOffer: { horse: kiwi.id, rider: 'Mia', pay: 8 } }, price = salePrice(kiwi);
+    const s2 = apply(s1, { type: 'sell', horse: kiwi.id });
+    expect(s2.horses.map((h) => h.id)).toEqual([luna.id]);
+    expect([s2.money - s2.debt, s2.partOffer]).toEqual([s1.money - s1.debt + price, null]);
+    expect(s2.today).toContainEqual({ what: 'sale', amount: price });
+    expect(noRoom(s2, 'pony')).toBe(null);
+    // the last horse stays; only Luna is a pony now, Oma says so
+    expect(saleWaits(s2, s2.horses[0])).toBe('last');
+    expect(apply(s2, { type: 'sell', horse: luna.id })).toBe(s2);
+    expect(saleAdvice({ ...s0, horses: [luna, { ...kiwi, look: { ...kiwi.look, build: 'horse' } }] }, luna)).toBe('lastPony');
   });
 
   describe('the Pensionsstall', () => {

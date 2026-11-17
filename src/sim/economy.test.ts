@@ -64,6 +64,19 @@ describe('economy run', () => {
     expect(Math.abs(sport.jumping - sport.crossCountry)).toBeLessThan(20);
   });
 
+  // selling (#85): a player who buys horses, trains them and sells them must not get rich by trading alone
+  it('buying, training and selling horses pays less than careful or sport play', () => {
+    const seeds = [...Array(10)].map((_, i) => i + 1);
+    // the dealer is careful's farm plus trading: it must stay behind careful; behind sport too in the long game
+    for (const days of [40, 80]) {
+      const worth = (st: Strategy) => median(seeds.map((seed) => play(st, seed, days).worth));
+      expect(worth('dealer'), `${days} days`).toBeLessThan(worth('careful'));
+      if (days === 80) expect(worth('dealer')).toBeLessThan(worth('sport'));
+    }
+    // and it really traded: at least one bought horse trained and sold again
+    expect(seeds.some((seed) => play('dealer', seed, 80).traded > 0)).toBe(true);
+  });
+
   it('the sport player takes riding badge 2 and rides cross-country shows (#74, #75)', () => {
     for (const r of of('sport')) {
       expect(r.badge2Day, `seed ${r.seed}`).not.toBeNull();

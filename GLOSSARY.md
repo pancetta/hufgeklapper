@@ -30,6 +30,9 @@ The step to the next **Farm stage**: all **Goals** of the stage met, then a shor
 
 **Market** ("Pferdemarkt"):
 At the Reitschule, the notice board offers a few horses and ponies each morning; buying one needs the money and a free **Stall place**.
+Own horses can be sold there too (#85): about half the market price, more the better trained (jumping and
+**Cross-country ability** against what the breed can reach); Oma Hanne says what she thinks first. Never the last
+horse, not a sick one, not one a part-boarder rides. Selling frees its stall and pasture places.
 
 **Stall place** ("Stallplatz"):
 Room for one horse. The Kleiner Hof has two; at the Reitschule an open shelter ("Offenstall") on the free **Plot** adds two more.

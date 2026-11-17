@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -521,7 +521,13 @@ export function showFarm(intro = false) {
         return `<button type="button" data-offer="${o.id}"${room || poor ? ' disabled' : ''}>${t.offer(esc(o.name), o.look.build === 'pony', BREEDS[o.breed].label, COATS[o.look.coat].label, o.price)} · ${t.jumpsUpTo(topClass(o))} · ${t.needsPlaces(DATA.pasture.need[o.look.build])}${room === 'pasture' ? ` · ${t.pastureFullShort}` : !room && poor ? ` · ${t.tooExpensive}` : ''}</button>`;
       }).join('') : `<p>${t.marketEmpty}</p>`}` : ''}
       ${roomNote(s, [...(atLeast(s, 'reitschule') ? s.market : []), ...(atLeast(s, 'pensionsstall') ? s.boardOffers : [])])}
+      ${atLeast(s, 'reitschule') ? `<h3>${t.sellTitle}</h3>${s.horses.filter(own).map((h) => {
+        // each own horse with its price, or why it stays (the last one, a part-boarder rides it, sick)
+        const why = saleWaits(s, h);
+        return `<button type="button" data-sell="${h.id}"${why ? ' disabled' : ''}>${t.sellLine(esc(h.name), salePrice(h))}${why ? ` · ${t.saleWaits[why]}` : ''}</button>`;
+      }).join('')}` : ''}
       <button type="button" id="close-shop">${t.close}</button>`;
+    $('shop').querySelectorAll<HTMLButtonElement>('[data-sell]').forEach((b) => b.addEventListener('click', () => sell(b.dataset.sell!)));
     $('shop').querySelectorAll<HTMLButtonElement>('[data-offer]').forEach((b) => b.addEventListener('click', () => {
       const o = game.get().market.find((x) => x.id === b.dataset.offer);
       if (!o) return;
@@ -538,11 +544,25 @@ export function showFarm(intro = false) {
       $('shop').hidden = true;
       // a new groom or a boarder's horse: the map shows them at once
       const now = game.get();
-      if (now.staff !== shopFrom.staff || now.horses.length !== shopFrom.horses) showFarm();
+      if (now.staff !== shopFrom.staff || now.horses.map((h) => h.id).join() !== shopFrom.horses) showFarm(); // ids: a sale then a boarder keeps the count
     });
   }
-  let shopFrom = { staff: 0, horses: 0 };
-  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.length }; shop(); $('shop').hidden = false; }
+  /** Before a horse goes (#85): Oma Hanne's word on it and the price, then yes or back to the board. */
+  function sell(id: string) {
+    const s = game.get(), h = s.horses.find((x) => x.id === id);
+    if (!h) return shop();
+    const price = salePrice(h), name = esc(h.name);
+    $('shop').firstElementChild!.innerHTML = `<h2>${t.sellAsk(name)}</h2><p class="oma">${t.saleAdvice[saleAdvice(s, h)](name, price)}</p>
+      <div class="answers"><button type="button" id="sell-yes">${t.sellYes(price)}</button><button type="button" id="sell-no">${t.back}</button></div>`;
+    $('sell-yes').addEventListener('click', () => {
+      game.dispatch({ type: 'sell', horse: id });
+      if (!game.get().horses.some((x) => x.id === id)) bar.toast(t.sold(h.name, price, s.debt - game.get().debt));
+      shop();
+    });
+    $('sell-no').addEventListener('click', shop);
+  }
+  let shopFrom = { staff: 0, horses: '' };
+  function showShop() { shopFrom = { staff: game.get().staff, horses: game.get().horses.map((h) => h.id).join() }; shop(); $('shop').hidden = false; }
   /** The notice board's Pensionsstall part: hire or let go a groom, take a boarder into a free stall, a rider for a horse. */
   /** Once, under the offers: what stands in the way of one of them — the stalls, or the pasture with a word on enlarging it. */
   function roomNote(s: State, offers: { look: Horse['look'] }[]) {

@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { DATA } from '../src/sim/data';
 import { GESTURE, STEPS } from '../src/sim/routine';
-import { lessonOutcome, type State } from '../src/sim/state';
+import { lessonOutcome, salePrice, type State } from '../src/sim/state';
 import { t } from '../src/strings';
 
 /**
@@ -512,6 +512,23 @@ test('the pasture: places for every horse, enlarged step by step; a horse that d
   await page.getByRole('button', { name: t.places.board }).tap();
   await page.locator('[data-offer="nugget"]').tap();
   await expect(page.getByText(t.boughtHorse('Nugget'))).toBeVisible();
+});
+
+test('selling a horse at the market: Oma says what she thinks, the money comes, the last horse stays', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { Object.assign(s, { stage: 'reitschule', money: 300 }); });
+  const kiwi = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.horses[0]);
+  const price = salePrice(kiwi);
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await page.getByRole('button', { name: t.sellLine('Kiwi', price) }).tap();
+  await expect(page.getByText(t.saleAdvice.practise('Kiwi', price))).toBeVisible();
+  await page.getByRole('button', { name: t.sellYes(price) }).tap();
+  await expect(page.getByText(t.sold('Kiwi', price, 0))).toBeVisible();
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  expect([s.horses.length, s.money]).toEqual([1, 300 + price]);
+  // Luna is the last horse now: she stays
+  await expect(page.getByRole('button', { name: `${t.sellLine('Luna', salePrice(s.horses[0]))} · ${t.saleWaits.last}` })).toBeDisabled();
 });
 
 test('riding badge 2: locked until practice and a care course, then the care course without tips and a cross-country round', async ({ page }) => {
