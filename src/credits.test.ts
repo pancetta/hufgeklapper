@@ -18,6 +18,10 @@ describe('credits', () => {
     expect([...listed].filter((f) => !existsSync(join('public', f)))).toEqual([]);
   });
 
+  it('says nothing in English to a child: the author lists are German around the names (#97)', () => {
+    for (const c of credits) expect(c.authors).not.toMatch(/credits file|\band others\b/);
+  });
+
   it('names authors, licence and source for every pack', () => {
     for (const c of credits) expect([c.title, c.authors, c.license, c.licenseUrl, c.page].every(Boolean)).toBe(true);
   });
