@@ -396,3 +396,4 @@ canvas { image-rendering: pixelated; }
 /* a boarder's horse in the stable: a blue nameplate (the card says whose it is) */
 .nameplate.guest { background: #d6e6f5; }
 .store-panel .choice { text-align: center; justify-items: center; }
+.full-screen .tip { margin: 0; max-width: 34vw; font-size: calc(var(--fs) * 14px); background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }

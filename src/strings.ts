@@ -4,6 +4,8 @@ export const t = {
   start: 'Los geht’s!',
   rotate: 'Bitte dreh dein iPad quer.',
   credits: 'Wer hat mitgemalt?',
+  fullscreen: 'Ganzer Bildschirm',
+  homeScreenTip: 'Tipp: Tippe auf „Teilen“ und dann „Zum Home-Bildschirm“. Dann spielst du im ganzen Bildschirm.',
   creditsTitle: 'Danke!',
   creditsIntro: 'Diese Bilder und die Schrift haben andere Menschen gemacht und frei verschenkt. Danke! Die Reiterkinder, Oma Hanne, die Windmühle, die Hindernisse und vieles mehr haben wir selbst gezeichnet.',
   creditsBy: 'Von',
