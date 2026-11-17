@@ -63,12 +63,12 @@ const PACKS: Record<string, Pack> = {
     copy: { 'farm/barn.png': 'lpc-farm/barn.png', 'farm/windmill-blades.png': 'lpc-farm/blade-small.png' },
   },
   'lpc-terrains': {
-    title: '[LPC] Terrains', authors: 'bluecarrot16, Sharm, Daneeklu, Jetrel, Zabin, Hyptosis, Casper Nilsson, Buko Studios, Nushio, ZaPaper, billknye, William Thompson, caeles, Redshrike, Bertram, RayaneFLX (all in the credits file)',
+    title: '[LPC] Terrains', authors: 'bluecarrot16, Sharm, Daneeklu, Jetrel, Zabin, Hyptosis, Casper Nilsson, Buko Studios, Nushio, ZaPaper, billknye, William Thompson, caeles, Redshrike, Bertram, RayaneFLX (alle unter „Alle Namen“)',
     ...lic('CC-BY-SA 4.0'), page: 'https://opengameart.org/content/lpc-terrains', download: [`${OGA}/lpc-terrains.zip`],
     credits: 'lpc-terrains/CREDITS-terrain.txt', copy: { 'nature/terrain.png': 'lpc-terrains/terrain-v7.png' },
   },
   'lpc-trees': {
-    title: '[LPC] Trees', authors: 'bluecarrot16, Jetrel, Zabin, Hyptosis, Surt, Buch, Johann Charlot, Open Surge team, Gaurav Munjal, Ivan Voirol (all in the credits file)',
+    title: '[LPC] Trees', authors: 'bluecarrot16, Jetrel, Zabin, Hyptosis, Surt, Buch, Johann Charlot, Open Surge team, Gaurav Munjal, Ivan Voirol (alle unter „Alle Namen“)',
     ...lic('CC-BY-SA 3.0'), page: 'https://opengameart.org/content/lpc-trees', download: [`${OGA}/lpc-trees.zip`],
     credits: 'lpc-trees/CREDITS-trees.txt', copy: { 'nature/trees.png': 'lpc-trees/trees-green.png' },
   },
@@ -79,13 +79,13 @@ const PACKS: Record<string, Pack> = {
     crop: { 'nature/fruit-trees.png': [0, 512, 1024, 512] }, // the full sheet is 1024×4096 (16 MB decoded) for one tree
   },
   'lpc-plants': {
-    title: '[LPC] Flowers / Plants / Fungi / Wood', authors: 'bluecarrot16, Guido Bos, Ivan Voirol, SpiderDave, William Thompson, Yar and others (all in the credits file)',
+    title: '[LPC] Flowers / Plants / Fungi / Wood', authors: 'bluecarrot16, Guido Bos, Ivan Voirol, SpiderDave, William Thompson, Yar und andere (alle unter „Alle Namen“)',
     ...lic('CC-BY-SA 3.0'), page: 'https://opengameart.org/content/lpc-flowers-plants-fungi-wood',
     download: [`${OGA}/lpc-flowers-plants-fungi-wood.zip`], credits: 'lpc-flowers-plants-fungi-wood/CREDITS-plants.txt',
     copy: { 'nature/plants.png': 'lpc-flowers-plants-fungi-wood/plants.png' },
   },
   'lpc-decorations': {
-    title: '[LPC] Medieval Village Decorations', authors: 'bluecarrot16, Sharm, Reemax, Xenodora, Johann C, Johannes Sjölund, Casper Nilsson, Daniel Cook, RayaneFLX, TheraHedwig and others (all in the credits file)',
+    title: '[LPC] Medieval Village Decorations', authors: 'bluecarrot16, Sharm, Reemax, Xenodora, Johann C, Johannes Sjölund, Casper Nilsson, Daniel Cook, RayaneFLX, TheraHedwig und andere (alle unter „Alle Namen“)',
     ...lic('CC-BY-SA 4.0'), page: 'https://opengameart.org/content/lpc-medieval-village-decorations',
     download: [`${OGA}/decoration_medieval.zip`], credits: 'decoration_medieval/CREDITS-decorations-medieval.txt',
     copy: { 'farm/decorations.png': 'decoration_medieval/decorations-medieval.png', 'farm/fences.png': 'decoration_medieval/fence_medieval.png' },
