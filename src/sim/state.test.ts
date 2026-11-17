@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -249,8 +249,8 @@ describe('Sim', () => {
 
   it('widens the take-off window for a skilled, well kept horse; a tap inside half of it clears the jump', () => {
     const h = newGame(1).horses[0], J = DATA.jumping;
-    const poor = { ...h, skills: { jumping: 0 }, needs: { ...h.needs, fed: 0, clean: 0, happy: 0 } };
-    const best = { ...h, skills: { jumping: 100 }, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } };
+    const poor = { ...h, skills: { jumping: 0, crossCountry: 10 }, needs: { ...h.needs, fed: 0, clean: 0, happy: 0 } };
+    const best = { ...h, skills: { jumping: 100, crossCountry: 10 }, needs: { ...h.needs, fed: 100, clean: 100, happy: 100 } };
     expect(jumpWindow(poor)).toBeCloseTo(J.window.base);
     expect(jumpWindow(best)).toBeCloseTo(J.window.base + J.window.skill + J.window.kept);
     expect(jumpWindow(h)).toBeGreaterThan(jumpWindow(poor));
@@ -277,7 +277,7 @@ describe('Sim', () => {
   });
 
   it('higher jumps need momentum: held too briefly, the pole falls; a skilled horse needs less; the reason is said', () => {
-    const h = newGame(1).horses[0], pro = { ...h, skills: { jumping: 100 } }, A = DATA.jumping.hold.A;
+    const h = newGame(1).horses[0], pro = { ...h, skills: { jumping: 100, crossCountry: 10 } }, A = DATA.jumping.hold.A;
     expect(holdNeed(h, 0)).toBe(0); // class E: a tap
     expect(holdNeed(pro, A)).toBeLessThan(holdNeed(h, A));
     const need = holdNeed(h, A);
@@ -286,10 +286,10 @@ describe('Sim', () => {
   });
 
   it('practice raises a horse only up to what its breed can', () => {
-    const s = newGame(1), kiwi = { ...s.horses[0], skills: { jumping: scope(s.horses[0]) - 1 } }, st: State = { ...s, horses: [kiwi] };
+    const s = newGame(1), kiwi = { ...s.horses[0], skills: { jumping: scope(s.horses[0]) - 1, crossCountry: 10 } }, st: State = { ...s, horses: [kiwi] };
     const once = apply(st, { type: 'train', horse: kiwi.id, faults: 0 }), twice = apply({ ...once, horses: once.horses.map((h) => ({ ...h, needs: { ...h.needs, energy: 100 } })) }, { type: 'train', horse: kiwi.id, faults: 0 });
     expect([once.horses[0].skills.jumping, twice.horses[0].skills.jumping]).toEqual([scope(kiwi), scope(kiwi)]);
-    const veteran = { ...kiwi, skills: { jumping: 90 } }; // from a save before the breed limit: practice never lowers it
+    const veteran = { ...kiwi, skills: { jumping: 90, crossCountry: 10 } }; // from a save before the breed limit: practice never lowers it
     expect(apply({ ...s, horses: [veteran] }, { type: 'train', horse: kiwi.id, faults: 0 }).horses[0].skills.jumping).toBe(90);
   });
 
@@ -339,7 +339,7 @@ describe('Sim', () => {
     const C = DATA.shows.classes, s: State = { ...newGame(1), money: 1000 }, h = s.horses[0];
     expect(SHOW_CLASSES).toEqual(['E', 'A', 'L']);
     expect(SHOW_CLASSES.map((c) => classWaits(s, h, c))).toEqual([null, 'skill', 'scope']); // a Haflinger: never class L
-    const trained = { ...h, skills: { jumping: C.A.minSkill } };
+    const trained = { ...h, skills: { jumping: C.A.minSkill, crossCountry: 10 } };
     expect(SHOW_CLASSES.map((c) => classWaits(s, trained, c))).toEqual([null, null, 'scope']);
     const warmblut = { ...trained, breed: 'warmblut' as const };
     expect(SHOW_CLASSES.map((c) => classWaits(s, warmblut, c))).toEqual([null, null, 'skill']); // a Warmblut can, with practice
@@ -356,17 +356,17 @@ describe('Sim', () => {
 
   it('ranks the player against rivals: a clear round on a skilled horse wins, a bad one comes last; same seed, same table', () => {
     const s = newGame(5), h = s.horses[0];
-    const best = showResult(s, { ...h, skills: { jumping: 100 } }, 0, 'Mara', 'L');
+    const best = showResult(s, { ...h, skills: { jumping: 100, crossCountry: 10 } }, 0, 'Mara', 'L');
     expect([best.rank, best.prize, best.table.length]).toEqual([1, DATA.shows.classes.L.prizes[0], DATA.shows.rivalsPerShow + 1]);
     expect(best.table[0]).toMatchObject({ rider: 'Mara', horse: h.name, you: true });
-    const worst = showResult(s, { ...h, skills: { jumping: 0 } }, DATA.jumping.courses.E.jumps.length, 'Mara', 'E');
+    const worst = showResult(s, { ...h, skills: { jumping: 0, crossCountry: 10 } }, DATA.jumping.courses.E.jumps.length, 'Mara', 'E');
     expect([worst.rank, worst.prize]).toEqual([DATA.shows.rivalsPerShow + 1, 0]);
     expect(showResult(s, h, 1, 'Mara', 'E')).toEqual(showResult(s, h, 1, 'Mara', 'E'));
     expect(new Set(best.table.map((r) => r.rider)).size).toBe(best.table.length); // no rival twice
   });
 
   it('enters a show: fee out, prize in (debt first), horse tired, one show a day; not with a sick horse', () => {
-    const S = DATA.shows, E = S.classes.E, base = newGame(5), h = { ...base.horses[0], skills: { jumping: 100 } };
+    const S = DATA.shows, E = S.classes.E, base = newGame(5), h = { ...base.horses[0], skills: { jumping: 100, crossCountry: 10 } };
     const s: State = { ...base, day: S.every, badges: 1, horses: [h] };
     const show = { type: 'show', horse: h.id, faults: 0, showClass: 'E' } as const;
     const won = apply(s, show);
@@ -386,11 +386,11 @@ describe('Sim', () => {
   });
 
   it('enters a higher class only with a horse that may start there; its fee and prize are the class\'s own', () => {
-    const L = DATA.shows.classes.L, base = newGame(5), h = { ...base.horses[0], breed: 'warmblut' as const, skills: { jumping: 100 } };
+    const L = DATA.shows.classes.L, base = newGame(5), h = { ...base.horses[0], breed: 'warmblut' as const, skills: { jumping: 100, crossCountry: 10 } };
     const s: State = { ...base, day: DATA.shows.every, badges: 1, horses: [h] };
     const won = apply(s, { type: 'show', horse: h.id, faults: 0, showClass: 'L' });
     expect(won.today).toEqual([{ what: 'showFee', amount: -L.fee }, { what: 'prize', amount: L.prizes[0] }]);
-    const novice = { ...s, horses: [{ ...h, skills: { jumping: L.minSkill - 1 } }] };
+    const novice = { ...s, horses: [{ ...h, skills: { jumping: L.minSkill - 1, crossCountry: 10 } }] };
     expect(apply(novice, { type: 'show', horse: h.id, faults: 0, showClass: 'L' })).toBe(novice);
     expect(apply(s, { type: 'show', horse: h.id, faults: 0, showClass: 'toString' as 'E' })).toBe(s); // not a class
   });
@@ -549,6 +549,20 @@ describe('Sim', () => {
     const plain = lesson(), clean = lesson(0), some = lesson(1);
     expect([clean.money - plain.money, some.money - plain.money]).toEqual([R.tipClean, R.tip]);
     expect([clean.reputation - plain.reputation, some.reputation - plain.reputation]).toEqual([R.reputationClean, R.reputation]);
+  });
+
+  it('cross-country practice trains its own skill up to the breed limit (more without a fault), costs energy, not the jumping', () => {
+    const s = newGame(1), h = s.horses[0], X = DATA.crossCountry;
+    const clean = apply(s, { type: 'xcTrain', horse: h.id, faults: 0 }).horses[0], some = apply(s, { type: 'xcTrain', horse: h.id, faults: 2 }).horses[0];
+    expect([clean.skills.crossCountry, some.skills.crossCountry, clean.skills.jumping]).toEqual([h.skills.crossCountry + X.gain.clear, h.skills.crossCountry + X.gain.faults, h.skills.jumping]);
+    expect(clean.needs.energy).toBe(h.needs.energy - X.energy);
+    const near = { ...s, horses: [{ ...h, skills: { ...h.skills, crossCountry: xcScope(h) - 1 } }] };
+    expect(apply(near, { type: 'xcTrain', horse: h.id, faults: 0 }).horses[0].skills.crossCountry).toBe(xcScope(h));
+    // a sure-footed pony goes further cross-country than over poles; a skilled, well kept horse gets a wider window
+    expect(xcScope({ breed: 'islaender' })).toBeGreaterThan(scope({ breed: 'islaender' }));
+    expect(xcWindow({ ...h, skills: { ...h.skills, crossCountry: 80 } })).toBeGreaterThan(xcWindow(h));
+    const tired = { ...s, horses: [{ ...h, needs: { ...h.needs, energy: X.energy - 1 } }] };
+    expect(apply(tired, { type: 'xcTrain', horse: h.id, faults: 0 })).toBe(tired);
   });
 
   describe('the Pensionsstall', () => {

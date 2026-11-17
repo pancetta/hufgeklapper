@@ -59,7 +59,7 @@ export const t = {
   toStart: 'Zum Startbild',
 
   // the farm map
-  places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz' } as Record<string, string>,
+  places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz', xc: 'Ins Gelände' } as Record<string, string>,
   pasture: 'Hier grasen deine Ponys.',
   freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist.',
 
@@ -210,6 +210,20 @@ export const t = {
   // the arena and jumping
   giveLesson: 'Reitstunde geben',
   practiseJumping: 'Springen üben',
+  // cross-country (#73)
+  crossCountry: 'Gelände',
+  xcLater: 'Ins Gelände reitest du, wenn du das Reitabzeichen hast.',
+  whichHorseXc: 'Mit wem reitest du ins Gelände?',
+  xcHow: (pony: boolean) => `Im Gelände bestimmst du das Tempo: Schritt, Trab oder Galopp. Galopp ist schnell, aber dein ${pony ? 'Pony' : 'Pferd'} wird müde – im Schritt erholt es sich. Vor Wasser und Graben langsamer werden! Am grünen Streifen tippst du „Hopp!“. Komm in der Bestzeit ins Ziel.`,
+  paces: { walk: 'Schritt', trot: 'Trab', gallop: 'Galopp' } as Record<string, string>,
+  stamina: 'Puste',
+  xcHud: (n: number, all: number, faults: number, s: number, lo: number, hi: number) => `Hindernis ${n}/${all} · Fehler ${faults} · Zeit ${s} s (Bestzeit ${lo}–${hi} s)`,
+  xcRefused: { late: 'Verweigert! Tippe „Hopp!“, wenn ihr am grünen Streifen seid.', fast: 'Zu schnell! Vor Wasser und Graben erst langsamer werden.', slow: 'Im Schritt springt es nicht. Erst antraben!' } as Record<string, string>,
+  xcAhead: { water: 'Wasser! Langsamer werden: Trab oder Schritt.', ditch: 'Ein Graben! Langsamer werden: Trab.' } as Record<string, string>,
+  xcTired: (pony: boolean) => `Dein ${pony ? 'Pony' : 'Pferd'} ist aus der Puste. Ein Stück im Schritt, dann geht es wieder.`,
+  xcClear: (horse: string) => `Ohne Fehler und in der Bestzeit! ${horse} wird im Gelände immer besser.`,
+  xcFaults: (n: number, horse: string) => `${n} Fehler. ${horse} hat trotzdem geübt.`,
+  xcTime: (s: number, lo: number, hi: number) => (s < lo ? `Ihr wart ${lo - s} s zu schnell.` : s > hi ? `Ihr wart ${s - hi} s zu langsam.` : 'Genau in der Bestzeit.'),
   whichHorse: 'Mit welchem Pferd?',
   jumpHow: (pony: boolean, hold = false) => `Mal mit dem Finger einen Weg vom ${pony ? 'Pony' : 'Pferd'} aus, ein Stück oder bis ins Ziel. Wenn du den Finger hebst, reitet es los. Am Ende des Wegs wartet es auf den nächsten. Reite die Hindernisse der Reihe nach, gerade darauf zu. ${hold ? 'Hier sind die Sprünge höher, dafür brauchst du Schwung: Wenn dein Pferd auf den gelben Streifen kommt, drück den Finger auf den Platz und halte ihn still. Am grünen Feld lässt du los: Hopp!' : 'Auf dem grünen Feld tippst du kurz: Hopp!'}`,
   knock: { soon: 'Zu früh abgesprungen: Die Stange ist gefallen.', late: 'Zu spät abgesprungen: Die Stange ist gefallen.', power: 'Zu wenig Schwung: Halte den Finger länger!' },

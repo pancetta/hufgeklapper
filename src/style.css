@@ -338,6 +338,14 @@ canvas { image-rendering: pixelated; }
 .bar.skill { position: relative; }
 .bar.skill::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: var(--scope, 100%); width: 2px; background: var(--wood-dark); }
 
+/* cross-country: the horse's breath top left, the paces along the bottom; the land itself is "Hopp!" */
+#xc { touch-action: none; }
+.xc-breath { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px; display: flex; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px);
+  background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }
+.xc-breath .bar { width: 140px; height: 12px; }
+.paces [data-pace] { font-size: calc(var(--fs) * 20px); min-width: 140px; min-height: 56px; }
+.paces [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+
 /* the farm diary before the night: one bar per kind of money, green in, red out */
 .sheet.ask.diary { text-align: left; width: min(90vw, 560px); } /* more specific than .sheet.ask: its min-width would win */
 .diary h2 { text-align: center; }

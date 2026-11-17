@@ -14,7 +14,7 @@ const isPupil = (p: unknown) => isObj(p) && typeof p.id === 'string' && /^[a-z0-
   && (p.size === 'small' || p.size === 'big') && (p.level === 'beginner' || p.level === 'advanced') && isInt(p.look, 0, 999);
 
 /** Bump when State changes shape, and add the step from the old shape to parseSave. */
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 export type SaveFile = { app: 'hufgeklapper'; version: number; name: string; savedAt: string; state: State };
 export type Parsed = { ok: true; save: SaveFile } | { ok: false; reason: 'invalid' | 'newer' };
 
@@ -40,7 +40,7 @@ function isHorse(x: unknown): x is Horse {
   // ids end up in HTML attributes, so only plain characters
   return isObj(x) && typeof x.id === 'string' && /^[a-z0-9-]{1,40}$/.test(x.id) && isText(x.name, 30) && oneOf(x.breed, BREEDS) && isLook(x.look)
     && isObj(x.needs) && NEEDS.every((n) => isInt((x.needs as Obj)[n], 0, 100))
-    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.rest, 0, 30)
+    && isObj(x.skills) && isInt(x.skills.jumping, 0, 100) && isInt(x.skills.crossCountry, 0, 100) && isInt(x.rest, 0, 30)
     && Array.isArray(x.cared) && x.cared.length <= CARE.length && x.cared.every((c) => CARE.includes(c as Care))
     && (x.owner === undefined || (isObj(x.owner) && isText(x.owner.name, 30) && isInt(x.owner.pay, 0, 1000) && isInt(x.owner.unhappy, 0, 30)))
     && (x.rider === undefined || (isObj(x.rider) && isText(x.rider.name, 30) && isInt(x.rider.pay, 0, 1000)));
@@ -60,7 +60,7 @@ function isOffer(x: unknown) {
 }
 
 function isState(x: unknown): x is State {
-  return isObj(x) && x.version === 13 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
+  return isObj(x) && x.version === 14 && isAvatar(x.avatar) && isInt(x.rescueDay, 0, isInt(x.day, 1) ? (x.day as number) : 0) // never later than today
     && isInt(x.deadEnd, 0, DATA.rescue.grace)
     && isInt(x.staff, 0, DATA.staff.names.length) && Array.isArray(x.boardOffers) && x.boardOffers.length <= 10 && x.boardOffers.every(isBoardOffer)
     && (x.partOffer === null || (isObj(x.partOffer) && typeof x.partOffer.horse === 'string' && isText(x.partOffer.rider, 30) && isInt(x.partOffer.pay, 0, 1000))) && isInt(x.inspectionFailedDay, 0) && isInt(x.lessonsBefore, 0)
@@ -156,6 +156,14 @@ function fromVersion12(x: Obj): unknown {
   return { ...x, version: 13, state: { ...s, version: 13, deadEnd: 0 } };
 }
 
+/** Version 13 to 14: cross-country skill (#73), every horse starts as a new one. */
+function fromVersion13(x: Obj): unknown {
+  const s = x.state;
+  if (!isObj(s) || !Array.isArray(s.horses)) return x;
+  const horses = s.horses.map((h) => (isObj(h) && isObj(h.skills) ? { ...h, skills: { ...h.skills, crossCountry: 10 } } : h));
+  return { ...x, version: 14, state: { ...s, version: 14, horses } };
+}
+
 /** Version 9 (before the farm inspection): no failed inspection, no market, nothing built. */
 function fromVersion9(x: Obj): unknown {
   const s = x.state;
@@ -181,6 +189,7 @@ export function parseSave(text: string): Parsed {
   if (isObj(x) && x.version === 10) x = fromVersion10(x);
   if (isObj(x) && x.version === 11) x = fromVersion11(x);
   if (isObj(x) && x.version === 12) x = fromVersion12(x);
+  if (isObj(x) && x.version === 13) x = fromVersion13(x);
   if (!isObj(x) || !isText(x.name, 30) || typeof x.savedAt !== 'string' || !isState(x.state)) return { ok: false, reason: 'invalid' };
   return { ok: true, save: x as SaveFile };
 }
