@@ -340,6 +340,9 @@ canvas { image-rendering: pixelated; }
 
 /* cross-country: the horse's breath top left, the paces along the bottom; the land itself is "Hopp!" */
 #xc { touch-action: none; }
+#xc-tip { top: 64px; } /* under the counters, never over them */
+.rules { text-align: left; margin: 0; padding-left: 1.2em; font-size: calc(var(--fs) * 18px); }
+.rules li { margin: 2px 0; }
 .xc-breath { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: 12px; display: flex; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px);
   background: var(--paper); border: 2px solid var(--wood-dark); border-radius: 6px; padding: 4px 8px; }
 .xc-breath .bar { width: 140px; height: 12px; }

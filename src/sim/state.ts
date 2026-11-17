@@ -621,7 +621,7 @@ function step(state: State, action: Action): State {
     case 'xcTrain': {
       // a cross-country ride as training: its own skill grows (more without a fault), the horse tires and enjoys it
       const h = state.horses.find((x) => x.id === action.horse), X = DATA.crossCountry;
-      if (!h || !own(h) || cantWork(h, X.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      if (state.badges < 1 || !h || !own(h) || cantWork(h, X.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state; // after riding badge 1
       const xc = Math.max(h.skills.crossCountry, Math.min(xcScope(h), clamp(h.skills.crossCountry + (action.faults ? X.gain.faults : X.gain.clear))));
       const trained: Horse = { ...h, skills: { ...h.skills, crossCountry: xc }, needs: { ...h.needs, energy: clamp(h.needs.energy - X.energy), happy: clamp(h.needs.happy + X.happy) } };
       return { ...state, horses: state.horses.map((x) => (x === h ? trained : x)) };

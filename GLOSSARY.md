@@ -139,7 +139,8 @@ that can jump that high (Warmblut, Deutsches Reitpony, Quarter Horse), not a Haf
 The second **Minigame** (#73): a ride through the fields, seen from the side, over logs, a hedge, a bank, a ditch and
 through water. The child picks the pace (*Schritt*, *Trab*, *Galopp*) and taps "Hopp!" at the green strip; galloping
 uses up the horse's **Puste**, at water and a ditch it must slow down. Clear means no **Refusal** and home inside the
-*Bestzeit* (the optimum time). Opens after riding badge 1, by the way *Ins Gelände* on the farm map.
+*Zielzeit* (the target time window: neither too fast nor too slow); three refusals at one obstacle and the horse is
+led round it. Opens after riding badge 1, by the way *Ins Gelände* on the farm map.
 
 **Cross-country ability** ("Gelände-Können"):
 A horse's own cross-country skill, trained only there, up to its breed's limit; sure-footed Isländer and Haflinger

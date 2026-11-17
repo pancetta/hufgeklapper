@@ -460,7 +460,7 @@ test('cross-country practice: closed before the riding badge; then pace, breath 
   const before = await kiwi();
   await page.getByRole('button', { name: t.places.xc }).tap();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
-  await expect(page.getByText(t.xcHow(true))).toBeVisible();
+  await expect(page.getByText(t.xcHow(true)[0])).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
   // a careful child: the pace Oma would ride (a trot before water and the ditch, a walk to breathe), "Hopp!" at the strip
   const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
@@ -469,7 +469,7 @@ test('cross-country practice: closed before the riding badge; then pace, breath 
     if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
     if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
   }
-  await expect(end).toContainText(/Ohne Fehler und in der Bestzeit!|Fehler\. Kiwi hat trotzdem geübt\./);
+  await expect(end).toContainText(/Ohne Fehler und genau in der Zielzeit!|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
   expect(after.skills.crossCountry).toBeGreaterThan(before.skills.crossCountry);
   expect(after.needs.energy).toBe(before.needs.energy - DATA.crossCountry.energy);

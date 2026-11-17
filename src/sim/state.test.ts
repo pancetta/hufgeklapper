@@ -551,8 +551,9 @@ describe('Sim', () => {
     expect([clean.reputation - plain.reputation, some.reputation - plain.reputation]).toEqual([R.reputationClean, R.reputation]);
   });
 
-  it('cross-country practice trains its own skill up to the breed limit (more without a fault), costs energy, not the jumping', () => {
-    const s = newGame(1), h = s.horses[0], X = DATA.crossCountry;
+  it('cross-country practice (after riding badge 1) trains its own skill up to the breed limit (more without a fault), costs energy, not the jumping', () => {
+    const s = { ...newGame(1), badges: 1 }, h = s.horses[0], X = DATA.crossCountry;
+    expect(apply({ ...s, badges: 0 }, { type: 'xcTrain', horse: h.id, faults: 0 })).toEqual({ ...s, badges: 0 }); // only after riding badge 1
     const clean = apply(s, { type: 'xcTrain', horse: h.id, faults: 0 }).horses[0], some = apply(s, { type: 'xcTrain', horse: h.id, faults: 2 }).horses[0];
     expect([clean.skills.crossCountry, some.skills.crossCountry, clean.skills.jumping]).toEqual([h.skills.crossCountry + X.gain.clear, h.skills.crossCountry + X.gain.faults, h.skills.jumping]);
     expect(clean.needs.energy).toBe(h.needs.energy - X.energy);

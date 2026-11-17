@@ -22,7 +22,7 @@ import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
 import { startRoutine } from '../scene/routine';
 import { startCrossCountry } from '../scene/xc';
-import { PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
+import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
 import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
@@ -350,7 +350,7 @@ export function showFarm(intro = false) {
     else if (target === 'board') explain('board').then(showShop);
     else if (target === 'arena') explain('arena').then(arena);
     else if (target === 'pasture') bar.toast(t.pasture);
-    else if (target === 'xc') { if (s.badges < 1) bar.toast(t.xcLater); else pickHorse(t.whichHorseXc, showCrossCountry, (h) => (cantWork(h, DATA.crossCountry.energy) ? t.cantWork[cantWork(h, DATA.crossCountry.energy)!] : null)); }
+    else if (target === 'xc') { if (s.badges < 1) bar.toast(t.xcLater); else pickHorse(t.whichHorseXc, showCrossCountry, undefined, undefined, DATA.crossCountry.energy); }
     else if (target === 'feed') explain('store').then(showStore);
     else if (!canBuild(s)) bar.toast(t.freePlot);
     else if (s.built.stalls) showStable(); // the Offenstall is part of the stable
@@ -421,11 +421,11 @@ export function showFarm(intro = false) {
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
   }
   /** Pick a horse for a jumping round; each one too tired, resting or sick (or not allowed, by `not`) says so. */
-  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string) {
+  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string, energy = DATA.jumping.energy) {
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>${note ? `<p class="oma">${note}</p>` : ''}
       ${game.get().horses.filter(own).map((h) => {
-        const tired = cantWork(h, DATA.jumping.energy), why = tired ? t.cantWork[tired] : not?.(h);
+        const tired = cantWork(h, energy), why = tired ? t.cantWork[tired] : not?.(h);
         return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${why}` : ''}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
@@ -989,21 +989,22 @@ function showRoutine(id: string, pupil?: Pupil) {
  */
 function showCrossCountry(id: string) {
   const s0 = game.get(), h = s0.horses.find((x) => x.id === id)!, pony = h.look.build === 'pony';
-  const course = xcCourse(s0.day * 1013 + s0.trainings * 7 + 1), [lo, hi] = course.optimum, N = course.obstacles.length;
+  const course = xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length; // a new track each ride: the skill grows
   const $ = screen(`<canvas id="xc" aria-label="${t.crossCountry}"></canvas>
-    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><p>${t.xcHow(pony)}</p>
+    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul>
       <div class="answers"><button type="button" id="xc-go">${t.go}</button><button type="button" id="xc-leave">${t.back}</button></div></div></section>
     <p id="xc-hud" class="jump-hud" aria-live="off"></p><p id="xc-tip" class="jump-tip" role="status" hidden></p>
     <div class="xc-breath"><span>${t.stamina}</span><span class="bar"><i id="xc-breath"></i></span></div>
     <nav class="tools paces">${PACES.map((p) => `<button type="button" data-pace="${p}" aria-pressed="${p === 'trot'}">${t.paces[p]}</button>`).join('')}</nav>
     <section id="xc-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="xc-back">${t.toFarm}</button></div></section>`);
-  let last: XcRound | null = null, tipTimer = 0, tiredSaid = false, warned = -1;
+  let tipTimer = 0, tiredSaid = false, warned = -1;
   const tip = $('xc-tip'), say = (text: string) => { tip.textContent = text; tip.hidden = false; clearTimeout(tipTimer); tipTimer = window.setTimeout(() => { tip.hidden = true; }, 2500); };
   const hud = (r: XcRound) => {
-    last = r;
-    $('xc-hud').textContent = t.xcHud(Math.min(r.next + 1, N), N, r.faults, Math.floor(r.t), lo, hi);
+    // how the time goes so far: ahead of or behind the target time for this part of the track
+    const part = Math.min(1, r.s / course.length), tempo = r.s < 20 ? '' : ` · ${t.xcTempo[r.t < lo * part - 2 ? 'fast' : r.t > hi * part + 2 ? 'slow' : 'ok']}`;
+    $('xc-hud').textContent = t.xcHud(Math.min(r.next + 1, N), N, r.faults, Math.floor(r.t), lo, hi) + tempo;
     $('xc-breath').style.width = `${Math.round(r.stamina * 100)}%`;
-    if (r.stamina < DATA.crossCountry.tired && !tiredSaid) { tiredSaid = true; say(t.xcTired(pony)); }
+    if (r.stamina < DATA.crossCountry.tired && !tiredSaid && tip.hidden) { tiredSaid = true; say(t.xcTired(pony)); } // not over a warning
     if (r.stamina > DATA.crossCountry.tired + 0.1) tiredSaid = false;
     // water or a ditch ahead at a gallop: Oma calls out once
     const o = course.obstacles[r.next];
@@ -1014,7 +1015,7 @@ function showCrossCountry(id: string) {
     // too fast at water or a ditch, or too slow to jump: the horse comes again at a trot
     onChange: hud, onRefuse: (why) => { say(t.xcRefused[why]); if (why !== 'late') pick('trot'); },
   });
-  hud({ s: 0, v: 0, pace: 'trot', stamina: h.needs.energy / 100, t: 0, next: 0, faults: 0, air: null, stopped: 0, refused: null, done: false });
+  hud(newXcRound(h.needs.energy / 100));
   const pick = (p: Pace) => {
     ride.then((r) => r.setPace(p));
     app.querySelectorAll<HTMLButtonElement>('[data-pace]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pace === p)));
@@ -1027,11 +1028,10 @@ function showCrossCountry(id: string) {
   document.addEventListener('gesturestart', noZoom);
   $('xc-go').addEventListener('click', async () => {
     $('xc-start').hidden = true;
-    const faults = await (await ride).run();
+    const end = await (await ride).run(), faults = end.faults;
     clearTimeout(tipTimer); tip.hidden = true;
     game.dispatch({ type: 'xcTrain', horse: id, faults });
-    const secs = Math.floor(last?.t ?? 0);
-    $('xc-end').querySelector('p')!.textContent = `${faults ? t.xcFaults(faults, h.name) : t.xcClear(h.name)} ${t.xcTime(secs, lo, hi)}`;
+    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)}` : t.xcClear(h.name);
     $('xc-end').hidden = false;
   }, { once: true });
   $('xc-back').addEventListener('click', () => showFarm());
