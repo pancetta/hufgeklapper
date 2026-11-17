@@ -9,6 +9,8 @@ in five on a new pony, less often the wider the horse's take-off window (skill a
 - **careless**: buys hay only when it is gone and cares only every third day; gives lessons, rides shows, never builds.
 - **sport**: like careful, but jumping first: practises every day with its best jumper after the badge, so that horse
   grows into classes A and L, and gives only one lesson a day until a third horse is there.
+  After the badge it also rides cross-country (#73) with whatever horse has energy left; a new pony refuses at one
+  obstacle in six, fewer the wider its take-off window.
 
 The farm's worth ("Hof-Wert") is money minus debt plus what was spent on horses and building: a player who built
 the arena is not poorer for it.
@@ -21,28 +23,29 @@ the arena is not poorer for it.
 | A careless player gets a long chance: Oma Hanne helps out of the first dead end (all horses sick, no money for the vet, no more loans) once (#66); a second dead end that lasts 7 mornings loses the farm (#68) | met: careful never loses (120 days); careless is lost on 9 of 10 seeds between day 66 and 111 of 120, never before day 60 |
 | No single strategy is clearly best | met: on ten seeds, sport's median farm worth is 0.82× careful's after 40 days and 1.07× after 80; careful is ahead early and reaches the Reitschule on day 11–12 (sport: day 25–27), sport catches up in a long game |
 | A careful player reaches the Pensionsstall about ten days after the Reitschule | met: day 23 (60-day run, median ≤ 30) |
+| Progress (#78): a ride a day reaches class A in about 10–14 rides, in jumping and cross-country alike; the sport player grows both skills alike | met: 10 rides each; sport's best jumper and best cross-country horse are 60 / 58 (median, day 40); with cross-country riding sport/careful worth is 0.91 at 40 days and 1.04 at 80 (0.82 / 1.07 without) |
 
 ## Current numbers
 
 Sick days are counted in the morning, before the vet comes.
 
-| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| careful | 1 | 615 € | 178 € | 509 € | 1655 € | 3 | 12 | 97 | 11 | 0 | 0 € | – |
-| careful | 2 | 681 € | 298 € | 516 € | 1586 € | 3 | 12 | 97 | 8 | 0 | 0 € | – |
-| careful | 3 | 727 € | 246 € | 575 € | 1660 € | 3 | 12 | 98 | 9 | 0 | 0 € | – |
-| careful | 4 | 618 € | 194 € | 644 € | 1740 € | 3 | 12 | 98 | 8 | 0 | 0 € | – |
-| careful | 5 | 656 € | 273 € | 602 € | 1655 € | 4 | 12 | 98 | 6 | 0 | 0 € | – |
-| careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | – |
-| careless | 2 | 534 € | 497 € | 429 € | 429 € | 3 | 18 | 43 | 10 | 14 | 0 € | – |
-| careless | 3 | 581 € | 524 € | 328 € | 328 € | 3 | 18 | 37 | 10 | 14 | 0 € | – |
-| careless | 4 | 524 € | 401 € | 201 € | 201 € | 5 | – | 35 | 9 | 14 | 0 € | – |
-| careless | 5 | 496 € | 471 € | 502 € | 502 € | 4 | 18 | 49 | 9 | 14 | 0 € | – |
-| sport | 1 | 400 € | 548 € | 369 € | 1234 € | 3 | 25 | 60 | 13 | 0 | 0 € | – |
-| sport | 2 | 462 € | 604 € | 422 € | 1682 € | 3 | 25 | 71 | 13 | 0 | 0 € | – |
-| sport | 3 | 404 € | 457 € | 536 € | 1352 € | 3 | 25 | 66 | 13 | 0 | 0 € | – |
-| sport | 4 | 382 € | 480 € | 351 € | 1297 € | 3 | 25 | 60 | 13 | 0 | 0 € | – |
-| sport | 5 | 421 € | 495 € | 214 € | 1254 € | 4 | 25 | 66 | 12 | 0 | 0 € | – |
+| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) | Können Springen / Gelände (Geländeritte) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| careful | 1 | 615 € | 178 € | 509 € | 1655 € | 3 | 12 | 97 | 11 | 0 | 0 € | – | 14 / 10 (0) |
+| careful | 2 | 681 € | 298 € | 516 € | 1586 € | 3 | 12 | 97 | 8 | 0 | 0 € | – | 18 / 10 (0) |
+| careful | 3 | 727 € | 246 € | 575 € | 1660 € | 3 | 12 | 98 | 9 | 0 | 0 € | – | 16 / 10 (0) |
+| careful | 4 | 618 € | 194 € | 644 € | 1740 € | 3 | 12 | 98 | 8 | 0 | 0 € | – | 14 / 10 (0) |
+| careful | 5 | 656 € | 273 € | 602 € | 1655 € | 4 | 12 | 98 | 6 | 0 | 0 € | – | 16 / 10 (0) |
+| careless | 1 | 517 € | 377 € | 215 € | 215 € | 3 | – | 31 | 10 | 14 | 0 € | – | 14 / 10 (0) |
+| careless | 2 | 534 € | 497 € | 429 € | 429 € | 3 | 18 | 43 | 10 | 14 | 0 € | – | 16 / 10 (0) |
+| careless | 3 | 581 € | 524 € | 328 € | 328 € | 3 | 18 | 37 | 10 | 14 | 0 € | – | 16 / 10 (0) |
+| careless | 4 | 524 € | 401 € | 201 € | 201 € | 5 | – | 35 | 9 | 14 | 0 € | – | 14 / 10 (0) |
+| careless | 5 | 496 € | 471 € | 502 € | 502 € | 4 | 18 | 49 | 9 | 14 | 0 € | – | 16 / 10 (0) |
+| sport | 1 | 435 € | 643 € | 327 € | 1526 € | 3 | 25 | 68 | 13 | 0 | 0 € | – | 60 / 68 (31) |
+| sport | 2 | 437 € | 739 € | 444 € | 1754 € | 3 | 25 | 69 | 13 | 0 | 0 € | – | 60 / 60 (31) |
+| sport | 3 | 429 € | 547 € | 511 € | 1387 € | 3 | 25 | 64 | 13 | 0 | 0 € | – | 60 / 56 (29) |
+| sport | 4 | 382 € | 545 € | 343 € | 1610 € | 3 | 25 | 69 | 13 | 0 | 0 € | – | 60 / 66 (29) |
+| sport | 5 | 361 € | 541 € | 514 € | 1603 € | 4 | 25 | 68 | 12 | 0 | 0 € | – | 60 / 64 (31) |
 
 ## What changed because of it
 

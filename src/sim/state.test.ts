@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '../strings';
 import { DATA } from './data';
-import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow } from './state';
+import { allGoalsDone, apply, CARE, badgeWaits, buildWaits, canInspect, marketFor, goals, hint, canBuild, canLoan, canQuickCare, cantWork, hayNights, dayMoney, clears, earn, fit, isSick, jumpWindow, fitsNone, lessonChoices, lessonOutcome, mood, NEEDS, newGame, nextShowDay, type Pupil, quizScore, roll, showResult, showWaits, SHOW_CLASSES, classShut, classWaits, scope, topClass, holdNeed, faultWhy, nextStage, stuck, gameOver, type State, stalls, takeOff, xcScope, xcWindow, gained } from './state';
 
 describe('Sim', () => {
   it('starts a game with two ponies of different breeds and coats and the starting money', () => {
@@ -564,6 +564,19 @@ describe('Sim', () => {
     expect(xcWindow({ ...h, skills: { ...h.skills, crossCountry: 80 } })).toBeGreaterThan(xcWindow(h));
     const tired = { ...s, horses: [{ ...h, needs: { ...h.needs, energy: X.energy - 1 } }] };
     expect(apply(tired, { type: 'xcTrain', horse: h.id, faults: 0 })).toBe(tired);
+  });
+
+  it('each horse keeps its skills at the start of each of the last days: what it gained today and this week', () => {
+    let s = { ...newGame(1), badges: 1 };
+    const id = s.horses[0].id, kiwi = () => s.horses.find((h) => h.id === id)!;
+    expect(gained(kiwi())).toEqual([0, 0]);
+    s = apply(s, { type: 'train', horse: id, faults: 0 });
+    s = apply(s, { type: 'xcTrain', horse: id, faults: 1 });
+    expect(gained(kiwi())).toEqual([DATA.jumping.gain.clear, DATA.crossCountry.gain.faults]);
+    s = apply(s, { type: 'sleep' });
+    expect([gained(kiwi()), gained(kiwi(), 7)]).toEqual([[0, 0], [DATA.jumping.gain.clear, DATA.crossCountry.gain.faults]]); // a new day; the week still has it
+    for (let i = 0; i < DATA.progress.days + 3; i++) s = apply(s, { type: 'sleep' });
+    expect(kiwi().log).toHaveLength(DATA.progress.days); // only the last days are kept
   });
 
   describe('the Pensionsstall', () => {

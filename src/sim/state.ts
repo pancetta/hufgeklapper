@@ -13,6 +13,8 @@ export type Needs = Record<Need, number>;
 
 export type Horse = {
   id: string; name: string; breed: Breed; look: Look; needs: Needs; skills: { jumping: number; crossCountry: number };
+  /** The skills at the start of each of the last days (#78), oldest first: [jumping, cross-country]. */
+  log: [number, number][];
   rest: number; // days the horse must still rest after the vet (no riding, no lessons)
   cared: Care[]; // care actions it had today; each once a day
   /** A boarder's horse ("Einsteller", #63): whose it is, what they pay a day, nights in a row it was badly kept. */
@@ -26,7 +28,7 @@ export type FarmStage = (typeof DATA.stages)[number];
 export type BoardOffer = { id: string; owner: string; name: string; breed: Breed; look: Look; pay: number };
 
 export type State = {
-  version: 14;
+  version: 15;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -127,7 +129,7 @@ export function pupilsFor(day: number, reputation: number, seed: number, more = 
 
 /** A horse as it arrives: needs as new, a little jumping skill. */
 const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
-  ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10, crossCountry: 10 }, rest: 0, cared: [] });
+  ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10, crossCountry: 10 }, log: [[10, 10]], rest: 0, cared: [] });
 
 /** This morning's horses for sale: breed, coat, a marking now and then, a price in the build's range. */
 export function marketFor(day: number, seed: number, taken: string[] = []): [Offer[], number] {
@@ -187,7 +189,7 @@ export function buildWaits(s: State, what: 'stalls' | 'arena'): 'stage' | 'built
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 14, rescueDay: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 15, rescueDay: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -277,6 +279,14 @@ export type ShowClass = keyof typeof DATA.shows.classes;
 export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
 /** How far horse `h` can come in jumping: its breed's limit for the skill. */
 export const scope = (h: { breed: Breed }) => DATA.jumping.scope[h.breed];
+/**
+ * How a horse's skills grew (#78): since the start of the day `days` ago (1: today), as [jumping, cross-country].
+ * A horse with a shorter log counts from its oldest day.
+ */
+export function gained(h: Horse, days = 1): [number, number] {
+  const [j, x] = h.log[Math.max(0, h.log.length - days)] ?? [h.skills.jumping, h.skills.crossCountry];
+  return [h.skills.jumping - j, h.skills.crossCountry - x];
+}
 /** How far a breed can come cross-country (#73): sure-footed ponies do better here than over poles. */
 export const xcScope = (h: { breed: Breed }) => DATA.crossCountry.scope[h.breed];
 /** The cross-country take-off window (seconds): wider with skill and good care. */
@@ -518,7 +528,7 @@ function step(state: State, action: Action): State {
       const horses = state.horses.map((h) => {
         const hay = feed >= DATA.hayPerNight;
         if (hay) feed -= DATA.hayPerNight;
-        const after = night(h, hay);
+        const after = { ...night(h, hay), log: [...h.log, [h.skills.jumping, h.skills.crossCountry] as [number, number]].slice(-DATA.progress.days) }; // tomorrow starts with today's skills
         if (!hay) news.push({ kind: 'noHay', horse: h.id });
         if (isSick(after) && !isSick(h)) news.push({ kind: 'sick', horse: h.id });
         if (h.rest === 1 && !isSick(after)) news.push({ kind: 'rested', horse: h.id });

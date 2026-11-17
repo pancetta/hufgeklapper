@@ -210,6 +210,16 @@ export const t = {
   // the arena and jumping
   giveLesson: 'Reitstunde geben',
   practiseJumping: 'Springen üben',
+  // progress (#78)
+  skillGain: (what: string, gain: number, now: number, max: number) => (now >= max ? `${what}: ${now} von ${max} – mehr schafft diese Rasse nicht.` : `${what} +${gain}: jetzt ${now} von ${max}.`),
+  progressTitle: (days: number) => `Fortschritt (${days} Tage)`,
+  weekGain: (j: number, x: number) => (j || x ? `Letzte 7 Tage: Springen +${j}, Gelände +${x}` : 'Letzte 7 Tage: noch nicht geübt.'),
+  compare: 'Können',
+  compareTitle: 'Was deine Pferde können',
+  compareHow: 'Der Strich zeigt, wie weit die Rasse kommen kann. Üben bringt jeden Tag ein Stück weiter.',
+  thisWeek: (n: number) => (n ? `+${n} diese Woche` : 'diese Woche nicht geübt'),
+  diaryBetter: 'Besser geworden',
+  diaryGain: (name: string, j: number, x: number) => `${name}: ${[j ? `Springen +${j}` : '', x ? `Gelände +${x}` : ''].filter(Boolean).join(', ')}`,
   // cross-country (#73)
   crossCountry: 'Gelände',
   xcLater: 'Ins Gelände reitest du, wenn du das Reitabzeichen hast.',

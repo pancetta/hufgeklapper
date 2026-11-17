@@ -146,6 +146,11 @@ led round it. Opens after riding badge 1, by the way *Ins Gelände* on the farm 
 A horse's own cross-country skill, trained only there, up to its breed's limit; sure-footed Isländer and Haflinger
 come further here than over poles.
 
+**Progress** ("Fortschritt", #78):
+How a horse's skills grew: each horse keeps its skills at the start of each of the last 14 days. The horse card shows
+them as a chart and the last 7 days' gain; *Können* in the stable compares all horses; each practice round says how much
+it brought, and the farm diary which horses got better today.
+
 **Puste** (breath):
 How much a horse has left during a **Cross-country** ride, starting from its *Energie*: the gallop uses it up, the
 walk gives it back; out of breath it only walks, and a tired horse gives less time for "Hopp!".
