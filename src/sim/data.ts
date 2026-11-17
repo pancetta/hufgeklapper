@@ -134,6 +134,23 @@ export const DATA = {
     energy: 25,
     happy: 5,
   },
+  /**
+   * Cross-country ("Gelände", #73): a ride through the fields, seen from the side. The child picks the pace; speeds in
+   * metres a second. Galloping tires (`drain`, stamina a second), the walk lets the horse catch its breath; the stamina
+   * starts at the horse's energy. Each obstacle wants "Hopp!" in the take-off window (seconds, wider with skill and good
+   * care, narrower when tired); a tap up to `early` seconds before it is too early; water and ditch must not be met at a
+   * gallop. Each of these is a refusal: the horse stops (`stop` seconds) and comes again from `back` metres; after
+   * `tries` refusals at one obstacle it is led round it. Out of breath it walks until it has caught breath (`tired`). Arriving inside the
+   * optimum time (`optimum` ± `tolerance` seconds of the course at `typical` speed) is clear; each started `timeFault`
+   * seconds outside it is a fault. `giveUp`: times the optimum, then the round ends.
+   */
+  crossCountry: {
+    pace: { walk: 1.6, trot: 3.2, gallop: 6 }, accel: 3, drain: { walk: -0.03, trot: 0.002, gallop: 0.014 }, skillDrain: 0.4,
+    window: { base: 0.3, skill: 0.3, kept: 0.15 }, tired: 0.25, early: 0.8, takeoff: 2, landing: 3, stop: 1.2, back: 10, tries: 3, waterLength: 8,
+    length: 280, obstacles: 6, typical: 4.4, tolerance: 7, timeFault: 5, giveUp: 2.5,
+    scope: { islaender: 70, haflinger: 75, quarter: 65, reitpony: 80, warmblut: 95 },
+    gain: { clear: 4, faults: 2 }, energy: 25, happy: 5,
+  },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
   badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
   /**

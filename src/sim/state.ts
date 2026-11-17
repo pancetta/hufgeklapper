@@ -12,7 +12,7 @@ export const NEEDS: Need[] = ['fed', 'clean', 'happy', 'energy', 'health'];
 export type Needs = Record<Need, number>;
 
 export type Horse = {
-  id: string; name: string; breed: Breed; look: Look; needs: Needs; skills: { jumping: number };
+  id: string; name: string; breed: Breed; look: Look; needs: Needs; skills: { jumping: number; crossCountry: number };
   rest: number; // days the horse must still rest after the vet (no riding, no lessons)
   cared: Care[]; // care actions it had today; each once a day
   /** A boarder's horse ("Einsteller", #63): whose it is, what they pay a day, nights in a row it was badly kept. */
@@ -26,7 +26,7 @@ export type FarmStage = (typeof DATA.stages)[number];
 export type BoardOffer = { id: string; owner: string; name: string; breed: Breed; look: Look; pay: number };
 
 export type State = {
-  version: 13;
+  version: 14;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -94,7 +94,7 @@ export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'st
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
   | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
   | { type: 'routine'; horse: string; wrong: number; ride: boolean }
-  | { type: 'train'; horse: string; faults: number }
+  | { type: 'train'; horse: string; faults: number } | { type: 'xcTrain'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
   | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
   | { type: 'explained'; what: Feature } | { type: 'rename'; horse: string; name: string }
@@ -127,7 +127,7 @@ export function pupilsFor(day: number, reputation: number, seed: number, more = 
 
 /** A horse as it arrives: needs as new, a little jumping skill. */
 const horse = (id: string, name: string, breed: Breed, look: Look): Horse =>
-  ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10 }, rest: 0, cared: [] });
+  ({ id, name, breed, look, needs: { ...DATA.needs.start }, skills: { jumping: 10, crossCountry: 10 }, rest: 0, cared: [] });
 
 /** This morning's horses for sale: breed, coat, a marking now and then, a price in the build's range. */
 export function marketFor(day: number, seed: number, taken: string[] = []): [Offer[], number] {
@@ -187,7 +187,7 @@ export function buildWaits(s: State, what: 'stalls' | 'arena'): 'stage' | 'built
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 13, rescueDay: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 14, rescueDay: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -277,6 +277,15 @@ export type ShowClass = keyof typeof DATA.shows.classes;
 export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
 /** How far horse `h` can come in jumping: its breed's limit for the skill. */
 export const scope = (h: { breed: Breed }) => DATA.jumping.scope[h.breed];
+/** How far a breed can come cross-country (#73): sure-footed ponies do better here than over poles. */
+export const xcScope = (h: { breed: Breed }) => DATA.crossCountry.scope[h.breed];
+/** The cross-country take-off window (seconds): wider with skill and good care. */
+export function xcWindow(h: Horse) {
+  const w = DATA.crossCountry.window;
+  return w.base + w.skill * (h.skills.crossCountry / 100) + w.kept * keptShare(h);
+}
+/** How fast galloping tires this horse, as a share: a skilled one less. */
+export const xcDrain = (h: Horse) => 1 - DATA.crossCountry.skillDrain * (h.skills.crossCountry / 100);
 /** The highest class horse `h` can ever start in, with enough practice. */
 export const topClass = (h: { breed: Breed }) => SHOW_CLASSES.filter((c) => DATA.shows.classes[c].minSkill <= scope(h)).pop()!;
 /**
@@ -608,6 +617,14 @@ function step(state: State, action: Action): State {
         needs: { ...h.needs, energy: clamp(h.needs.energy - J.energy), happy: clamp(h.needs.happy + J.happy) },
       };
       return { ...state, trainings: state.trainings + 1, horses: state.horses.map((x) => (x === h ? trained : x)) };
+    }
+    case 'xcTrain': {
+      // a cross-country ride as training: its own skill grows (more without a fault), the horse tires and enjoys it
+      const h = state.horses.find((x) => x.id === action.horse), X = DATA.crossCountry;
+      if (state.badges < 1 || !h || !own(h) || cantWork(h, X.energy) || !Number.isInteger(action.faults) || action.faults < 0) return state; // after riding badge 1
+      const xc = Math.max(h.skills.crossCountry, Math.min(xcScope(h), clamp(h.skills.crossCountry + (action.faults ? X.gain.faults : X.gain.clear))));
+      const trained: Horse = { ...h, skills: { ...h.skills, crossCountry: xc }, needs: { ...h.needs, energy: clamp(h.needs.energy - X.energy), happy: clamp(h.needs.happy + X.happy) } };
+      return { ...state, horses: state.horses.map((x) => (x === h ? trained : x)) };
     }
     case 'show': {
       // the entry fee, the round (the horse tires like practice), the prize for the first three; one show a day

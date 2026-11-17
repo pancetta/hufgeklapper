@@ -135,6 +135,21 @@ What a round costs: a knocked pole, a **Refusal**, or each started few seconds o
 How far a horse can come in jumping, by its breed: practice raises its skill up to that, so class L needs a horse
 that can jump that high (Warmblut, Deutsches Reitpony, Quarter Horse), not a Haflinger or Isländer.
 
+**Cross-country** ("Gelände"):
+The second **Minigame** (#73): a ride through the fields, seen from the side, over logs, a hedge, a bank, a ditch and
+through water. The child picks the pace (*Schritt*, *Trab*, *Galopp*) and taps "Hopp!" at the green strip; galloping
+uses up the horse's **Puste**, at water and a ditch it must slow down. Clear means no **Refusal** and home inside the
+*Zielzeit* (the target time window: neither too fast nor too slow); three refusals at one obstacle and the horse is
+led round it. Opens after riding badge 1, by the way *Ins Gelände* on the farm map.
+
+**Cross-country ability** ("Gelände-Können"):
+A horse's own cross-country skill, trained only there, up to its breed's limit; sure-footed Isländer and Haflinger
+come further here than over poles.
+
+**Puste** (breath):
+How much a horse has left during a **Cross-country** ride, starting from its *Energie*: the gallop uses it up, the
+walk gives it back; out of breath it only walks, and a tired horse gives less time for "Hopp!".
+
 **Momentum** ("Schwung"):
 Higher jumps (classes A and L) need it: the finger held on the run-up strip, then let go at take-off. Held too
 briefly, the pole falls; a well-trained horse needs less.

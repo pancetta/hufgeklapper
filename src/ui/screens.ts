@@ -14,15 +14,17 @@ import { startJumping } from '../scene/jumping';
 import { courseFor } from '../sim/courses';
 import { newRound, type Round, timeAllowed } from '../sim/round';
 import { omaPortrait, portrait } from '../scene/oma';
-import { PLOTS, PROPS } from '../scene/farm';
+import { PLOTS, PROPS, WORLD } from '../scene/farm';
 import { startStable } from '../scene/stable';
 import { startStore } from '../scene/store';
 import { parseSave } from '../sim/save';
 import { DATA } from '../sim/data';
 import { startCare } from '../scene/care';
 import { startRoutine } from '../scene/routine';
+import { startCrossCountry } from '../scene/xc';
+import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -348,6 +350,7 @@ export function showFarm(intro = false) {
     else if (target === 'board') explain('board').then(showShop);
     else if (target === 'arena') explain('arena').then(arena);
     else if (target === 'pasture') bar.toast(t.pasture);
+    else if (target === 'xc') { if (s.badges < 1) bar.toast(t.xcLater); else pickHorse(t.whichHorseXc, showCrossCountry, undefined, undefined, DATA.crossCountry.energy); }
     else if (target === 'feed') explain('store').then(showStore);
     else if (!canBuild(s)) bar.toast(t.freePlot);
     else if (s.built.stalls) showStable(); // the Offenstall is part of the stable
@@ -418,16 +421,17 @@ export function showFarm(intro = false) {
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
   }
   /** Pick a horse for a jumping round; each one too tired, resting or sick (or not allowed, by `not`) says so. */
-  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string) {
+  function pickHorse(title: string, go: (id: string) => void, not?: (h: Horse) => string | null, note?: string, energy = DATA.jumping.energy) {
     const sheet = $('lesson');
     sheet.firstElementChild!.innerHTML = `<h2>${title}</h2>${note ? `<p class="oma">${note}</p>` : ''}
       ${game.get().horses.filter(own).map((h) => {
-        const tired = cantWork(h, DATA.jumping.energy), why = tired ? t.cantWork[tired] : not?.(h);
+        const tired = cantWork(h, energy), why = tired ? t.cantWork[tired] : not?.(h);
         return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${why}` : ''}</button>`;
       }).join('')}
       <button type="button" id="close-lesson">${t.close}</button>`;
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => go(b.dataset.horse!)));
     $('close-lesson').addEventListener('click', () => { sheet.hidden = true; });
+    sheet.hidden = false; // open from the arena's sheet, or on its own (the way out to the fields)
   }
   /** A pupil wants a lesson: pick a horse; each shows how well it fits, or why it can't. */
   function chooseHorse(p: Pupil) {
@@ -529,6 +533,7 @@ export function showFarm(intro = false) {
       return [p.id, (b.x0 + b.x1) / 2, p.id === 'stall' ? b.y1 - 20 : p.id === 'arena' ? b.y1 - 4 : (b.y0 + b.y1) / 2];
     }),
     ['board', board[1], board[2] - 36],
+    ['xc', WORLD.width - 60, 14 * 32 + 14], // where the lane leaves the farm (kept on the screen, see place)
   ];
   const labels = $('labels');
   labels.innerHTML = places.map(([id, x, y]) => `<button class="label" type="button" data-place="${id}" data-x="${x}" data-y="${y}">${id === 'free' && game.get().built.stalls ? t.shelter : t.places[id] ?? id}</button>`).join('')
@@ -540,7 +545,8 @@ export function showFarm(intro = false) {
     const placed: HTMLElement[] = [];
     labels.querySelectorAll<HTMLElement>('[data-x]').forEach((el) => {
       const p = f.toScreen(Number(el.dataset.x), Number(el.dataset.y));
-      let left = p.left - el.offsetWidth / 2, top = p.top - el.offsetHeight / 2;
+      // on the screen even where the map runs on past its edge (the lane out to the fields)
+      let left = Math.max(8, Math.min(innerWidth - el.offsetWidth - 8, p.left - el.offsetWidth / 2)), top = Math.max(8, Math.min(innerHeight - el.offsetHeight - 8, p.top - el.offsetHeight / 2));
       // labels grow with the interface, the map with the screen: one that would overlap a placed one moves below it
       for (const o of placed) {
         const ol = parseFloat(o.style.left), ot = parseFloat(o.style.top);
@@ -766,6 +772,7 @@ export function showStable() {
       ${h.rider ? `<p>${t.riddenBy(esc(h.rider.name), h.rider.pay)}</p><button type="button" id="end-part" class="small">${t.endPart}</button>` : ''}
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
       <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
+      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.crossCountry}</span><span class="bar skill" style="--scope:${xcScope(h)}%"><i style="width:${h.skills.crossCountry}%"></i></span></div>
       <p>${t.jumpsUpTo(topClass(h))}</p>
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
@@ -974,4 +981,60 @@ function showRoutine(id: string, pupil?: Pupil) {
   $('count').textContent = t.routineCount(0, STEPS.length);
   pick('hand');
   leave = () => { bar.unsubscribe(); scene.then((sc) => sc.stop()); };
+}
+
+/**
+ * Cross-country practice (#73): Oma Hanne explains, then the ride from the side. The pace buttons pick Schritt, Trab or
+ * Galopp; a tap on the land is "Hopp!". The round ends with how it went; the horse trains its cross-country skill.
+ */
+function showCrossCountry(id: string) {
+  const s0 = game.get(), h = s0.horses.find((x) => x.id === id)!, pony = h.look.build === 'pony';
+  const course = xcCourse(s0.day * 1013 + h.skills.crossCountry * 31 + 1), [lo, hi] = course.optimum, N = course.obstacles.length; // a new track each ride: the skill grows
+  const $ = screen(`<canvas id="xc" aria-label="${t.crossCountry}"></canvas>
+    <section id="xc-start" class="overlay talk"><div class="sheet bubble"><img src="${omaPortrait()}" alt="${t.omaHanne}"><ul class="rules">${t.xcHow(pony).map((l) => `<li>${l}</li>`).join('')}</ul>
+      <div class="answers"><button type="button" id="xc-go">${t.go}</button><button type="button" id="xc-leave">${t.back}</button></div></div></section>
+    <p id="xc-hud" class="jump-hud" aria-live="off"></p><p id="xc-tip" class="jump-tip" role="status" hidden></p>
+    <div class="xc-breath"><span>${t.stamina}</span><span class="bar"><i id="xc-breath"></i></span></div>
+    <nav class="tools paces">${PACES.map((p) => `<button type="button" data-pace="${p}" aria-pressed="${p === 'trot'}">${t.paces[p]}</button>`).join('')}</nav>
+    <section id="xc-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="xc-back">${t.toFarm}</button></div></section>`);
+  let tipTimer = 0, tiredSaid = false, warned = -1;
+  const tip = $('xc-tip'), say = (text: string) => { tip.textContent = text; tip.hidden = false; clearTimeout(tipTimer); tipTimer = window.setTimeout(() => { tip.hidden = true; }, 2500); };
+  const hud = (r: XcRound) => {
+    // how the time goes so far: ahead of or behind the target time for this part of the track
+    const part = Math.min(1, r.s / course.length), tempo = r.s < 20 ? '' : ` · ${t.xcTempo[r.t < lo * part - 2 ? 'fast' : r.t > hi * part + 2 ? 'slow' : 'ok']}`;
+    $('xc-hud').textContent = t.xcHud(Math.min(r.next + 1, N), N, r.faults, Math.floor(r.t), lo, hi) + tempo;
+    $('xc-breath').style.width = `${Math.round(r.stamina * 100)}%`;
+    if (r.stamina < DATA.crossCountry.tired && !tiredSaid && tip.hidden) { tiredSaid = true; say(t.xcTired(pony)); } // not over a warning
+    if (r.stamina > DATA.crossCountry.tired + 0.1) tiredSaid = false;
+    // water or a ditch ahead at a gallop: Oma calls out once
+    const o = course.obstacles[r.next];
+    if (o && (o.kind === 'water' || o.kind === 'ditch') && o.at - r.s < 16 && o.at - r.s > 0 && r.pace === 'gallop' && warned !== r.next) { warned = r.next; say(t.xcAhead[o.kind]); }
+  };
+  const ride = startCrossCountry($<HTMLCanvasElement>('xc'), {
+    look: h.look, kid: avatarKid(s0.avatar), course, window: xcWindow(h), drain: xcDrain(h), stamina: h.needs.energy / 100,
+    // too fast at water or a ditch, or too slow to jump: the horse comes again at a trot
+    onChange: hud, onRefuse: (why) => { say(t.xcRefused[why]); if (why !== 'late') pick('trot'); },
+  });
+  hud(newXcRound(h.needs.energy / 100));
+  const pick = (p: Pace) => {
+    ride.then((r) => r.setPace(p));
+    app.querySelectorAll<HTMLButtonElement>('[data-pace]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pace === p)));
+  };
+  app.querySelectorAll<HTMLButtonElement>('[data-pace]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.pace as Pace)));
+  // the space bar is "Hopp!" too, unless a button has the focus; two fingers must not zoom the page
+  const key = (e: KeyboardEvent) => { if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); ride.then((r) => r.hopp()); } };
+  const noZoom = (e: Event) => e.preventDefault();
+  addEventListener('keydown', key);
+  document.addEventListener('gesturestart', noZoom);
+  $('xc-go').addEventListener('click', async () => {
+    $('xc-start').hidden = true;
+    const end = await (await ride).run(), faults = end.faults;
+    clearTimeout(tipTimer); tip.hidden = true;
+    game.dispatch({ type: 'xcTrain', horse: id, faults });
+    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)}` : t.xcClear(h.name);
+    $('xc-end').hidden = false;
+  }, { once: true });
+  $('xc-back').addEventListener('click', () => showFarm());
+  $('xc-leave').addEventListener('click', () => showFarm());
+  leave = () => { clearTimeout(tipTimer); removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); ride.then((r) => r.stop()); };
 }

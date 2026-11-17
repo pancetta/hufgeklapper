@@ -449,6 +449,34 @@ test('a lesson prepared in the care course: the pupil gets the pony ready, it is
   await expect(pupil).toHaveCount(0);
 });
 
+test('cross-country practice: closed before the riding badge; then pace, breath and "Hopp!" through the fields, the pony trains', async ({ page }) => {
+  test.setTimeout(150_000); // the ride runs in real time, about a minute
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await expect(page.getByText(t.xcLater)).toBeVisible();
+  await changeSave(page, (s) => { s.badges = 1; });
+  const kiwi = () => page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.horses[0]);
+  const before = await kiwi();
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await expect(page.getByText(t.xcHow(true)[0])).toBeVisible();
+  await page.getByRole('button', { name: t.go }).tap();
+  // a careful child: the pace Oma would ride (a trot before water and the ditch, a walk to breathe), "Hopp!" at the strip
+  const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
+  while (await end.isHidden()) {
+    const [advice, hopp] = await canvas.evaluate((c) => [c.dataset.advice ?? '', c.dataset.hopp ?? '']);
+    if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
+    if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
+  }
+  await expect(end).toContainText(/Ohne Fehler und genau in der Zielzeit!|Fehler\. Kiwi hat trotzdem geübt\./);
+  const after = await kiwi();
+  expect(after.skills.crossCountry).toBeGreaterThan(before.skills.crossCountry);
+  expect(after.needs.energy).toBe(before.needs.energy - DATA.crossCountry.energy);
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await expect(page.getByRole('button', { name: t.places.arena })).toBeVisible();
+});
+
 test('the care course from the stable: a step out of turn: Oma says why; every step done, the pony is groomed and happier', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('./');

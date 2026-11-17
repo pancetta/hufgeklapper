@@ -48,6 +48,13 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives the horses of a save from version 13 a cross-country skill, as new horses have', () => {
+    const now = toSave(played(), 'Hof');
+    const horses = now.state.horses.map(({ skills: { jumping }, ...h }) => ({ ...h, skills: { jumping } }));
+    const p = parseSave(text({ ...now, version: 13, state: { ...now.state, version: 13, horses } }));
+    expect(p.ok && p.save.state.horses.map((h) => h.skills)).toEqual(now.state.horses.map((h) => ({ jumping: h.skills.jumping, crossCountry: 10 })));
+  });
+
   it('gives a save from version 12 no dead end counted yet', () => {
     const now = toSave(played(), 'Hof');
     const { deadEnd: _a, ...old } = now.state;
