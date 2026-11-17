@@ -34,16 +34,20 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
   ]);
   const straw = strawTile(), ctx = canvas.getContext('2d')!;
   let W = 0, H = 0, S = 1, running = true;
-  const layout = { boxW: 120, x0: 0, floor: 0 };
+  const layout = { boxW: 120, x0: 0, floor: 0, bar: 58 }; // bar: the top bar's bottom, CSS pixels (safe area included)
 
   function fit() {
-    S = Math.min(2, fitPixels(innerWidth, innerHeight).scale) * 2;
+    // twice the farm's scale, but small enough in height that the windows clear the top bar and the needs fit below
+    // (in whole device pixels, so still crisp; #100)
+    const d = devicePixelRatio || 1;
+    S = Math.max(1, Math.min(Math.min(2, fitPixels(innerWidth, innerHeight).scale) * 2 * d, Math.floor((innerHeight * d) / 210))) / d;
     W = Math.floor(innerWidth / S); H = Math.floor(innerHeight / S);
     canvas.width = W; canvas.height = H;
     canvas.style.width = `${W * S}px`; canvas.style.height = `${H * S}px`;
     layout.boxW = Math.min(120, Math.floor((W - 24) / opts.stalls));
     layout.x0 = Math.round((W - layout.boxW * opts.stalls) / 2);
     layout.floor = Math.round(H * 0.6);
+    layout.bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 58;
     opts.onLayout?.();
   }
 
@@ -66,7 +70,7 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
     for (let i = 0; i < opts.stalls; i++) {
       const bx = x0 + i * boxW, cx = bx + boxW / 2;
       // a window over the stall: light falls in, dust dances in it
-      const wx = Math.round(cx - 16), wy = floor - 112;
+      const wx = Math.round(cx - 16), wy = Math.max(Math.ceil((layout.bar + 4) / S), floor - 112); // under the top bar
       blit(ctx, barn, WINDOW, wx, wy);
       ctx.fillStyle = 'rgba(255, 236, 170, 0.09)';
       for (let k = 0; k < 100; k += 2) ctx.fillRect(wx + 3 + k * 0.45, wy + 31 + k, 26, 2);
@@ -75,16 +79,23 @@ export async function startStable(canvas: HTMLCanvasElement, opts: StableOptions
         const p = (t * 0.06 + d * 0.27 + i * 0.13) % 1;
         ctx.fillRect(Math.round(wx + 8 + p * 40 + Math.sin(t + d) * 3), Math.round(wy + 36 + p * 70), 1, 1);
       }
-      // wide stalls show the horse from the side next to a hay rack; narrow ones (a bigger stable) from the front,
-      // looking out over the door, so no horse reaches into the next stall
+      // every horse from the side, its head towards the hay on the back wall (#91, #100): in a wide stall the whole
+      // horse; in a narrow one (a bigger stable) the head and front, the rest behind the wall to the next stall
       const narrow = boxW < 100;
-      if (!narrow) blit(ctx, deco, HAY, bx + boxW - 38, floor - 60); // hay rack on the back wall
+      // the hay rack on the back wall, in front of the head: hay behind wooden slats on two brackets
+      const rx = bx + 6, ry = floor - 46;
+      blit(ctx, deco, HAY, rx - 2, ry - 20);
+      ctx.fillStyle = '#5a3419'; ctx.fillRect(rx, ry, 28, 2); ctx.fillRect(rx, ry + 14, 28, 2); ctx.fillRect(rx + 2, ry + 16, 2, 5); ctx.fillRect(rx + 24, ry + 16, 2, 5);
+      ctx.fillStyle = '#7a4a26'; for (let k = 0; k <= 24; k += 4) ctx.fillRect(rx + 1 + k, ry + 2, 2, 12);
       const sheet = sheets[i];
       if (sheet) {
-        // the horse stands a little back in its stall
-        const foot = floor - 6, breathe = Math.sin(t * 1.8 + i) > 0.85 ? 1 : 0;
-        shadow(ctx, cx, foot - 1, narrow ? 12 : 26, 3, 0.25);
-        ctx.drawImage(sheet, narrow ? 256 : 128, 0, 128, 128, Math.round(cx - 64), foot - 93 - breathe, 128, 128); // front (south) or side (west)
+        // the horse stands a little back in its stall, its head over the hay
+        const foot = floor - 6, breathe = Math.sin(t * 1.8 + i) > 0.85 ? 1 : 0, hx = narrow ? bx + 6 : Math.round(cx - 64);
+        ctx.save();
+        ctx.beginPath(); ctx.rect(bx, 0, boxW - 2, H); ctx.clip();
+        shadow(ctx, hx + 64, foot - 1, 26, 3, 0.25);
+        ctx.drawImage(sheet, 128, 0, 128, 128, hx - (narrow ? 14 : 0), foot - 93 - breathe, 128, 128); // the side view (west)
+        ctx.restore();
       }
       // the half door: planks, a top rail, an X brace
       const dx = bx + 6, dw = boxW - 12, dy = floor - 20, dh = 24;

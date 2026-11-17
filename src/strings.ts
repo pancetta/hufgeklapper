@@ -442,7 +442,7 @@ export const t = {
     hay: 'Das Heu wird knapp. Kauf im Futterlager neues!',
   },
   explain: {
-    stable: 'Im Stall siehst du, wie es deinen Ponys geht. Tippe ein Pony an, dann kannst du es pflegen.',
+    stable: 'Tagsüber sind deine Ponys auf der Weide. Wenn du in den Stall gehst, holst du sie herein. Tippe ein Pony an, dann kannst du es pflegen.',
     care: 'Wähle unten ein Werkzeug. Jedes geht anders: Der Satz oben sagt dir, was du tun musst.',
     board: 'Am Schwarzen Brett stehen die Turniere. Wenn das Geld knapp ist, hilft dir die Bank.',
     store: 'Im Futterlager liegt dein Heu. Jedes Pferd frisst einen Ballen pro Nacht. Hier kaufst du neues Heu.',
