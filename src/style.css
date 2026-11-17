@@ -254,8 +254,9 @@ canvas { image-rendering: pixelated; }
 .editor-fields { display: grid; gap: 8px; }
 .editor-fields label { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
 .editor-fields input { font: inherit; padding: 4px 8px; border: 2px solid var(--wood-dark); border-radius: 6px; width: 11em; }
-.choice { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.choice span { width: 6em; }
+/* one line per look: its name, then the colours or styles (not .choice: that is the lesson's horse button, a grid, #94) */
+.look-row { display: flex; gap: 8px; align-items: center; }
+.look-row > span { width: 6em; flex: none; }
 .overlay .swatch { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
 .overlay .style { font-size: calc(var(--fs) * 15px); padding: 6px 8px; }
 .swatch[aria-pressed="true"], .style[aria-pressed="true"] { outline: 3px solid #fff; box-shadow: 0 0 0 6px var(--wood-dark); }

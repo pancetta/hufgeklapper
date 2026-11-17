@@ -123,6 +123,20 @@ test('a new game in slot 2: the player makes a figure, Oma Hanne hands over the 
   expect(saved).toMatchObject({ name: 'Mara', hair: 'zoepfe', jacket: 4 });
 });
 
+test('the figure editor fits on one iPad screen: one line per look, the start button in view (#94)', async ({ page }) => {
+  for (const size of [{ width: 1024, height: 700 }, { width: 1180, height: 710 }]) { // Safari's bars take ~110 pt
+    await page.setViewportSize(size);
+    await page.goto('./');
+    await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.newGame }).tap();
+    for (const look of [t.looks.skin, t.looks.hairColor, t.looks.jacket]) {
+      const tops = await page.getByRole('group', { name: look }).locator('button').evaluateAll((bs) => bs.map((b) => Math.round(b.getBoundingClientRect().top)));
+      expect(new Set(tops).size, `${look} in one line at ${size.width}`).toBe(1);
+    }
+    const start = (await page.getByRole('button', { name: t.start }).boundingBox())!;
+    expect(start.y + start.height, `start button in view at ${size.width}×${size.height}`).toBeLessThanOrEqual(size.height);
+  }
+});
+
 test('the farm comes alive behind the title', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('heading', { name: t.title })).toBeVisible();

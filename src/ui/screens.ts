@@ -88,11 +88,11 @@ function askNewGame(): Promise<{ farmName: string; avatar: Avatar } | null> {
       <canvas class="preview" width="40" height="32" aria-hidden="true"></canvas>
       <div class="editor-fields">
         <label>${t.yourName} <input id="player-name" maxlength="20" autocomplete="off" placeholder="${DATA.avatar.name}" enterkeyhint="done"></label>
-        <div class="choice" role="group" aria-label="${t.looks.skin}"><span>${t.looks.skin}</span>${swatches('skin', SKIN)}</div>
-        <div class="choice" role="group" aria-label="${t.looks.hair}"><span>${t.looks.hair}</span>${HAIR_STYLES.map((h) =>
+        <div class="look-row" role="group" aria-label="${t.looks.skin}"><span>${t.looks.skin}</span>${swatches('skin', SKIN)}</div>
+        <div class="look-row" role="group" aria-label="${t.looks.hair}"><span>${t.looks.hair}</span>${HAIR_STYLES.map((h) =>
           `<button type="button" class="style" data-k="hair" data-v="${h}">${t.hairStyles[h]}</button>`).join('')}</div>
-        <div class="choice" role="group" aria-label="${t.looks.hairColor}"><span>${t.looks.hairColor}</span>${swatches('hairColor', HAIR)}</div>
-        <div class="choice" role="group" aria-label="${t.looks.jacket}"><span>${t.looks.jacket}</span>${swatches('jacket', JACKET)}</div>
+        <div class="look-row" role="group" aria-label="${t.looks.hairColor}"><span>${t.looks.hairColor}</span>${swatches('hairColor', HAIR)}</div>
+        <div class="look-row" role="group" aria-label="${t.looks.jacket}"><span>${t.looks.jacket}</span>${swatches('jacket', JACKET)}</div>
         <label>${t.farmName} <input id="farm-name" maxlength="20" autocomplete="off" placeholder="${t.farmNameDefault}" enterkeyhint="done"></label>
       </div>
     </div>
