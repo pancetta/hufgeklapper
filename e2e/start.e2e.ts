@@ -75,6 +75,17 @@ async function newGame(page: Page, name: string, explain = false) {
   if (!explain) await changeSave(page, (s) => { s.explained = [...DATA.features]; });
 }
 
+/** A careful child through the fields: the pace Oma would ride (a trot before water and the ditch), "Hopp!" at the strip. */
+async function rideXc(page: Page) {
+  const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
+  while (await end.isHidden()) {
+    const [advice, hopp] = await canvas.evaluate((c) => [c.dataset.advice ?? '', c.dataset.hopp ?? '']);
+    if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
+    if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
+  }
+  return end;
+}
+
 /** Changes the game in slot 1 as saved, then reloads and carries on with it. */
 async function changeSave(page: Page, change: (state: Record<string, unknown>) => void) {
   const save = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!));
@@ -463,13 +474,7 @@ test('cross-country practice: closed before the riding badge; then pace, breath 
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await expect(page.getByText(t.xcHow(true)[0])).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
-  // a careful child: the pace Oma would ride (a trot before water and the ditch, a walk to breathe), "Hopp!" at the strip
-  const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
-  while (await end.isHidden()) {
-    const [advice, hopp] = await canvas.evaluate((c) => [c.dataset.advice ?? '', c.dataset.hopp ?? '']);
-    if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
-    if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
-  }
+  const end = await rideXc(page);
   await expect(end).toContainText(/Ohne Fehler und genau in der Zielzeit!|Fehler\. Kiwi hat trotzdem geübt\./);
   const after = await kiwi();
   expect(after.skills.crossCountry).toBeGreaterThan(before.skills.crossCountry);
@@ -531,15 +536,37 @@ test('riding badge 2: locked until practice and a care course, then the care cou
   await page.getByRole('button', { name: t.gotIt }).tap();
   await expect(page.getByText(t.badge2Xc(DATA.badge2.maxFaults))).toBeVisible();
   await page.getByRole('button', { name: t.go }).tap();
-  const canvas = page.locator('#xc'), end = page.locator('#xc-end'), box = (await canvas.boundingBox())!;
-  while (await end.isHidden()) {
-    const [advice, hopp] = await canvas.evaluate((c) => [c.dataset.advice ?? '', c.dataset.hopp ?? '']);
-    if (hopp) { await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3); continue; }
-    if (advice && (await page.locator(`[data-pace="${advice}"]`).getAttribute('aria-pressed')) !== 'true') await page.locator(`[data-pace="${advice}"]`).tap();
-  }
+  const end = await rideXc(page);
   await expect(end).toContainText(t.badge2Passed);
   await expect(page.getByRole('img', { name: t.badge2Name })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state.badges)).toBe(2);
+});
+
+test('a cross-country show after riding badge 2: the calendar, the class, the ride, the podium; the next one in three days', async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  const day = DATA.xcShows.on; // a cross-country show day, between the jumping shows
+  await changeSave(page, (s) => { Object.assign(s, { badges: 2, day }); });
+  await page.getByRole('button', { name: t.places.board }).tap();
+  await expect(page.getByText(t.nextXcShow(day, true))).toBeVisible();
+  await page.getByRole('button', { name: t.close }).tap();
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await page.getByRole('button', { name: t.xcShow }).tap();
+  await expect(page.getByText(t.xcShows.enter(DATA.xcShows.classes.E.fee))).toBeVisible();
+  await page.getByRole('button', { name: 'Kiwi' }).tap();
+  await expect(page.getByText(t.xcShowRule('E', DATA.xcShows.classes.E.obstacles))).toBeVisible();
+  await page.getByRole('button', { name: t.go }).tap();
+  const end = await rideXc(page);
+  await expect(end.getByRole('heading', { name: t.podium })).toBeVisible();
+  await expect(end.locator('.ranking li')).toHaveCount(DATA.shows.rivalsPerShow + 1);
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('hufgeklapper.slot.0')!).state);
+  const prize = s.today.find((e: { what: string }) => e.what === 'prize')?.amount ?? 0;
+  expect([s.lastXcShowDay, s.money]).toEqual([day, 300 - DATA.xcShows.classes.E.fee + prize]);
+  await page.getByRole('button', { name: t.toFarm }).tap();
+  await page.getByRole('button', { name: t.places.xc }).tap();
+  await expect(page.getByRole('button', { name: t.xcShow })).toBeDisabled();
+  await expect(page.getByText(t.xcShowWaits.notToday(day + DATA.xcShows.every))).toBeVisible();
 });
 
 test('riding badge 2: stopping the exam counts as not passed; another try tomorrow', async ({ page }) => {
@@ -688,7 +715,7 @@ test('a jumping show: entry fee, one round, the podium with prize money; the nex
   await page.getByRole('button', { name: t.close }).tap();
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.show, exact: true }).tap();
-  await expect(page.getByText(t.showEnter(DATA.shows.classes.E.fee))).toBeVisible();
+  await expect(page.getByText(t.jumpShows.enter(DATA.shows.classes.E.fee))).toBeVisible();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await rideCourse(page);
@@ -718,12 +745,12 @@ test('show classes: a trained horse opens class A; the untrained one may not sta
   });
   await page.getByRole('button', { name: t.places.arena }).tap();
   await page.getByRole('button', { name: t.show, exact: true }).tap();
-  await expect(page.getByText(t.classesHow)).toBeVisible();
+  await expect(page.getByText(t.jumpShows.classesHow)).toBeVisible();
   await expect(page.getByRole('button', { name: t.showClass('E', DATA.shows.classes.E.fee, DATA.shows.classes.E.prizes[0]) })).toBeEnabled();
   await expect(page.getByRole('button', { name: t.showClass('L', DATA.shows.classes.L.fee, DATA.shows.classes.L.prizes[0]) })).toBeDisabled();
   await page.getByRole('button', { name: t.showClass('A', A.fee, A.prizes[0]) }).tap();
   await expect(page.getByText(t.showEnterClass('A', A.fee))).toBeVisible();
-  await expect(page.getByRole('button', { name: `Luna · ${t.notSkilled}` })).toBeDisabled();
+  await expect(page.getByRole('button', { name: `Luna · ${t.jumpShows.notSkilled}` })).toBeDisabled();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   await rideCourse(page);

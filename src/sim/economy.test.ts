@@ -63,4 +63,11 @@ describe('economy run', () => {
     const sport = play('sport', 3, 40);
     expect(Math.abs(sport.jumping - sport.crossCountry)).toBeLessThan(20);
   });
+
+  it('the sport player takes riding badge 2 and rides cross-country shows (#74, #75)', () => {
+    for (const r of of('sport')) {
+      expect(r.badge2Day, `seed ${r.seed}`).not.toBeNull();
+      expect(r.xcShows, `seed ${r.seed}`).toBeGreaterThan(0);
+    }
+  });
 });

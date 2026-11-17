@@ -153,6 +153,20 @@ export const DATA = {
   },
   /** The progress kept per horse (#78): its skills at the start of each of the last `days` days. */
   progress: { days: 14 },
+  /**
+   * Cross-country shows (#75), opened by riding badge 2: on the days between the jumping shows (day % `every` is
+   * `on`). Classes like jumping, by the horse's cross-country skill; a higher class rides a longer track with more,
+   * higher obstacles (`height`, drawn) and a narrower take-off window (`window`, a share of the horse's). Scores like
+   * jumping's; rivals fail an obstacle with the jumping chance.
+   */
+  xcShows: {
+    every: 3, on: 2,
+    classes: {
+      E: { minSkill: 0, fee: 15, prizes: [50, 30, 15], rivalSkill: [10, 50], obstacles: 6, length: 280, window: 1, height: 1 },
+      A: { minSkill: 40, fee: 30, prizes: [130, 80, 45], rivalSkill: [35, 70], obstacles: 8, length: 340, window: 0.85, height: 1.2 },
+      L: { minSkill: 70, fee: 50, prizes: [180, 110, 65], rivalSkill: [60, 90], obstacles: 10, length: 400, window: 0.7, height: 1.4 },
+    },
+  },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
   badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 },
   /**

@@ -9,8 +9,11 @@ export type Pace = 'walk' | 'trot' | 'gallop';
 export const PACES: Pace[] = ['walk', 'trot', 'gallop'];
 export type XcKind = 'log' | 'hedge' | 'bank' | 'ditch' | 'water';
 export type XcObstacle = { at: number; kind: XcKind };
-/** A track: its length in metres, its obstacles in order, and the optimum time (seconds) to arrive in. */
-export type XcCourse = { length: number; obstacles: XcObstacle[]; optimum: [number, number] };
+/**
+ * A track: its length in metres, its obstacles in order, and the optimum time (seconds) to arrive in; `height`: how
+ * high a show class's obstacles are drawn (#75).
+ */
+export type XcCourse = { length: number; obstacles: XcObstacle[]; optimum: [number, number]; height?: number };
 /**
  * Why a refusal: no "Hopp!" in time, a tap too early, too fast at water or a ditch, or too slow (a walk) to jump;
  * `skip` after the third refusal at one obstacle: the horse is led round it.
@@ -36,16 +39,20 @@ export const windowNow = (r: XcRound, window: number) => window * (r.stamina >= 
 const careful = (k: XcKind) => k === 'water' || k === 'ditch'; // not at a gallop
 const tooFast = (v: number) => v > X.pace.trot + 0.1;
 
-/** A practice track from a seed: six obstacles, water and a ditch among them, spaced along the way. */
-export function xcCourse(seed: number): XcCourse {
+/**
+ * A track from a seed: practice (six obstacles, water and a ditch among them), or a show class's (#75): longer, more
+ * obstacles, stricter and higher. Obstacles spaced along the way.
+ */
+export function xcCourse(seed: number, cls?: keyof typeof DATA.xcShows.classes): XcCourse {
   let n = Math.abs(Math.floor(seed)) % 2147483646 + 1;
   const rnd = () => (n = (n * 16807) % 2147483647) / 2147483647;
-  const kinds: XcKind[] = ['log', 'hedge', 'bank', 'log', 'ditch', 'water'];
+  const C = cls ? DATA.xcShows.classes[cls] : { obstacles: X.obstacles, length: X.length, height: 1 };
+  const kinds = (['log', 'hedge', 'bank', 'log', 'ditch', 'water', 'hedge', 'log', 'bank', 'ditch'] as XcKind[]).slice(0, C.obstacles);
   for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
-  const gap = (X.length - 60) / X.obstacles;
-  const obstacles = kinds.slice(0, X.obstacles).map((kind, i) => ({ kind, at: Math.round(40 + i * gap + rnd() * gap * 0.4) }));
-  const optimum = X.length / X.typical;
-  return { length: X.length, obstacles, optimum: [Math.round(optimum - X.tolerance), Math.round(optimum + X.tolerance)] };
+  const gap = (C.length - 60) / C.obstacles;
+  const obstacles = kinds.map((kind, i) => ({ kind, at: Math.round(40 + i * gap + rnd() * gap * 0.4) }));
+  const optimum = C.length / X.typical;
+  return { length: C.length, obstacles, optimum: [Math.round(optimum - X.tolerance), Math.round(optimum + X.tolerance)], height: C.height };
 }
 
 export const newXcRound = (stamina: number): XcRound => ({

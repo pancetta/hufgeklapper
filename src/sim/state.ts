@@ -28,7 +28,7 @@ export type FarmStage = (typeof DATA.stages)[number];
 export type BoardOffer = { id: string; owner: string; name: string; breed: Breed; look: Look; pay: number };
 
 export type State = {
-  version: 17;
+  version: 18;
   /** The player's figure. */
   avatar: Avatar;
   seed: number; // the random generator's state, moved on by each roll
@@ -55,6 +55,7 @@ export type State = {
   badgeFailedDay: number;
   /** The day of the last show the player rode in (0: none yet). */
   lastShowDay: number;
+  lastXcShowDay: number; // the last cross-country show ridden (#75)
   /** Goals of the current stage reached (they stay reached; a new stage starts afresh), and the features Oma Hanne has explained. */
   goalsDone: GoalId[];
   explained: Feature[];
@@ -101,7 +102,7 @@ export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type
   | { type: 'badge2'; horse: string; wrong: number; faults: number | null }
   | { type: 'train'; horse: string; faults: number } | { type: 'xcTrain'; horse: string; faults: number }
   | { type: 'badgeQuiz'; answers: number[] } | { type: 'badge'; horse: string; faults: number }
-  | { type: 'show'; horse: string; faults: number; showClass: ShowClass }
+  | { type: 'show'; horse: string; faults: number; showClass: ShowClass } | { type: 'xcShow'; horse: string; faults: number; showClass: ShowClass }
   | { type: 'explained'; what: Feature } | { type: 'rename'; horse: string; name: string }
   | { type: 'inspection'; answers: number[] } | { type: 'buyHorse'; offer: string } | { type: 'build'; what: Buildable }
   | { type: 'hire' } | { type: 'fire' } | { type: 'board'; offer: string } | { type: 'partBoard' } | { type: 'endPartBoard'; horse: string };
@@ -201,7 +202,7 @@ export const noRoom = (s: State, build: Look['build']): 'stall' | 'pasture' | nu
 export function newGame(seed: number, avatar: Avatar = DATA.avatar): State {
   const [pupils, next] = pupilsFor(1, DATA.lessons.startReputation, seed);
   return {
-    version: 17, rescueDay: 0, xcTrainings: 0, routines: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0, pasture: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
+    version: 18, lastXcShowDay: 0, rescueDay: 0, xcTrainings: 0, routines: 0, deadEnd: 0, staff: 0, boardOffers: [], partOffer: null, inspectionFailedDay: 0, lessonsBefore: 0, market: [], built: { stalls: 0, arena: 0, pasture: 0 }, avatar, trainings: 0, badges: 0, badgeFailedDay: 0, badgeQuizDay: 0, lastShowDay: 0, goalsDone: [], explained: [], seed: next, day: 1, money: DATA.start.money, feed: DATA.start.feed, stage: 'kleinerHof', night: [],
     careDone: { groom: 0, hooves: 0, feed: 0, muck: 0 }, debt: 0, today: [], bill: [],
     pupils, reputation: DATA.lessons.startReputation, lessonsGiven: 0,
     horses: [
@@ -299,6 +300,23 @@ export function showWaits(s: State): 'badge' | 'notToday' | 'money' | null {
   return s.badges < 1 ? 'badge' : nextShowDay(s) !== s.day ? 'notToday' : s.money < DATA.shows.classes.E.fee ? 'money' : null;
 }
 export type ShowClass = keyof typeof DATA.shows.classes;
+/** The next cross-country show day (#75): the days between the jumping shows; today if one is on and not ridden yet. */
+export function nextXcShowDay(s: State) {
+  const { every, on } = DATA.xcShows, next = s.day + ((on - (s.day % every) + every) % every);
+  return next === s.lastXcShowDay ? next + every : next;
+}
+/** Why the player can't ride in a cross-country show today, or null if they can. */
+export function xcShowWaits(s: State): 'badge' | 'notToday' | 'money' | null {
+  return s.badges < 2 ? 'badge' : nextXcShowDay(s) !== s.day ? 'notToday' : s.money < DATA.xcShows.classes.E.fee ? 'money' : null;
+}
+/** Why horse `h` can't start in cross-country class `c` today (#75): its breed, its skill, the fee. */
+export const xcClassWaits = (s: State, h: Horse, c: ShowClass): 'scope' | 'skill' | 'money' | null =>
+  xcScope(h) < DATA.xcShows.classes[c].minSkill ? 'scope' : h.skills.crossCountry < DATA.xcShows.classes[c].minSkill ? 'skill' : s.money < DATA.xcShows.classes[c].fee ? 'money' : null;
+/** Why cross-country class `c` is shut today for every horse, the nearest reason first; null if one can start. */
+export function xcClassShut(s: State, c: ShowClass): 'money' | 'tired' | 'skill' | 'scope' | null {
+  const w = s.horses.filter(own).map((h) => xcClassWaits(s, h, c) ?? (cantWork(h, DATA.crossCountry.energy) ? 'tired' : null));
+  return w.includes(null) ? null : (['money', 'tired', 'skill', 'scope'] as const).find((r) => w.includes(r)) ?? 'scope';
+}
 export const SHOW_CLASSES = Object.keys(DATA.shows.classes) as ShowClass[];
 /** How far horse `h` can come in jumping: its breed's limit for the skill. */
 export const scope = (h: { breed: Breed }) => DATA.jumping.scope[h.breed];
@@ -312,10 +330,10 @@ export function gained(h: Horse, days = 1): [number, number] {
 }
 /** How far a breed can come cross-country (#73): sure-footed ponies do better here than over poles. */
 export const xcScope = (h: { breed: Breed }) => DATA.crossCountry.scope[h.breed];
-/** The cross-country take-off window (seconds): wider with skill and good care. */
-export function xcWindow(h: Horse) {
+/** The cross-country take-off window (seconds): wider with skill and good care; narrower in a higher show class (#75). */
+export function xcWindow(h: Horse, c?: ShowClass) {
   const w = DATA.crossCountry.window;
-  return w.base + w.skill * (h.skills.crossCountry / 100) + w.kept * keptShare(h);
+  return (w.base + w.skill * (h.skills.crossCountry / 100) + w.kept * keptShare(h)) * (c ? DATA.xcShows.classes[c].window : 1);
 }
 /** How fast galloping tires this horse, as a share: a skilled one less. */
 export const xcDrain = (h: Horse) => 1 - DATA.crossCountry.skillDrain * (h.skills.crossCountry / 100);
@@ -342,8 +360,10 @@ export type ShowRow = { rider: string; horse: string; score: number; you?: true 
  * A show's results for the player's round with horse `h`: the rivals ride with chance from the game's seed. The table
  * is best first; the player wins a tie. Returns the rank (1 = first), the prize and the moved seed.
  */
-export function showResult(s: State, h: Horse, faults: number, rider: string, c: ShowClass) {
-  const S = DATA.shows, C = S.classes[c], J = DATA.jumping, rows: ShowRow[] = [];
+export function showResult(s: State, h: Horse, faults: number, rider: string, c: ShowClass, xc = false) {
+  // a cross-country show (#75): its own classes, the cross-country skill, its obstacles
+  const S = DATA.shows, C = xc ? DATA.xcShows.classes[c] : S.classes[c], J = DATA.jumping, rows: ShowRow[] = [];
+  const obstacles = xc ? DATA.xcShows.classes[c].obstacles : J.courses[c].jumps.length, skillOf = xc ? h.skills.crossCountry : h.skills.jumping;
   let seed = s.seed, r: number;
   const pool = S.rivals.filter(([name, horse]) => name !== rider && horse.toLowerCase() !== h.name.toLowerCase()); // no rival with the player's or the horse's name
   for (let i = 0; i < S.rivalsPerShow; i++) {
@@ -352,10 +372,10 @@ export function showResult(s: State, h: Horse, faults: number, rider: string, c:
     [r, seed] = roll(seed);
     const skill = C.rivalSkill[0] + r * (C.rivalSkill[1] - C.rivalSkill[0]);
     let down = 0;
-    for (let j = 0; j < J.courses[c].jumps.length; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
+    for (let j = 0; j < obstacles; j++) { [r, seed] = roll(seed); if (r < S.rivalFaultChance * (1 - skill / 100)) down++; }
     rows.push({ rider: name, horse, score: showScore(down, skill) });
   }
-  const you: ShowRow = { rider, horse: h.name, score: showScore(faults, h.skills.jumping), you: true };
+  const you: ShowRow = { rider, horse: h.name, score: showScore(faults, skillOf), you: true };
   const table = [you, ...rows].sort((a, b) => b.score - a.score || (a.you ? -1 : b.you ? 1 : 0));
   const rank = table.indexOf(you) + 1;
   return { table, rank, prize: C.prizes[rank - 1] ?? 0, seed };
@@ -680,6 +700,17 @@ function step(state: State, action: Action): State {
       const fee = DATA.shows.classes[c].fee, { prize, seed } = showResult(state, h, action.faults, state.avatar.name, c);
       const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - DATA.jumping.energy) } };
       const paid: State = { ...state, seed, lastShowDay: state.day, money: state.money - fee, horses: state.horses.map((x) => (x === h ? ridden : x)),
+        today: [...state.today, { what: 'showFee', amount: -fee }, ...(prize ? [{ what: 'prize' as const, amount: prize }] : [])] };
+      return prize ? earn(paid, prize) : paid;
+    }
+    case 'xcShow': {
+      // a cross-country show (#75): the entry fee, the round (the horse tires like practice), a prize for the first three
+      const h = state.horses.find((x) => x.id === action.horse), c = action.showClass, X = DATA.crossCountry;
+      if (!h || !own(h) || !SHOW_CLASSES.includes(c) || xcShowWaits(state) || xcClassWaits(state, h, c) || cantWork(h, X.energy)
+        || !Number.isInteger(action.faults) || action.faults < 0) return state;
+      const fee = DATA.xcShows.classes[c].fee, { prize, seed } = showResult(state, h, action.faults, state.avatar.name, c, true);
+      const ridden = { ...h, needs: { ...h.needs, energy: clamp(h.needs.energy - X.energy) } };
+      const paid: State = { ...state, seed, lastXcShowDay: state.day, money: state.money - fee, horses: state.horses.map((x) => (x === h ? ridden : x)),
         today: [...state.today, { what: 'showFee', amount: -fee }, ...(prize ? [{ what: 'prize' as const, amount: prize }] : [])] };
       return prize ? earn(paid, prize) : paid;
     }

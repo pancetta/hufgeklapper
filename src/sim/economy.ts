@@ -6,7 +6,7 @@
 import { DATA } from './data';
 import {
   type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck, gameOver,
-  showWaits, stalls, xcWindow, noRoom,
+  showWaits, stalls, xcWindow, noRoom, badge2Waits, xcShowWaits, xcClassWaits,
 } from './state';
 
 export type Strategy = 'careful' | 'careless' | 'sport';
@@ -17,7 +17,7 @@ export type Report = {
   worth: number;
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number;
-  xcRides: number; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
+  xcRides: number; xcShows: number; badge2Day: number | null; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
   deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
   lostDay: number | null; // the day the farm was lost (game over), if it was
 };
@@ -39,15 +39,19 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     for (let i = 0; i < DATA.jumping.courses[c].jumps.length; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
     return n;
   };
-  /** Refusals cross-country: one obstacle in six on a new pony, fewer the wider its take-off window (#73). */
+  /**
+   * Refusals cross-country: one obstacle in six on a new pony, fewer the wider its take-off window (#73); a show class
+   * (#75) has more obstacles and a narrower window.
+   */
   const xcBase = xcWindow(newGame(seed).horses[0]);
   let xcLuck = seed ^ 0xbeef; // its own dice: riding cross-country doesn't shuffle the jumping rounds
-  const xcFaults = (h: Horse) => {
+  const xcFaults = (h: Horse, c?: ShowClass) => {
+    const obstacles = c ? DATA.xcShows.classes[c].obstacles : DATA.crossCountry.obstacles;
     let n = 0, r: number;
-    for (let i = 0; i < DATA.crossCountry.obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h))) n++; }
+    for (let i = 0; i < obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h, c))) n++; }
     return n;
   };
-  let invested = 0, xcRides = 0;
+  let invested = 0, xcRides = 0, xcShows = 0, badge2Day: number | null = null;
   /** A stall is free but the pasture is full (#79): enlarge it, if the money allows. */
   const roomOnPasture = (build: Horse['look']['build']) => {
     if (noRoom(s, build) === 'pasture' && !buildWaits(s, 'pasture') && s.money > DATA.build.pasture.cost + 150) act({ type: 'build', what: 'pasture' });
@@ -97,11 +101,22 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
         if (best && (strategy !== 'sport' || s.horses.filter(own).length > 2 || p === first)) act({ type: 'lesson', pupil: p.id, horse: best.id });
       }
     };
+    // the sport player, once practised cross-country: one care course, then riding badge 2 (#74) with a fresh horse in
+    // the morning
+    if (strategy === 'sport' && s.badges === 1) {
+      if (s.xcTrainings >= DATA.badge2.xcTrainings && s.routines < DATA.badge2.routines) act({ type: 'routine', horse: s.horses.filter(own)[0].id, wrong: 0, ride: false });
+      const exam = !badge2Waits(s) && fresh(DATA.badge2.energy)[0];
+      if (exam) act({ type: 'badge2', horse: exam.id, wrong: 0, faults: xcFaults(exam) });
+      if (s.badges >= 2) badge2Day = s.day;
+    }
     if (strategy === 'sport') { sport(); lessons(); } else { lessons(); sport(); }
-    // the sport player also rides cross-country (#73), with whatever horse has energy left after jumping and lessons
+    // the sport player also rides cross-country (#73), with whatever horse has energy left after jumping and lessons:
+    // after riding badge 2 a cross-country show on show days (#75)
     if (strategy === 'sport' && s.badges) {
       const h = fresh(DATA.crossCountry.energy).sort((a, b) => b.skills.crossCountry - a.skills.crossCountry)[0];
-      if (h) { act({ type: 'xcTrain', horse: h.id, faults: xcFaults(h) }); xcRides++; }
+      const c = h && !xcShowWaits(s) && SHOW_CLASSES.filter((k) => !xcClassWaits(s, h, k)).pop();
+      if (h && c) { act({ type: 'xcShow', horse: h.id, faults: xcFaults(h, c), showClass: c }); xcShows++; }
+      else if (h) { act({ type: 'xcTrain', horse: h.id, faults: xcFaults(h) }); xcRides++; }
     }
     // the farm grows: inspection, then stall places, horses and the arena when the money is there
     if (canInspect(s)) {
@@ -128,12 +143,12 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     act({ type: 'sleep' });
   }
   const top = (k: 'jumping' | 'crossCountry') => Math.max(0, ...s.horses.filter(own).map((h) => h.skills[k]));
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, jumping: top('jumping'), crossCountry: top('crossCountry') };
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, xcShows, badge2Day, jumping: top('jumping'), crossCountry: top('crossCountry') };
 }
 
 /** One line per run, for docs/economy.md and the console. */
 export function summary(r: Report) {
   const at = (d: number) => r.money[Math.min(d, r.money.length) - 1];
-  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.lostDay ?? '–'} | ${r.jumping} / ${r.crossCountry} (${r.xcRides}) |`;
+  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.lostDay ?? '–'} | ${r.jumping} / ${r.crossCountry} (${r.xcRides}) | ${r.badge2Day ?? '–'} | ${r.xcShows} |`;
 }
-export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) | Können Springen / Gelände (Geländeritte) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
+export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) | Können Springen / Gelände (Geländeritte) | Reitabzeichen 2 (Tag) | Gelände-Turniere |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';

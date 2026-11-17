@@ -95,4 +95,16 @@ describe('a cross-country round', () => {
     for (let i = 0; i < 120; i++) r = xcStep(r, c, DT, 'walk', 0.4);
     expect(r.stamina).toBeGreaterThan(0.2);
   });
+
+  it('a show class rides a longer track with more obstacles, stricter and higher; water and a ditch always in it', () => {
+    const E = xcCourse(7, 'E'), A = xcCourse(7, 'A'), L = xcCourse(7, 'L');
+    expect([E.obstacles.length, A.obstacles.length, L.obstacles.length]).toEqual([6, 8, 10]);
+    expect(E.length < A.length && A.length < L.length).toBe(true);
+    expect((E.height ?? 1) < (A.height ?? 1) && (A.height ?? 1) < (L.height ?? 1)).toBe(true);
+    for (const c of [E, A, L]) {
+      expect(c.obstacles.map((o) => o.kind)).toEqual(expect.arrayContaining(['water', 'ditch']));
+      expect(c.obstacles.at(-1)!.at).toBeLessThan(c.length - 10);
+      expect(c.optimum[0]).toBeLessThan(c.optimum[1]);
+    }
+  });
 });

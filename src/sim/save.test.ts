@@ -48,6 +48,13 @@ describe('save files', () => {
     expect(parseSave(text(save))).toEqual({ ok: true, save });
   });
 
+  it('gives a save from version 17 no cross-country show ridden yet', () => {
+    const now = toSave(played(), 'Hof');
+    const { lastXcShowDay: _l, ...old } = now.state;
+    const p = parseSave(text({ ...now, version: 17, state: { ...old, version: 17 } }));
+    expect(p.ok && p.save.state.lastXcShowDay).toBe(0);
+  });
+
   it('gives a save from version 16 no cross-country practice and no care course counted yet', () => {
     const now = toSave(played(), 'Hof');
     const { xcTrainings: _x, routines: _r, ...old } = now.state;

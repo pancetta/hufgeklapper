@@ -93,23 +93,26 @@ export async function startCrossCountry(canvas: HTMLCanvasElement, o: XcOptions)
     if (fx > -20 && fx < W + 20) { rect('#2b2b3a', fx, g - 40, 2, 40); rect('#d94f3d', fx + 2, g - 40, 12, 8); rect('#2b2b3a', fx, g + 2, 2, 10); rect('#d94f3d', fx + 2, g + 2, 12, 6); }
   }
 
-  /** One obstacle where it stands, sized in metres like the horse; water is a pond the track runs through. */
+  /**
+   * One obstacle where it stands, sized in metres like the horse; water is a pond the track runs through. A show
+   * class's jumps stand higher (#75): heights times `c.height`, widths as they are.
+   */
   function drawObstacle(kind: string, x: number) {
-    const g = ground(), m = (v: number) => Math.round(v * M);
-    if (kind === 'log') { // a tree trunk, about 0.8 m high
-      rect('#6b4226', x - m(0.9), g - m(0.75), m(1.8), m(0.75)); rect('#8a5530', x - m(0.9), g - m(0.75), m(1.8), 4); rect('#5a3419', x - m(0.9), g - 4, m(1.8), 4);
-      ctx.fillStyle = '#c49a6c'; ctx.beginPath(); ctx.arc(x - m(0.9), g - m(0.375), m(0.375), 0, 7); ctx.fill();
-      ctx.strokeStyle = '#8a5530'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x - m(0.9), g - m(0.375), m(0.2), 0, 7); ctx.stroke();
+    const g = ground(), m = (v: number) => Math.round(v * M), up = c.height ?? 1, h = (v: number) => Math.round(v * M * up);
+    if (kind === 'log') { // a tree trunk, about 0.75 m high
+      rect('#6b4226', x - m(0.9), g - h(0.75), m(1.8), h(0.75)); rect('#8a5530', x - m(0.9), g - h(0.75), m(1.8), 4); rect('#5a3419', x - m(0.9), g - 4, m(1.8), 4);
+      ctx.fillStyle = '#c49a6c'; ctx.beginPath(); ctx.ellipse(x - m(0.9), g - h(0.375), m(0.375), h(0.375), 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#8a5530'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x - m(0.9), g - h(0.375), m(0.2), h(0.2), 0, 0, 7); ctx.stroke();
     } else if (kind === 'hedge') { // a brush hedge, about 1 m
-      rect('#2f6b3a', x - m(0.9), g - m(1.0), m(1.8), m(1.0));
-      for (let k = 0; k < 16; k++) rect(k % 2 ? '#43a047' : '#3c8a3f', x - m(0.9) + ((k * 37) % (m(1.8) - 4)), g - m(1.0) + ((k * 11) % (m(1.0) - 3)), 4, 3);
+      rect('#2f6b3a', x - m(0.9), g - h(1.0), m(1.8), h(1.0));
+      for (let k = 0; k < 16; k++) rect(k % 2 ? '#43a047' : '#3c8a3f', x - m(0.9) + ((k * 37) % (m(1.8) - 4)), g - h(1.0) + ((k * 11) % (h(1.0) - 3)), 4, 3);
       rect('#5a3e26', x - m(0.9), g - 4, m(1.8), 4);
     } else if (kind === 'bank') { // a bank of earth to jump up onto, 0.8 m
-      ctx.fillStyle = '#7a5a3a'; ctx.beginPath(); ctx.moveTo(x - m(0.3), g); ctx.lineTo(x, g - m(0.8)); ctx.lineTo(x + m(2.6), g - m(0.8)); ctx.lineTo(x + m(3.2), g); ctx.fill();
-      rect('#7fb34a', x, g - m(0.8) - 3, m(2.6), 4); rect('#5a4026', x + 2, g - m(0.8) + 6, m(2.4), 2);
+      ctx.fillStyle = '#7a5a3a'; ctx.beginPath(); ctx.moveTo(x - m(0.3), g); ctx.lineTo(x, g - h(0.8)); ctx.lineTo(x + m(2.6), g - h(0.8)); ctx.lineTo(x + m(3.2), g); ctx.fill();
+      rect('#7fb34a', x, g - h(0.8) - 3, m(2.6), 4); rect('#5a4026', x + 2, g - h(0.8) + 6, m(2.4), 2);
     } else if (kind === 'ditch') { // a ditch 1.5 m wide with water at the bottom, white posts at its ends
-      rect('#3b2a1c', x - m(0.75), g, m(1.5), m(0.7)); rect('#5a8fb8', x - m(0.75) + 2, g + m(0.5), m(1.5) - 4, m(0.2));
-      for (const px of [x - m(1.0), x + m(0.8)]) { rect('#efe6d0', px, g - m(0.9), 3, m(0.9)); rect('#d94f3d', px, g - m(0.9), 3, 4); }
+      rect('#3b2a1c', x - m(0.75), g, m(1.5), h(0.7)); rect('#5a8fb8', x - m(0.75) + 2, g + h(0.5), m(1.5) - 4, h(0.2));
+      for (const px of [x - m(1.0), x + m(0.8)]) { rect('#efe6d0', px, g - h(0.9), 3, h(0.9)); rect('#d94f3d', px, g - h(0.9), 3, 4); }
     } else { // a pond the track runs through, reeds at its banks
       const w = X.waterLength * M;
       rect('#3f7fb8', x, g - 2, w, m(0.6)); rect('#5a9fd8', x, g - 2, w, 4); rect('#7fb6e0', x + 6, g + 4, w - 12, 2);
@@ -118,9 +121,13 @@ export async function startCrossCountry(canvas: HTMLCanvasElement, o: XcOptions)
     }
   }
 
+  /** How high the hooves go over a jump: a hand above its top, so the horse clears what is drawn (in pixels). */
+  const TOP: Record<string, number> = { log: 0.75, hedge: 1.0, bank: 0.8, ditch: 0.4 };
+  const clear = (kind?: string) => Math.round((TOP[kind ?? 'log'] ?? 0.75) * M * (c.height ?? 1)) + 6;
+
   function drawHorse(t: number) {
     const g = ground(), x = horseX();
-    const phase = r.air ? (r.t - r.air.from) / (r.air.to - r.air.from) : -1, lift = phase < 0 ? 0 : Math.sin(Math.max(0, Math.min(1, phase)) * Math.PI) * 18;
+    const phase = r.air ? (r.t - r.air.from) / (r.air.to - r.air.from) : -1, lift = phase < 0 ? 0 : Math.sin(Math.max(0, Math.min(1, phase)) * Math.PI) * clear(c.obstacles[r.next]?.kind);
     const ob = c.obstacles[r.next], wet = ob?.kind === 'water' && r.s >= ob.at && r.s < ob.at + X.waterLength;
     shadow(ctx, x, g + 2, 22 - lift / 3, 3, 0.26);
     const standing = !r.v || r.stopped, fast = r.pace === 'gallop' && r.v > X.pace.trot;
