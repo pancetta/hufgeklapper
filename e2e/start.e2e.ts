@@ -542,8 +542,20 @@ test('jumping practice: the avatar draws the way round the course, a tap takes o
   const after = await kiwi();
   expect(after.skills.jumping).toBeGreaterThan(before.skills.jumping);
   expect(after.needs.energy).toBe(before.needs.energy - DATA.jumping.energy);
+  // how much it grew, out of what a Haflinger can reach
+  await expect(end).toContainText(t.skillGain(t.jumping, after.skills.jumping - before.skills.jumping, after.skills.jumping, DATA.jumping.scope.haflinger));
   await page.getByRole('button', { name: t.toFarm }).tap();
   await expect(page.getByRole('button', { name: t.places.arena })).toBeVisible();
+  // the progress shows on the horse card, in the comparison of all horses, and in tonight's diary
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate[data-horse="kiwi"]').tap();
+  await expect(page.locator('#card .progress')).toContainText(t.weekGain(after.skills.jumping - 10, 0));
+  await page.getByRole('button', { name: t.close }).tap();
+  await page.getByRole('button', { name: t.compare, exact: true }).tap();
+  await expect(page.locator('.sheet.compare')).toContainText(t.thisWeek(after.skills.jumping - 10, false));
+  await page.getByRole('button', { name: t.close }).tap();
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.diaryGain('Kiwi', after.skills.jumping - 10, 0))).toBeVisible();
 });
 
 test('riding badge 1: Oma asks five questions, a jumping round, then the rosette or another try tomorrow', async ({ page }) => {

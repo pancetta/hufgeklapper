@@ -151,6 +151,8 @@ export const DATA = {
     scope: { islaender: 70, haflinger: 75, quarter: 65, reitpony: 80, warmblut: 95 },
     gain: { clear: 4, faults: 2 }, energy: 25, happy: 5,
   },
+  /** The progress kept per horse (#78): its skills at the start of each of the last `days` days. */
+  progress: { days: 14 },
   /** Riding badge 1 ("Reitabzeichen"): open after some jumping practice; pass the quiz and a jumping round. */
   badge: { trainings: 3, questions: 5, answers: 3, quizPass: 4, maxFaults: 2 }, // a refusal and a pole, or a refusal and its lost time
   /**

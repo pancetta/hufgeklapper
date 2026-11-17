@@ -24,7 +24,7 @@ import { startRoutine } from '../scene/routine';
 import { startCrossCountry } from '../scene/xc';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -217,9 +217,10 @@ function topBar() {
 
 function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   $('sleep').addEventListener('click', () => {
-    // the farm diary first: today's money as bars, then good night
-    const day = dayMoney(game.get().today);
-    if (!day.income.length && !day.costs.length && !day.debts.length) return goodNight();
+    // the farm diary first: today's money as bars and which horses got better (#78), then good night
+    const day = dayMoney(game.get().today), better = game.get().horses.filter((h) => own(h) && gained(h).some((g) => g > 0));
+    const money = day.income.length + day.costs.length + day.debts.length > 0;
+    if (!money && !better.length) return goodNight(); // nothing to tell: straight to bed
     const most = Math.max(...[...day.income, ...day.costs, ...day.debts].map((r) => Math.abs(r.amount)));
     const bar = (kind: string) => (r: { what: Entry['what']; amount: number }) => `<div class="diary-row"><span>${t.billWhat[r.what]}</span>
       <span class="diary-bar ${kind}"><i style="width:${Math.max(4, Math.round((Math.abs(r.amount) / most) * 100))}%"></i></span><b>${t.euros(r.amount)}</b></div>`;
@@ -229,7 +230,9 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
       ${day.income.length ? `<h3>${t.diaryIn}</h3>${day.income.map(bar('in')).join('')}` : ''}
       ${day.costs.length ? `<h3>${t.diaryOut}</h3>${day.costs.map(bar('out')).join('')}` : ''}
       ${day.debts.length ? `<h3>${t.diaryDebts}</h3>${day.debts.map(bar('debt')).join('')}` : ''}
-      <p class="diary-total">${t.diaryTotal(day.total, game.get().money)}</p><button type="button">${t.goodNight}</button>`;
+      ${money ? `<p class="diary-total">${t.diaryTotal(day.total, game.get().money)}</p>` : ''}
+      ${better.length ? `<h3>${t.diaryBetter}</h3>${better.map((h) => `<p class="diary-line">${t.diaryGain(esc(h.name), ...gained(h))}</p>`).join('')}` : ''}
+      <button type="button">${t.goodNight}</button>`;
     box.hidden = false;
     box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; goodNight(); });
   });
@@ -632,19 +635,21 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
       end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<h2>${t.podium}</h2>
         <div class="podium">${[1, 0, 2].map((i) => table[i] ? `<div class="step p${i + 1}${table[i].you ? ' you' : ''}">${row(table[i])}<i>${i + 1}</i></div>` : '').join('')}</div>
         <ol class="ranking">${table.map((r) => `<li${r.you ? ' class="you"' : ''}>${row(r)} · ${t.points(r.score)}</li>`).join('')}</ol>`);
-      end.querySelector('p')!.textContent = t.showPlace(rank, prize);
+      end.querySelector('p')!.textContent = `${t.showPlace(rank, prize)} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`; // a show doesn't train: where the horse stands
     } else if (kind === 'badge') {
       game.dispatch({ type: 'badge', horse: id, faults });
       const passed = game.get().badges >= 1;
       // the ceremony: the big rosette over the congratulations
       if (passed) end.querySelector('p')!.insertAdjacentHTML('beforebegin', `<img class="rosette big" src="${icon('rosette')}" alt="${t.badgeName}">`);
-      end.querySelector('p')!.textContent = passed ? t.badgePassed : t.badgeFailed;
+      end.querySelector('p')!.textContent = `${passed ? t.badgePassed : t.badgeFailed} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`;
     } else {
       const practising = badgeWaits(game.get())?.why === 'practise';
       game.dispatch({ type: 'train', horse: id, faults });
       // Oma Hanne points to the badge once the practice is enough
       const ready = practising && !badgeWaits(game.get()) ? ` ${t.badgeReady}` : '';
-      end.querySelector('p')!.textContent = (faults ? t.jumpFaults(faults, h.name) : t.jumpClear(h.name)) + ready;
+      const now = game.get().horses.find((x) => x.id === id)!.skills.jumping; // how much it grew, out of what it can reach
+      const top = h.skills.jumping >= scope(h); // already at the breed's limit: no 'better' to say
+      end.querySelector('p')!.textContent = `${faults ? t.jumpFaults(faults, h.name) : top ? t.cleanRound : t.jumpClear(h.name)} ${t.skillGain(t.jumping, now - h.skills.jumping, now, scope(h))}${ready}`;
     }
     end.hidden = false;
   }, { once: true });
@@ -733,6 +738,7 @@ export function showStable() {
   const s = game.get();
   const $ = screen(`<canvas id="stable" aria-hidden="true"></canvas><div id="boxes" hidden></div>${topBar()}
     <button id="to-farm" class="corner" type="button">${t.toFarm}</button>
+    <button id="compare" class="corner left" type="button">${t.compare}</button>
     <section id="card" class="overlay" hidden></section>`);
   const boxes = $('boxes');
   explain('stable');
@@ -751,6 +757,17 @@ export function showStable() {
   };
   const bar = wireTopBar($, render);
   $('to-farm').addEventListener('click', () => showFarm());
+  // all own horses side by side: both skills against their breed's limit, and this week's gain
+  $('compare').addEventListener('click', () => {
+    const card = $('card'), mine = game.get().horses.filter(own);
+    const row = (name: string, value: number, max: number, week: number, kind: string) => `<div class="need"><span>${name}</span><span class="bar skill ${kind}" style="--scope:${max}%"><i style="width:${value}%"></i></span><small>${t.thisWeek(week, value >= max)}</small></div>`;
+    card.innerHTML = `<div class="sheet compare"><h2>${t.compareTitle}</h2><p class="oma">${t.compareHow}</p>
+      ${mine.map((h) => { const [j, x] = gained(h, 7); return `<section><h3>${esc(h.name)} <small>${BREEDS[h.breed].label}</small></h3>
+        ${row(t.jumping, h.skills.jumping, scope(h), j, 'jump')}${row(t.crossCountry, h.skills.crossCountry, xcScope(h), x, 'xc')}</section>`; }).join('')}
+      <button type="button" id="close-card">${t.close}</button></div>`;
+    card.hidden = false;
+    $('close-card').addEventListener('click', () => { card.hidden = true; });
+  });
   const scene = startStable($<HTMLCanvasElement>('stable'), { horses: s.horses.map((h) => h.look), stalls: stalls(s), onLayout: () => place() });
   function place() {
     scene.then((sc) => {
@@ -764,21 +781,24 @@ export function showStable() {
   }
   function showCard(id: string) {
     const h = game.get().horses.find((x) => x.id === id)!, card = $('card');
-    card.innerHTML = `<div class="sheet horse-card">
+    // two columns: the horse and how it is on the left, what it can do and what to do on the right
+    card.innerHTML = `<div class="sheet horse-card"><div class="col">
       <canvas id="portrait" width="96" height="72"></canvas>
       <form id="rename" class="rename"><h2>${esc(h.name)}</h2>${h.owner ? '' : `<button type="button" id="rename-start" class="small">${t.rename}</button>`}</form>
       <p>${BREEDS[h.breed].label} · ${COATS[h.look.coat].label}</p>
       ${h.owner ? `<p>${t.ownedBy(esc(h.owner.name), h.owner.pay)}</p>${h.owner.unhappy ? `<p class="status sick">${t.boarderUnhappy(esc(h.owner.name))}</p>` : ''}` : ''}
       ${h.rider ? `<p>${t.riddenBy(esc(h.rider.name), h.rider.pay)}</p><button type="button" id="end-part" class="small">${t.endPart}</button>` : ''}
       ${NEEDS.map((n) => needBar(h, n, true)).join('')}
-      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
-      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.crossCountry}</span><span class="bar skill" style="--scope:${xcScope(h)}%"><i style="width:${h.skills.crossCountry}%"></i></span></div>
-      <p>${t.jumpsUpTo(topClass(h))}</p>
       <p class="status ${isSick(h) ? 'sick' : ''}">${isSick(h) ? t.sick(esc(h.name)) : h.rest ? t.resting(esc(h.name)) : t.healthy(esc(h.name))}</p>
+      </div><div class="col">
+      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.jumping}</span><span class="bar skill jump" style="--scope:${scope(h)}%"><i style="width:${h.skills.jumping}%"></i></span></div>
+      <div class="need"><img class="icon" src="${icon('energy')}" alt=""><span>${t.crossCountry}</span><span class="bar skill xc" style="--scope:${xcScope(h)}%"><i style="width:${h.skills.crossCountry}%"></i></span></div>
+      ${own(h) ? progressChart(h) : ''}
+      <p>${t.canReach(topClass(h))}</p>
       ${!isSick(h) ? '' : canPayVet(game.get()) ? `<button id="vet" type="button">${t.callVet(DATA.vet.cost)}</button>` : `<p>${t.vetTooExpensive(DATA.vet.cost)} ${t.askBank}</p>`}
       <button id="care" type="button">${t.care}</button>
       ${own(h) ? `<button id="routine" type="button"${cantWork(h, DATA.routine.energy) ? ' disabled' : ''}>${t.routine}</button>${cantWork(h, DATA.routine.energy) ? `<p class="status">${t.routineCant} ${t.cantWork[cantWork(h, DATA.routine.energy)!]}</p>` : ''}` : ''}
-      <button id="close-card" type="button">${t.close}</button></div>`;
+      <button id="close-card" type="button">${t.close}</button></div></div>`;
     card.hidden = false;
     horseSheet(h.look, 'idle').then((sheet) => $<HTMLCanvasElement>('portrait').getContext('2d')!.drawImage(sheet, 128 + 16, 30, 96, 72, 0, 0, 96, 72));
     $('close-card').addEventListener('click', () => { card.hidden = true; });
@@ -1031,10 +1051,33 @@ function showCrossCountry(id: string) {
     const end = await (await ride).run(), faults = end.faults;
     clearTimeout(tipTimer); tip.hidden = true;
     game.dispatch({ type: 'xcTrain', horse: id, faults });
-    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)}` : t.xcClear(h.name);
+    const now = game.get().horses.find((x) => x.id === id)!.skills.crossCountry, grew = t.skillGain(t.crossCountry, now - h.skills.crossCountry, now, xcScope(h));
+    $('xc-end').querySelector('p')!.textContent = faults ? `${t.xcFaults(faults, h.name)} ${t.xcTime(end.t, lo, hi)} ${grew}` : `${h.skills.crossCountry >= xcScope(h) ? t.xcCleanTop : t.xcClear(h.name)} ${grew}`;
     $('xc-end').hidden = false;
   }, { once: true });
   $('xc-back').addEventListener('click', () => showFarm());
   $('xc-leave').addEventListener('click', () => showFarm());
   leave = () => { clearTimeout(tipTimer); removeEventListener('keydown', key); document.removeEventListener('gesturestart', noZoom); ride.then((r) => r.stop()); };
+}
+
+/**
+ * A horse's progress over the last days (#78): one line per discipline, its breed's limit as a dashed line, and what
+ * the last 7 days brought. Plain SVG in the game's colours, sized with the card.
+ */
+function progressChart(h: Horse) {
+  // days from the left (two weeks ago) to the right (today); a young horse's line starts where its log does; the
+  // height goes up to the higher of its two limits, so a round's step shows
+  const D = DATA.progress.days, pts = [...h.log, [h.skills.jumping, h.skills.crossCountry]], W = 200, H = 64, top = Math.max(scope(h), xcScope(h), 1);
+  const x = (i: number) => Math.round(4 + ((D + 1 - pts.length + i) * (W - 8)) / D), y = (v: number) => Math.round(H - 4 - (v * (H - 8)) / top);
+  const line = (k: 0 | 1) => pts.map((p, i) => `${x(i)},${y(p[k])}`).join(' ');
+  const limit = (v: number, c: string) => `<line x1="4" x2="${W - 4}" y1="${y(v)}" y2="${y(v)}" stroke="${c}" stroke-width="2" stroke-dasharray="4 3"/>`;
+  const days = Array.from({ length: D + 1 }, (_, i) => `<line x1="${x(i - (D + 1 - pts.length))}" x2="${x(i - (D + 1 - pts.length))}" y1="${H - 4}" y2="${H}" stroke="#7f4d2b"/>`).join('');
+  const [j, xc] = gained(h, 7);
+  return `<div class="progress"><h3>${t.progressTitle(D)}</h3>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t.weekGain(j, xc)}" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="${W}" height="${H}" fill="#efe6d0"/>${days}${limit(scope(h), '#3c9a3c')}${limit(xcScope(h), '#3d6fd9')}
+      <polyline points="${line(0)}" fill="none" stroke="#3c9a3c" stroke-width="5"/><polyline points="${line(1)}" fill="none" stroke="#3d6fd9" stroke-width="2"/>
+    </svg>
+    <p class="axis"><span>${t.chartFrom}</span><span>${t.chartToday}</span></p>
+    <p class="legend"><span class="jump">■ ${t.jumping}</span> <span class="xc">■ ${t.crossCountry}</span> <span>${t.chartLimits}</span></p><p>${t.weekGain(j, xc)}</p></div>`;
 }

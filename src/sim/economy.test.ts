@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { play, type Strategy, summary, TABLE_HEAD } from './economy';
+import { DATA } from './data';
+import { apply, newGame } from './state';
 
 // The balance targets of #18, on fixed seeds. `npm run economy` prints the table for docs/economy.md.
 const SEEDS = [1, 2, 3, 4, 5], DAYS = 40;
@@ -42,5 +44,23 @@ describe('economy run', () => {
     }
     expect(ahead.careful, 'careful never ahead').toBeGreaterThan(0);
     expect(ahead.sport, 'sport never ahead').toBeGreaterThan(0);
+  });
+
+  // progress (#78): a ride a day, clear about every other time, makes visible steps and reaches class A in about two
+  // weeks, the same in both disciplines; the sport player grows both skills alike
+  it('a ride a day brings a horse to class A in about 10–14 rides, in jumping and cross-country alike', () => {
+    for (const [type, k] of [['train', 'jumping'], ['xcTrain', 'crossCountry']] as const) {
+      let s = { ...newGame(2), badges: 1 }, rides = 0;
+      const h = () => s.horses[0];
+      while (h().skills[k] < DATA.shows.classes.A.minSkill && rides < 40) {
+        s = { ...s, horses: s.horses.map((x) => ({ ...x, needs: { ...DATA.needs.start } })) }; // well cared for
+        s = apply(s, { type, horse: h().id, faults: rides % 2 });
+        s = apply(s, { type: 'sleep' }); rides++;
+      }
+      expect(rides, k).toBeGreaterThanOrEqual(10);
+      expect(rides, k).toBeLessThanOrEqual(14);
+    }
+    const sport = play('sport', 3, 40);
+    expect(Math.abs(sport.jumping - sport.crossCountry)).toBeLessThan(20);
   });
 });

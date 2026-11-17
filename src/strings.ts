@@ -210,6 +210,23 @@ export const t = {
   // the arena and jumping
   giveLesson: 'Reitstunde geben',
   practiseJumping: 'Springen üben',
+  // progress (#78)
+  // numbers and their 'von' stay together on one line (no-break spaces)
+  skillGain: (what: string, gain: number, now: number, max: number) => (now >= max
+    ? (gain ? `${what} +${gain}: jetzt ${now}\u00a0von\u00a0${max} – das Höchste für diese Rasse!` : `${what}: ${now}\u00a0von\u00a0${max} – mehr schafft diese Rasse nicht.`)
+    : `${what} +${gain}: jetzt ${now}\u00a0von\u00a0${max}.`),
+  skillNow: (what: string, now: number, max: number) => `${what} jetzt: ${now}\u00a0von\u00a0${max}.`,
+  cleanRound: 'Fehlerfrei!',
+  progressTitle: (days: number) => `Fortschritt (${days} Tage)`,
+  chartFrom: 'vor 2 Wochen', chartToday: 'heute', chartLimits: '- - - so weit kann die Rasse kommen',
+  weekGain: (j: number, x: number) => (j || x ? `Letzte 7 Tage: ${[j ? `Springen +${j}` : '', x ? `Gelände +${x}` : ''].filter(Boolean).join(', ')}` : 'Letzte 7 Tage: noch nicht geübt.'),
+  canReach: (c: string) => `Mit Übung springt es bis Klasse ${c}.`,
+  compare: 'Können',
+  compareTitle: 'Was deine Pferde können',
+  compareHow: 'Der Strich zeigt, wie weit die Rasse kommen kann. Jede Übungsrunde bringt ein Stück weiter.',
+  thisWeek: (n: number, top: boolean) => (top ? 'ganz oben – mehr geht nicht' : n ? `+${n} diese Woche` : 'diese Woche nicht geübt'),
+  diaryBetter: 'Besser geworden',
+  diaryGain: (name: string, j: number, x: number) => `${name}: ${[j ? `Springen +${j}` : '', x ? `Gelände +${x}` : ''].filter(Boolean).join(', ')}`,
   // cross-country (#73)
   crossCountry: 'Gelände',
   xcLater: 'Ins Gelände reitest du, wenn du das Reitabzeichen hast.',
@@ -228,6 +245,7 @@ export const t = {
   xcAhead: { water: 'Wasser! Langsamer werden: Trab oder Schritt.', ditch: 'Ein Graben! Langsamer werden: Trab.' } as Record<string, string>,
   xcTired: (pony: boolean) => `Dein ${pony ? 'Pony' : 'Pferd'} ist aus der Puste! Reite ein Stück im Schritt – vor dem nächsten Sprung wieder antraben.`,
   xcClear: (horse: string) => `Ohne Fehler und genau in der Zielzeit! ${horse} wird im Gelände immer besser.`,
+  xcCleanTop: 'Ohne Fehler und genau in der Zielzeit!',
   xcFaults: (n: number, horse: string) => `${n} Fehler. ${horse} hat trotzdem geübt.`,
   xcTime: (s: number, lo: number, hi: number) => (s < lo ? `Ihr wart ${Math.ceil(lo - s)} s zu schnell.` : s > hi ? `Ihr wart ${Math.ceil(s - hi)} s zu langsam.` : 'Die Zeit passte genau.'),
   whichHorse: 'Mit welchem Pferd?',

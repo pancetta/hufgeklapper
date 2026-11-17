@@ -194,7 +194,8 @@ canvas { image-rendering: pixelated; }
 #credits a { color: var(--wood-dark); }
 .overlay button { font-size: calc(var(--fs) * 18px); }
 .sheet.menu { display: grid; gap: 12px; }
-.horse-card { display: grid; gap: calc(3 * var(--px)); min-width: min(90vw, 360px); text-align: center; }
+.horse-card { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; width: min(94vw, 860px); max-height: 92vh; overflow-y: auto; text-align: center; align-items: start; }
+.horse-card .col { display: grid; gap: calc(3 * var(--px)); }
 .horse-card canvas { width: 288px; height: 216px; margin: 0 auto; }
 .rename { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .rename h2 { margin: 0; }
@@ -336,6 +337,7 @@ canvas { image-rendering: pixelated; }
 
 /* the jumping bar shows how far this horse can come: a mark at its breed's limit */
 .bar.skill { position: relative; }
+.bar.skill.jump i { background: #3c9a3c; } .bar.skill.xc i { background: #3d6fd9; } /* as the lines in the progress chart */
 .bar.skill::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: var(--scope, 100%); width: 2px; background: var(--wood-dark); }
 
 /* cross-country: the horse's breath top left, the paces along the bottom; the land itself is "Hopp!" */
@@ -348,6 +350,20 @@ canvas { image-rendering: pixelated; }
 .xc-breath .bar { width: 140px; height: 12px; }
 .paces [data-pace] { font-size: calc(var(--fs) * 20px); min-width: 140px; min-height: 56px; }
 .paces [aria-pressed="true"] { background: var(--sun); color: var(--ink); }
+
+/* progress (#78): the chart on the horse card, the comparison of all horses */
+.progress h3 { margin: 6px 0 2px; font-size: calc(var(--fs) * 16px); }
+.progress svg { width: 100%; height: auto; border: 2px solid var(--wood-dark); border-radius: 4px; }
+.progress .legend { font-size: calc(var(--fs) * 14px); }
+.progress .jump { color: #3c9a3c; } .progress .xc { color: #3d6fd9; }
+.progress .axis { display: flex; justify-content: space-between; margin: 0; font-size: calc(var(--fs) * 13px); opacity: 0.8; }
+.corner.left { right: auto; left: max(12px, env(safe-area-inset-left, 0px)); }
+.sheet.compare { width: min(90vw, 560px); max-height: 80vh; overflow-y: auto; text-align: left; }
+.compare h3 { margin: 10px 0 2px; font-size: calc(var(--fs) * 18px); }
+.compare h3 small, .compare .need small { font-size: calc(var(--fs) * 15px); }
+.compare > button { margin-top: 12px; }
+.compare .need { display: grid; grid-template-columns: 7em 1fr 11em; align-items: center; gap: 8px; font-size: calc(var(--fs) * 16px); }
+.diary-line { margin: 2px 0; font-size: calc(var(--fs) * 16px); }
 
 /* the farm diary before the night: one bar per kind of money, green in, red out */
 .sheet.ask.diary { text-align: left; width: min(90vw, 560px); } /* more specific than .sheet.ask: its min-width would win */

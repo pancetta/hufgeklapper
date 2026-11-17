@@ -6,7 +6,7 @@
 import { DATA } from './data';
 import {
   type Action, apply, badgeWaits, classWaits, SHOW_CLASSES, type ShowClass, jumpWindow, buildWaits, canInspect, CARE, cantWork, type Horse, isSick, lessonOutcome, newGame, roll, scope, atLeast, own, stuck, gameOver,
-  showWaits, stalls,
+  showWaits, stalls, xcWindow,
 } from './state';
 
 export type Strategy = 'careful' | 'careless' | 'sport';
@@ -17,6 +17,7 @@ export type Report = {
   worth: number;
   badgeDay: number | null; inspectionDay: number | null; pensionDay: number | null;
   sickDays: number; maxDebt: number; lessons: number; shows: number;
+  xcRides: number; jumping: number; crossCountry: number; // cross-country practice rides; the best skills at the end
   deadEnd: number; // the longest run of mornings in a dead end (every horse sick, no money, no loan)
   lostDay: number | null; // the day the farm was lost (game over), if it was
 };
@@ -38,11 +39,20 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     for (let i = 0; i < DATA.jumping.courses[c].jumps.length; i++) { [r, luck] = roll(luck); if (r < 0.2 * (base / jumpWindow(h))) n++; }
     return n;
   };
-  let invested = 0;
+  /** Refusals cross-country: one obstacle in six on a new pony, fewer the wider its take-off window (#73). */
+  const xcBase = xcWindow(newGame(seed).horses[0]);
+  let xcLuck = seed ^ 0xbeef; // its own dice: riding cross-country doesn't shuffle the jumping rounds
+  const xcFaults = (h: Horse) => {
+    let n = 0, r: number;
+    for (let i = 0; i < DATA.crossCountry.obstacles; i++) { [r, xcLuck] = roll(xcLuck); if (r < (1 / 6) * (xcBase / xcWindow(h))) n++; }
+    return n;
+  };
+  let invested = 0, xcRides = 0;
   const best = (c: Horse[]) => [...c].sort((a, b) => b.skills.jumping - a.skills.jumping)[0];
   /** The highest class a horse may start in today: a child picks the class with the biggest prize. */
   const topClass = (h: Horse) => SHOW_CLASSES.filter((c) => !classWaits(s, h, c)).pop();
-  const fresh = (energy: number) => s.horses.filter((h) => own(h) && !cantWork(h, energy)) // boarders' horses aren't ours to ride.sort((a, b) => b.needs.energy - a.needs.energy);
+  // boarders' horses aren't ours to ride; the freshest first
+  const fresh = (energy: number) => s.horses.filter((h) => own(h) && !cantWork(h, energy)).sort((a, b) => b.needs.energy - a.needs.energy);
 
   for (let d = 0; d < days; d++) {
     const careful = strategy !== 'careless' || d % 3 === 0; // the careless player looks after the horses every third day
@@ -84,6 +94,11 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
       }
     };
     if (strategy === 'sport') { sport(); lessons(); } else { lessons(); sport(); }
+    // the sport player also rides cross-country (#73), with whatever horse has energy left after jumping and lessons
+    if (strategy === 'sport' && s.badges) {
+      const h = fresh(DATA.crossCountry.energy).sort((a, b) => b.skills.crossCountry - a.skills.crossCountry)[0];
+      if (h) { act({ type: 'xcTrain', horse: h.id, faults: xcFaults(h) }); xcRides++; }
+    }
     // the farm grows: inspection, then stall places, horses and the arena when the money is there
     if (canInspect(s)) {
       act({ type: 'inspection', answers: ALL_RIGHT });
@@ -108,12 +123,13 @@ export function play(strategy: Strategy, seed: number, days: number): Report {
     money.push(s.money);
     act({ type: 'sleep' });
   }
-  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay };
+  const top = (k: 'jumping' | 'crossCountry') => Math.max(0, ...s.horses.filter(own).map((h) => h.skills[k]));
+  return { strategy, seed, days, money, worth: s.money - s.debt + invested, badgeDay, inspectionDay, pensionDay, sickDays, maxDebt, lessons: s.lessonsGiven, shows, deadEnd: longest, lostDay, xcRides, jumping: top('jumping'), crossCountry: top('crossCountry') };
 }
 
 /** One line per run, for docs/economy.md and the console. */
 export function summary(r: Report) {
   const at = (d: number) => r.money[Math.min(d, r.money.length) - 1];
-  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.lostDay ?? '–'} |`;
+  return `| ${r.strategy} | ${r.seed} | ${at(10)} € | ${at(20)} € | ${at(r.days)} € | ${r.worth} € | ${r.badgeDay ?? '–'} | ${r.inspectionDay ?? '–'} | ${r.lessons} | ${r.shows} | ${r.sickDays} | ${r.maxDebt} € | ${r.lostDay ?? '–'} | ${r.jumping} / ${r.crossCountry} (${r.xcRides}) |`;
 }
-export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|';
+export const TABLE_HEAD = '| Spielweise | Seed | Geld Tag 10 | Geld Tag 20 | Geld am Ende | Hof-Wert am Ende | Reitabzeichen (Tag) | Hof-Prüfung (Tag) | Reitstunden | Turniere | Kranktage | höchste Schulden | Hof verloren (Tag) | Können Springen / Gelände (Geländeritte) |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
