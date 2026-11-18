@@ -2,6 +2,7 @@ e2e/start.e2e.ts
   s_7657db1b41ed88::t_c097947e94d822 814-819,1112,1128-1138
   s_7657db1b41ed88::t_209f94f0dcd9ae 1027-1029
   s_7657db1b41ed88::t_e1692971e26562 1139
+  s_7657db1b41ed88::t_28b8f3a67b5f1f 1127
 src/strings.ts
   s_7657db1b41ed88::t_f620c13a4ac988 320,365
 src/ui/screens.ts
