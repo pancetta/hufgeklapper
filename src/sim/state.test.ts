@@ -739,13 +739,31 @@ describe('Sim', () => {
       expect(goals(s).map((g) => g.id)).toEqual(DATA.goals.pensionsstall.map((g) => g.id));
     });
 
+    it('warns of low hay after the grooms fed, even when the store is empty (#132)', () => {
+      const s0 = { ...apply(pension(), { type: 'hire' }), money: 1000 }, n = s0.horses.length;
+      const hungry = s0.horses.map((h) => ({ ...h, needs: { ...h.needs, fed: 10 } }));
+      const morning = apply({ ...s0, horses: hungry, feed: n * DATA.hayPerNight + 1 }, { type: 'sleep' });
+      expect(morning.feed).toBe(0);
+      expect(morning.night.map((x) => x.kind)).toContain('hayLow');
+    });
+
+    it('the second inspection keeps the market: a horse bought today does not come back with its id (#134)', () => {
+      let s: State = { ...newGame(1), stage: 'reitschule', money: 5000, day: 2, built: { stalls: 3, arena: 0, pasture: 3 } };
+      s = { ...s, market: marketFor(2, s.seed, [])[0] };
+      const bought = apply(s, { type: 'buyHorse', offer: s.market[0].id });
+      expect(bought.horses.some((h) => h.id === s.market[0].id)).toBe(true);
+      const answers = [0, 0, 0, 0, 0]; // the right ones
+      const next = apply({ ...bought, goalsDone: DATA.goals.reitschule.map((g) => g.id) }, { type: 'inspection', answers });
+      expect(next.stage).toBe('pensionsstall');
+      expect(next.market.some((o) => next.horses.some((h) => h.id === o.id))).toBe(false);
+    });
+
     it('a groom, paid each morning, cares for the worst kept horses; unpaid, they stay away', () => {
       const s0 = apply(pension(), { type: 'hire' }), dirty = s0.horses.map((h) => ({ ...h, needs: { ...h.needs, fed: 20, clean: 20, happy: 20 } }));
       expect([s0.staff, apply(apply(s0, { type: 'hire' }), { type: 'hire' }).staff]).toEqual([1, DATA.staff.names.length]); // at most two
       const morning = apply({ ...s0, horses: dirty }, { type: 'sleep' });
       expect(morning.today).toContainEqual({ what: 'wage', amount: -DATA.staff.wage });
-      expect(goals(morning).find((g) => g.id === 'staff')!.done).toBe(true); // a groom counts once paid
-      expect(goals(s0).find((g) => g.id === 'staff')!.done).toBe(false); // hired, not yet paid
+      expect(goals(s0).find((g) => g.id === 'staff')!.done).toBe(true); // hiring is what the goal asks (#135)
       expect(morning.horses.every((h) => h.needs.clean > 20)).toBe(true);
       // the morning's income comes first: a boarder's pay can pay the wage
       const guest = { ...dirty[0], id: 'g', owner: { name: 'Familie Weber', pay: DATA.staff.wage, unhappy: 0 } };
