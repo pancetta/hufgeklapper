@@ -1068,3 +1068,21 @@ test('portrait asks to turn the iPad', async ({ page }) => {
   await expect(page.getByText(t.rotate)).toBeVisible();
   await expect(page.getByRole('button', { name: t.start })).toBeHidden();
 });
+
+test('a message never covers a button: the care tools, the corners (#123)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => { s.feed = 0; });
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.care, exact: true }).tap();
+  await page.getByRole('button', { name: t.tools.feed }).tap(); // no hay: a message at the bottom
+  const toast = page.locator('#toast');
+  await expect(toast).toHaveText(t.noHayLeft);
+  const covered = await toast.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return [...document.querySelectorAll('button')].map((b) => [b.textContent?.trim(), b.getBoundingClientRect()] as const)
+      .filter(([, b]) => b.width && b.top < r.bottom && b.bottom > r.top && b.left < r.right && b.right > r.left).map(([n]) => n);
+  });
+  expect(covered).toEqual([]);
+});
