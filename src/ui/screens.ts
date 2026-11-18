@@ -80,18 +80,18 @@ const creditsSheet = () => `
     </div>
   </section>`;
 
-/** A yes/no question over the screen. */
 /** A short message at the bottom, lifted above every button it would cover there (#123): the tools, the corners. */
 function popUp(el: HTMLElement, text: string) {
   el.textContent = text; el.hidden = false; el.style.bottom = '';
   for (let i = 0; i < 4; i++) { // a row of buttons, maybe another above it
-    const r = el.getBoundingClientRect(), hit = [...app.querySelectorAll('button')].map((b) => b.getBoundingClientRect())
+    const r = el.getBoundingClientRect(), hit = [...app.querySelectorAll('button')].filter((b) => !b.closest('.overlay')).map((b) => b.getBoundingClientRect()) // an open sheet covers the message anyway
       .filter((b) => b.width && b.top < r.bottom && b.bottom > r.top && b.left < r.right && b.right > r.left);
     if (!hit.length) return;
     el.style.bottom = `${innerHeight - Math.min(...hit.map((b) => b.top)) + 6}px`;
   }
 }
 
+/** A yes/no question over the screen. */
 function ask(question: string, yes: string): Promise<boolean> {
   const box = document.createElement('section');
   box.className = 'overlay';
@@ -519,13 +519,13 @@ export function showFarm(intro = false) {
   }
   /** A pupil wants a lesson: pick a horse; each shows how well it fits, or why it can't. */
   function chooseHorse(p: Pupil) {
-    const s = game.get(), sheet = $('lesson');
+    const s = game.get(), sheet = $('lesson'), choices = lessonChoices(p, s.horses.filter(own));
     // the first time no horse is the right one, Oma Hanne says which fits whom
     if (!s.explained.includes('fit') && fitsNone(p, s.horses.filter(own))) { explain('fit').then(() => chooseHorse(p)); return; }
     sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
       <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
-      ${lessonChoices(p, s.horses.filter(own)).every((c) => c.why) ? `<p class="oma">${t.noHorseFree(esc(p.name))}</p>` : ''}
-      ${lessonChoices(p, s.horses.filter(own)).map((c) => {
+      ${choices.every((c) => c.why) ? `<p class="oma">${t.noHorseFree(esc(p.name))}</p>` : ''}
+      ${choices.map((c) => {
         // why it fits or not, in words, then how the lesson would go; the best horse is marked
         const name = esc(p.name);
         const how = c.why ? t.cantWork[c.why] : [t.fitWhy(name, c.fit), ...(c.unkempt ? [t.needsCare] : []), t.wouldBe(name, c.mood, c.pay)].join(' · ');
