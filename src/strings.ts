@@ -185,7 +185,7 @@ export const t = {
   endPart: 'Reitbeteiligung beenden',
   endPartSure: 'Wirklich beenden?',
   boardEmpty: 'Hier hängt noch nichts. Bald stehen hier die Turniere.',
-  owe: (n: number) => `Du schuldest ${n}\u00a0€. Von dem Geld, das du verdienst, geht die Hälfte an die Schulden. Du kannst auch selbst zurückzahlen.`,
+  owe: (n: number) => `Du schuldest ${n}\u00a0€. Von dem Geld, das du verdienst, geht die Hälfte an die Schulden.`,
   hayWaits: { full: 'So viel passt nicht mehr ins Futterlager.', enough: 'Anschreiben geht erst, wenn das Heu knapp wird.' } as Record<string, string>,
   debt: (n: number) => `−${n}\u00a0€`,
   debtLabel: (n: number) => `Schulden: ${n}\u00a0€`,

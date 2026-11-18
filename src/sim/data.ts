@@ -47,7 +47,7 @@ export const DATA = {
   /** The bank lends this much at a time, while the debt stays below the limit. */
   loan: { amount: 100, debtLimit: 200 },
   /** Of every income, this share goes to paying back debt first. */
-  repayShare: 0.5,
+  repayShare: 0.5, // the notice board says "die Hälfte" (t.owe)
   /** The vet ("Tierarzt"): what a visit costs, the health it gives back, and the days the horse must rest. */
   vet: { cost: 40, health: 70, restDays: 2 },
   /**
