@@ -81,6 +81,17 @@ const creditsSheet = () => `
   </section>`;
 
 /** A yes/no question over the screen. */
+/** A short message at the bottom, lifted above every button it would cover there (#123): the tools, the corners. */
+function popUp(el: HTMLElement, text: string) {
+  el.textContent = text; el.hidden = false; el.style.bottom = '';
+  for (let i = 0; i < 4; i++) { // a row of buttons, maybe another above it
+    const r = el.getBoundingClientRect(), hit = [...app.querySelectorAll('button')].map((b) => b.getBoundingClientRect())
+      .filter((b) => b.width && b.top < r.bottom && b.bottom > r.top && b.left < r.right && b.right > r.left);
+    if (!hit.length) return;
+    el.style.bottom = `${innerHeight - Math.min(...hit.map((b) => b.top)) + 6}px`;
+  }
+}
+
 function ask(question: string, yes: string): Promise<boolean> {
   const box = document.createElement('section');
   box.className = 'overlay';
@@ -170,7 +181,7 @@ export function showStart() {
     </main>
     <p id="toast" class="toast" role="status" hidden></p>
     ${creditsSheet()}`);
-  const say = (text: string) => { const el = $('toast'); el.textContent = text; el.hidden = false; setTimeout(() => { el.hidden = true; }, 3000); };
+  const say = (text: string) => { const el = $('toast'); popUp(el, text); setTimeout(() => { el.hidden = true; }, 3000); };
   // overwriting a slot always asks first, so a save is never wiped by accident; the slot is read again here,
   // because another tab may have saved into it since this screen showed it
   const mayOverwrite = (i: number, yes: string) => {
@@ -320,7 +331,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   let timer = 0;
   const toast = (text: string) => {
     const el = $('toast');
-    el.textContent = text; el.hidden = false;
+    popUp(el, text);
     clearTimeout(timer); timer = window.setTimeout(() => { el.hidden = true; }, 2600);
   };
   game.onSaveFailed(() => toast(t.saveFailed));
