@@ -317,6 +317,7 @@ export const t = {
   ] as { q: string; a: { text: string }[] }[], // the first answer is the right one
   quizRight: 'Richtig!',
   quizWrong: (right: string) => `Leider falsch. Richtig ist: ${right}.`,
+  quizAgain: 'Das Quiz hast du heute schon geschafft. Jetzt kommt die Springrunde!',
   quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
   quizFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht diesmal nicht. Morgen kannst du es noch einmal versuchen.`,
   badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
@@ -361,7 +362,7 @@ export const t = {
   nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',
   points: (n: number) => `${Math.max(0, n)} Punkte`, // a bad round shows 0, never minus points (#104); the ranking keeps the real score
-  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize}\u00a0€ Preisgeld.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
+  showPlace: (rank: number, prize: number, repaid = 0) => prize ? `Du hast Platz ${rank} geschafft! +${prize}\u00a0€ Preisgeld${repaid ? ` (davon ${repaid}\u00a0€ für die Schulden)` : ''}.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
   goalText: {
