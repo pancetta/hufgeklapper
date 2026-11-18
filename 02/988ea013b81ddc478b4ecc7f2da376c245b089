@@ -1,6 +1,7 @@
 src/sim/state.ts
   s_7657db1b41ed88::t_faa3988dc36f06 249-250,807-811
   s_7657db1b41ed88::t_a70af51ad077b3 812
+  s_7657db1b41ed88::t_6769ffbaa1bd77 100
 src/sim/state.test.ts
   s_7657db1b41ed88::t_faa3988dc36f06 182-190
 e2e/start.e2e.ts
