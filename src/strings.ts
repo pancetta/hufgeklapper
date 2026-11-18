@@ -80,7 +80,7 @@ export const t = {
   morning: 'Guten Morgen!',
   newsSick: (name: string) => `${name} ist krank. Ruf den Tierarzt!`,
   newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
-  newsHayLow: 'Das Heu wird knapp.',
+  newsHayLow: 'Das Heu reicht nicht mehr lange. Kauf im Futterlager neues!',
   newsRested: (name: string) => `${name} ist wieder fit.`,
   newsLastWarning: (days: number) => `Oma Hanne: „Noch einmal kann ich dir nicht helfen. Deine Pferde sind krank und das Geld ist alle. Füttere, putze und miste aus: Gut gepflegt werden sie wieder gesund. Sonst ist der Hof in ${days} ${days === 1 ? 'Tag' : 'Tagen'} verloren.“`,
   gameOverTitle: 'Der Hof ist verloren',
@@ -168,7 +168,7 @@ export const t = {
   buyHay: 'Heu kaufen',
   hayPack: (bales: number, price: number) => `${bales} Heuballen · ${price}\u00a0€`,
   hayPackCredit: (bales: number, price: number) => `${bales} Heuballen · anschreiben (${price}\u00a0€)`,
-  stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}`,
+  stock: (bales: number, nights: number) => `${bales} Heuballen · ${nights === 0 ? 'reicht nicht für eine Nacht' : nights === 1 ? 'reicht für 1 Nacht' : `reicht für ${nights} Nächte`}. Fütterst du am Tag, geht es schneller.`,
   staffTitle: 'Pferdepfleger',
   hire: (name: string, wage: number, horses: number) => `${name} einstellen: ${wage}\u00a0€ am Tag, pflegt bis zu ${horses} Pferde`,
   hired: (names: string, two: boolean) => (two ? `Bei dir arbeiten ${names}. Jeden Morgen putzen, füttern und misten sie für dich.` : `Bei dir arbeitet ${names}. Jeden Morgen putzt, füttert und mistet ${names} für dich.`),
@@ -326,6 +326,7 @@ export const t = {
   ] as { q: string; a: { text: string }[] }[], // the first answer is the right one
   quizRight: 'Richtig!',
   quizWrong: (right: string) => `Leider falsch. Richtig ist: ${right}.`,
+  quizAgain: 'Das Quiz hast du heute schon geschafft. Jetzt kommt die Springrunde!',
   quizDone: (n: number) => `Du hast ${n} von 5 Fragen richtig. Jetzt die Springrunde! Mit welchem Pferd?`,
   quizFailed: (n: number) => `Du hast ${n} von 5 Fragen richtig. Das reicht diesmal nicht. Morgen kannst du es noch einmal versuchen.`,
   badgePassed: 'Herzlichen Glückwunsch! Du hast dein erstes Reitabzeichen! Jetzt darfst du auf Turniere.',
@@ -370,7 +371,7 @@ export const t = {
   nextShow: (day: number, today: boolean) => (today ? 'Heute ist Turnier!' : `Nächstes Turnier: Tag ${day}`),
   podium: 'Siegerehrung',
   points: (n: number) => `${Math.max(0, n)} Punkte`, // a bad round shows 0, never minus points (#104); the ranking keeps the real score
-  showPlace: (rank: number, prize: number) => prize ? `Du hast Platz ${rank} geschafft! +${prize}\u00a0€ Preisgeld.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
+  showPlace: (rank: number, prize: number, repaid = 0) => prize ? `Du hast Platz ${rank} geschafft! +${prize}\u00a0€ Preisgeld${repaid ? ` (davon ${repaid}\u00a0€ für die Schulden)` : ''}.` : `Du bist auf Platz ${rank}. Beim nächsten Turnier klappt es besser!`,
   // goals and Oma Hanne's hints
   goalsTitle: (done: number, all: number) => `Aufgaben ${done}/${all}`,
   goalText: {

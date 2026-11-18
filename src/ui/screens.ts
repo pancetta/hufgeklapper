@@ -282,8 +282,9 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     night.hidden = false;
     setTimeout(() => {
       game.dispatch({ type: 'sleep' });
-      night.querySelector('p')!.textContent = t.day(game.get().day);
-      setTimeout(() => { night.hidden = true; morning(game.get().night); }, 900);
+      const n = $('night') ?? night; // a screen drawn anew in the night (back to the stable, the farm map) has its own
+      n.querySelector('p')!.textContent = t.day(game.get().day); n.hidden = false;
+      setTimeout(() => { n.hidden = true; morning(game.get().night); }, 900);
     }, 900);
   }
   // the morning summary: one short line per piece of news, then on with the day
@@ -298,6 +299,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     const lines = [...new Set(news.map(line).filter(Boolean))]; // "no hay" comes once per horse; say it once; the money was in the diary
     if (!lines.length) return;
     const box = $('morning');
+    if (!box) return; // a screen without a top bar (a quiz, a round): the news waits in the diary
     box.firstElementChild!.className = 'sheet ask';
     box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
     box.hidden = false;
@@ -428,7 +430,9 @@ export function showFarm(intro = false) {
     else if (s.built.stalls) showStable(); // the Offenstall is part of the stable
     else build('stalls', t.buildStalls(DATA.build.stalls.cost), t.builtStalls);
   };
-  const bar = wireTopBar($, () => { if (!$('shop').hidden) shop(); pupils(); guide(); });
+  const herd = game.get().horses.map((h) => h.id).join();
+  // the map's herd is drawn once: after a night with a horse gone (a boarder left), the map is drawn anew (#138)
+  const bar = wireTopBar($, () => { if (game.get().horses.map((h) => h.id).join() !== herd && $('shop').hidden) return showFarm(); if (!$('shop').hidden) shop(); pupils(); guide(); });
   /** The goal list (open or folded) and Oma Hanne's hint for now, at most one. */
   function guide() {
     const s = game.get(), list = goals(s), done = list.filter((g) => g.done).length;
@@ -765,7 +769,7 @@ function showJumping(id: string, kind: 'train' | 'badge' | 'show' = 'train', sho
       game.dispatch({ type: 'show', horse: id, faults, showClass });
       if (game.get().lastShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
       podium(end, table);
-      end.querySelector('p')!.textContent = `${t.showPlace(rank, prize)} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`; // a show doesn't train: where the horse stands
+      end.querySelector('p')!.textContent = `${t.showPlace(rank, prize, s.debt - game.get().debt)} ${t.skillNow(t.jumping, h.skills.jumping, scope(h))}`; // a show doesn't train: where the horse stands
     } else if (kind === 'badge') {
       game.dispatch({ type: 'badge', horse: id, faults });
       const passed = game.get().badges >= 1;
@@ -808,11 +812,15 @@ function podium(end: HTMLElement, table: ShowRow[]) {
  * then the player picks a horse for the jumping round.
  */
 function showBadge() {
-  quizScreen('oma', t.badgeIntro, t.quiz, (picked, ui) => {
-    game.dispatch({ type: 'badgeQuiz', answers: picked });
-    const s = game.get(), right = quizScore(picked);
-    if (s.badgeQuizDay !== s.day) return ui.end(t.quizFailed(right));
-    ui.say(t.quizDone(right));
+  // the quiz passed today already (back from the horse pick): straight on to the horse (#137)
+  const again = game.get().badgeQuizDay === game.get().day;
+  quizScreen('oma', again ? t.quizAgain : t.badgeIntro, again ? [] : t.quiz, (picked, ui) => {
+    if (!again) {
+      game.dispatch({ type: 'badgeQuiz', answers: picked });
+      const s = game.get(), right = quizScore(picked);
+      if (s.badgeQuizDay !== s.day) return ui.end(t.quizFailed(right));
+      ui.say(t.quizDone(right));
+    }
     ui.buttons(game.get().horses.filter(own).map((h) => {
       const why = cantWork(h, DATA.jumping.energy);
       return `<button type="button" data-horse="${h.id}"${why ? ' disabled' : ''}>${esc(h.name)}${why ? ` · ${t.cantWork[why]}` : ''}</button>`;
@@ -1015,7 +1023,8 @@ export function showCare(id: string) {
       <button type="button" class="small quick" data-quick="${c}" hidden>${t.quickCare}</button></span>`).join('')}
     </nav>
     <button id="to-stable" class="corner" type="button">${t.toStable}</button>`);
-  const bar = wireTopBar($, () => tools());
+  const day0 = game.get().day;
+  const bar = wireTopBar($, () => (game.get().day !== day0 ? showStable() : tools())); // a new morning: back in the stable, the horse may be gone (#133)
   explain('care');
   const scene = startCare($<HTMLCanvasElement>('care-scene'), {
     look: h.look, dirt: (100 - h.needs.clean) / 100, cared: h.cared,
@@ -1246,7 +1255,7 @@ function showCrossCountry(id: string, examWrong?: number, show?: ShowClass) {
       game.dispatch({ type: 'xcShow', horse: id, faults, showClass: show });
       if (game.get().lastXcShowDay !== s.day) return showFarm(); // the Sim said no: no podium for a show not ridden
       podium($('xc-end').firstElementChild as HTMLElement, table);
-      p.textContent = `${t.showPlace(rank, prize)} ${t.xcTime(end.t, lo, hi)} ${t.skillNow(t.crossCountry, h.skills.crossCountry, xcScope(h))}`; // a show doesn't train
+      p.textContent = `${t.showPlace(rank, prize, s.debt - game.get().debt)} ${t.xcTime(end.t, lo, hi)} ${t.skillNow(t.crossCountry, h.skills.crossCountry, xcScope(h))}`; // a show doesn't train
     } else if (exam) {
       // the badge's round: passed or another try tomorrow; the rosette for a pass
       game.dispatch({ type: 'badge2', horse: id, wrong: examWrong, faults });

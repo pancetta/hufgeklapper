@@ -825,6 +825,12 @@ test('riding badge 1: Oma asks five questions, a jumping round, then the rosette
     await page.getByRole('button', { name: t.next }).tap();
   }
   await expect(page.getByText(t.quizDone(5))).toBeVisible();
+  // back at the horse pick, then the badge again: no second quiz today, straight to the horse (#137)
+  await page.getByRole('button', { name: t.back }).tap();
+  await page.getByRole('button', { name: t.places.arena }).tap();
+  await page.getByRole('button', { name: t.ridingBadge }).tap();
+  await expect(page.getByText(t.quizAgain)).toBeVisible();
+  await page.getByRole('button', { name: t.next }).tap();
   await page.getByRole('button', { name: 'Kiwi' }).tap();
   await page.getByRole('button', { name: t.go }).tap();
   const end = page.locator('#jump-end');
@@ -1032,6 +1038,9 @@ test('the second inspection makes a Pensionsstall: a groom, a boarder in the sta
   await page.getByRole('button', { name: t.sleep }).tap();
   await page.getByRole('button', { name: t.goodNight }).tap(); // the diary: the stall places built
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
+  // three horses and a groom eat the store down: the morning warns (#132)
+  await expect(page.getByText(t.newsHayLow)).toBeVisible();
+  await page.getByRole('button', { name: t.morningGo }).tap();
   await page.getByRole('button', { name: t.sleep }).tap();
   const diary = page.locator('.diary');
   await expect(diary.locator('.diary-row', { hasText: t.billWhat.wage })).toContainText(t.euros(-DATA.staff.wage));
@@ -1128,4 +1137,18 @@ test('a pupil can be sent home, e.g. when every pony is tired (#126)', async ({ 
   await page.getByRole('button', { name: t.sendHome(name) }).tap();
   await expect(pupil).toHaveCount(0);
   await expect(page.locator('#toast')).toHaveText(t.sentHome(name));
+});
+
+test('going to bed on the care screen: the next morning starts in the stable (#133)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await page.getByRole('button', { name: t.places.stall }).tap();
+  await page.locator('.nameplate', { hasText: 'Kiwi' }).tap();
+  await page.getByRole('button', { name: t.care, exact: true }).tap();
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
+  await expect(page.locator('#night')).toHaveText(t.day(2)); // the day card, on the stable drawn anew
+  await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
+  await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
+  await expect(page.locator('#night')).toBeHidden();
 });

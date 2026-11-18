@@ -553,7 +553,7 @@ export type Feature = (typeof DATA.features)[number];
 export function goals(s: State) {
   const have = {
     groom: s.careDone.groom, lessons: s.lessonsGiven - s.lessonsBefore, badge: s.badges, badge2: s.badges >= 2 ? 1 : 0, savings: s.debt ? 0 : s.money, reputation: s.reputation,
-    horses: s.horses.filter(own).length, boarders: s.horses.filter((h) => h.owner).length, staff: [...s.today, ...s.bill].some((e) => e.what === 'wage') ? s.staff : 0, partBoard: s.horses.filter((h) => h.rider).length, // a groom counts once paid
+    horses: s.horses.filter(own).length, boarders: s.horses.filter((h) => h.owner).length, staff: s.staff, partBoard: s.horses.filter((h) => h.rider).length,
   };
   return DATA.goals[s.stage].map(({ id, need }) => {
     const done = s.goalsDone.includes(id) || have[id] >= need;
@@ -596,7 +596,8 @@ function step(state: State, action: Action): State {
       // the next stage: the Reitschule opens the horse market, the Pensionsstall the boarders; the new stage starts its
       // own goal list (counts like lessons given go on from where they are)
       const stage = nextStage(state)!, names = state.horses.map((h) => h.name);
-      const [market, seed1] = marketFor(state.day, state.seed, names);
+      // the market stays at the Pensionsstall: a new one today would reuse today's ids, a horse bought from it among them (#134)
+      const [market, seed1] = stage === 'reitschule' ? marketFor(state.day, state.seed, names) : [state.market, state.seed];
       const [boardOffers, seed] = stage === 'pensionsstall' ? boardersFor(state.day, seed1, [...names, ...market.map((o) => o.name)]) : [state.boardOffers, seed1];
       return { ...state, stage, market, boardOffers, seed, goalsDone: [], lessonsBefore: state.lessonsGiven };
     }
@@ -633,12 +634,14 @@ function step(state: State, action: Action): State {
         if (h.rest === 1 && !isSick(after)) news.push({ kind: 'rested', horse: h.id });
         return after;
       });
-      if (feed > 0 && feed < horses.length * DATA.hayPerNight * DATA.hayLowNights) news.push({ kind: 'hayLow' });
       if (state.today.length) news.push({ kind: 'bill' });
       const [pupils, seed1] = pupilsFor(state.day + 1, state.reputation, state.seed, state.built.arena * DATA.build.arena.pupils);
       const [market, seed2] = atLeast(state, 'reitschule') ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
       const morning: State = { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed: seed2 };
-      return rescue(atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning);
+      // the warning after the grooms took their hay (#132): low, or already gone, and nobody went hungry yet tonight
+      const fed = rescue(atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning); // Oma's hay, if she helps, counts too
+      const low = !news.some((n) => n.kind === 'noHay') && fed.feed < fed.horses.length * DATA.hayPerNight * DATA.hayLowNights;
+      return low ? { ...fed, night: [...fed.night, { kind: 'hayLow' }] } : fed;
     }
     case 'hire': // a groom more (from the Pensionsstall on), up to the most a farm takes; or one less
       return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.names.length ? { ...state, staff: state.staff + 1 } : state;
