@@ -53,6 +53,7 @@ describe('Sim', () => {
     expect(empty.horses[0].needs.fed).toBeLessThan(fed.horses[0].needs.fed);
     expect(empty.horses[0].needs.happy).toBeLessThan(fed.horses[0].needs.happy);
     expect(empty.night).toContainEqual({ kind: 'noHay', horse: 'kiwi' });
+    expect(empty.night.map((n) => n.kind)).not.toContain('hayLow'); // "all gone" says it already (#132)
   });
 
   it('makes a neglected horse sick within a few nights, and says so in the morning', () => {

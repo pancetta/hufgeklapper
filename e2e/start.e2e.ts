@@ -1133,6 +1133,7 @@ test('going to bed on the care screen: the next morning starts in the stable (#1
   await page.getByRole('button', { name: t.care, exact: true }).tap();
   await page.getByRole('button', { name: t.sleep }).tap();
   await page.getByRole('button', { name: t.goodNight }).tap();
+  await expect(page.locator('#night')).toHaveText(t.day(2)); // the day card, on the stable drawn anew
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
   await expect(page.locator('.nameplate', { hasText: 'Kiwi' })).toBeVisible();
   await expect(page.locator('#night')).toBeHidden();

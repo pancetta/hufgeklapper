@@ -80,7 +80,7 @@ export const t = {
   morning: 'Guten Morgen!',
   newsSick: (name: string) => `${name} ist krank. Ruf den Tierarzt!`,
   newsNoHay: 'Das Heu ist alle! Deine Ponys hatten Hunger.',
-  newsHayLow: 'Das Heu ist fast alle. Kauf im Futterlager neues!',
+  newsHayLow: 'Das Heu reicht nicht mehr lange. Kauf im Futterlager neues!',
   newsRested: (name: string) => `${name} ist wieder fit.`,
   newsLastWarning: (days: number) => `Oma Hanne: „Noch einmal kann ich dir nicht helfen. Deine Pferde sind krank und das Geld ist alle. Füttere, putze und miste aus: Gut gepflegt werden sie wieder gesund. Sonst ist der Hof in ${days} ${days === 1 ? 'Tag' : 'Tagen'} verloren.“`,
   gameOverTitle: 'Der Hof ist verloren',

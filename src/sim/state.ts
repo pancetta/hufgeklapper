@@ -637,9 +637,9 @@ function step(state: State, action: Action): State {
       const [market, seed2] = atLeast(state, 'reitschule') ? marketFor(state.day + 1, seed1, horses.map((h) => h.name)) : [state.market, seed1];
       const morning: State = { ...state, day: state.day + 1, feed, horses, night: news, bill: state.today, today: [], pupils, market, seed: seed2 };
       // the warning after the grooms took their hay (#132): low, or already gone, and nobody went hungry yet tonight
-      const fed = atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning;
+      const fed = rescue(atLeast(state, 'pensionsstall') ? pensionMorning(morning) : morning); // Oma's hay, if she helps, counts too
       const low = !news.some((n) => n.kind === 'noHay') && fed.feed < fed.horses.length * DATA.hayPerNight * DATA.hayLowNights;
-      return rescue(low ? { ...fed, night: [...fed.night, { kind: 'hayLow' }] } : fed);
+      return low ? { ...fed, night: [...fed.night, { kind: 'hayLow' }] } : fed;
     }
     case 'hire': // a groom more (from the Pensionsstall on), up to the most a farm takes; or one less
       return atLeast(state, 'pensionsstall') && state.staff < DATA.staff.names.length ? { ...state, staff: state.staff + 1 } : state;

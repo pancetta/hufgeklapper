@@ -282,8 +282,9 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     night.hidden = false;
     setTimeout(() => {
       game.dispatch({ type: 'sleep' });
-      night.querySelector('p')!.textContent = t.day(game.get().day);
-      setTimeout(() => { night.hidden = true; morning(game.get().night); }, 900);
+      const n = $('night') ?? night; // a screen drawn anew in the night (back to the stable, the farm map) has its own
+      n.querySelector('p')!.textContent = t.day(game.get().day); n.hidden = false;
+      setTimeout(() => { n.hidden = true; morning(game.get().night); }, 900);
     }, 900);
   }
   // the morning summary: one short line per piece of news, then on with the day
@@ -298,6 +299,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     const lines = [...new Set(news.map(line).filter(Boolean))]; // "no hay" comes once per horse; say it once; the money was in the diary
     if (!lines.length) return;
     const box = $('morning');
+    if (!box) return; // a screen without a top bar (a quiz, a round): the news waits in the diary
     box.firstElementChild!.className = 'sheet ask';
     box.firstElementChild!.innerHTML = `<h2>${t.morning}</h2>${lines.map((l) => `<p>${l}</p>`).join('')}<button type="button">${t.morningGo}</button>`;
     box.hidden = false;
