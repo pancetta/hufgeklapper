@@ -1,0 +1,21 @@
+src/sim/data.ts
+  s_7657db1b41ed88::t_a21b0b553facc3 50
+src/strings.ts
+  s_7657db1b41ed88::t_a0bf44d10abfc7 184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c6b722ea63367147c4d6111e7247f492e0f61396",
+  "prompts": {},
+  "sessions": {
+    "s_7657db1b41ed88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23ac8555-7630-4660-a15e-9f0718c4603a",
+        "model": "unknown"
+      },
+      "human_author": "Robert Speck <pancetta@users.noreply.github.com>"
+    }
+  }
+}
