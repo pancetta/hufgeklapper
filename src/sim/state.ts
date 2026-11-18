@@ -97,7 +97,7 @@ export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft' | 'omaHelped' | 'lastWarning' | 'gameOver'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
-  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
+  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'sendHome'; pupil: string } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
   | { type: 'routine'; horse: string; wrong: number; ride: boolean }
   | { type: 'badge2'; horse: string; wrong: number; faults: number | null }
   | { type: 'train'; horse: string; faults: number } | { type: 'xcTrain'; horse: string; faults: number }
@@ -794,6 +794,9 @@ function step(state: State, action: Action): State {
         reputation: clamp(state.reputation + (happy - DATA.lessons.happyAt) / 5 + (prep === null ? 0 : prep ? R.reputationClean : R.reputation)),
       };
     }
+    case 'sendHome':
+      // a pupil sent home (#126): no lesson today, nothing lost
+      return state.pupils.some((p) => p.id === action.pupil) ? { ...state, pupils: state.pupils.filter((p) => p.id !== action.pupil) } : state;
     case 'loan': {
       if (!canLoan(state)) return state;
       const a = DATA.loan.amount;

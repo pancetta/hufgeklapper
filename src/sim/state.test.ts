@@ -165,6 +165,13 @@ describe('Sim', () => {
     }
   });
 
+  it('sends a pupil home without a lesson (#126)', () => {
+    const s = newGame(1), p = s.pupils[0];
+    const after = apply(s, { type: 'sendHome', pupil: p.id });
+    expect([after.pupils.length, after.money, after.reputation, after.lessonsGiven]).toEqual([s.pupils.length - 1, s.money, s.reputation, s.lessonsGiven]);
+    expect(apply(after, { type: 'sendHome', pupil: p.id })).toBe(after);
+  });
+
   it('lends money while the debt stays below the limit', () => {
     let s = { ...newGame(1), money: 0 };
     while (canLoan(s)) s = apply(s, { type: 'loan' });

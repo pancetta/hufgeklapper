@@ -62,7 +62,7 @@ export const t = {
 
   // the farm map
   places: { stall: 'Stall', feed: 'Futterlager', pasture: 'Weide', arena: 'Reitplatz', board: 'Schwarzes Brett', free: 'Bauplatz', xc: 'Ins Gelände' } as Record<string, string>,
-  freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist.',
+  freePlot: 'Hier kannst du bauen, wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links.',
 
   // the stable and the horse card
   toFarm: 'Zum Hof',
@@ -125,6 +125,8 @@ export const t = {
   routineLeave: 'Aufhören',
   sleepBusy: (name: string) => `${name} ist noch nicht fertig. Trotzdem schlafen gehen?`,
   sleepAnyway: 'Ja, schlafen gehen',
+  sleepAsk: 'Schlafen gehen? Dann beginnt ein neuer Tag.',
+  cancel: 'Abbrechen',
   jumpQuitSure: 'Wirklich aufhören? Dann zählt jedes Hindernis, das noch fehlt, als Fehler.',
   jumpQuitYes: 'Ja, aufhören',
   routineLeaveSure: 'Wirklich aufhören?',
@@ -200,6 +202,9 @@ export const t = {
 
   // riding lessons
   pupilWants: (name: string) => `${name} möchte reiten. Wähle ein Pferd:`,
+  sendHome: (name: string) => `Heute nicht: ${name} nach Hause schicken`,
+  sentHome: (name: string) => `${name} geht nach Hause. Morgen kommen neue Reitschüler.`,
+  noHorseFree: (name: string) => `Oma Hanne sagt: „Heute kann kein Pferd mit ${name} reiten. Schick ${name} lieber nach Hause.“`,
   pupilKind: (small: boolean, advanced: boolean) => `${small ? 'Kleines' : 'Großes'} Kind · ${advanced ? 'kann schon reiten' : 'reitet zum ersten Mal'}`,
   fits: { right: 'passt gut', smallOnHorse: 'etwas groß', bigOnPony: 'zu klein' },
   fitWhy: (pupil: string, fit: 'right' | 'smallOnHorse' | 'bigOnPony') =>
@@ -413,7 +418,7 @@ export const t = {
   pastureLabel: (used: number, all: number) => `Weide ${used}/${all}`,
   pastureGrow: (places: number, cost: number) => `Weide vergrößern: +${places} Plätze für ${cost}\u00a0€`,
   pastureGrown: 'Die Weide ist größer! Der neue Zaun steht.',
-  pastureWaits: { stage: 'Mehr Land gibt es ab der Reitschule.', built: 'Größer geht die Weide nicht.', money: 'Dafür reicht das Geld noch nicht.' } as Record<string, string>,
+  pastureWaits: { stage: 'Erst wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links.', built: 'Größer geht die Weide nicht.', money: 'Dafür reicht das Geld noch nicht.' } as Record<string, string>,
 
   tooExpensive: 'zu teuer',
   boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
@@ -433,7 +438,7 @@ export const t = {
   buildStalls: (cost: number) => `Stallplätze bauen (${cost}\u00a0€)`,
   upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost}\u00a0€)`,
   brings: { stalls: 'Ein Offenstall mit zwei Plätzen für neue Pferde.', arena: 'Ein schönerer Reitplatz: Jeden Tag kommt ein Reitschüler mehr.' },
-  buildWaits: { stage: 'Bauen kannst du erst als Reitschule.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
+  buildWaits: { stage: 'Bauen kannst du erst, wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
   builtStalls: 'Der Offenstall ist fertig. Jetzt passen zwei Pferde mehr hinein.',
   builtArena: 'Der Reitplatz ist schöner geworden. Jetzt kommt jeden Tag ein Reitschüler mehr.',
   hints: {
