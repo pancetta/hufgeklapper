@@ -163,7 +163,7 @@ test('the top bar fits on one line on every iPad, even with a long name, big mon
   await page.goto('./');
   await newGame(page, 'Sonnenhof am Bachufer');
   await changeSave(page, (s) => { Object.assign(s, { money: 12345, debt: 1999, feed: 88, day: 123 }); });
-  await expect(page.getByRole('img', { name: t.debtLabel(1999) })).toBeVisible();
+  await expect(page.getByRole('button', { name: t.debtLabel(1999) })).toBeVisible();
   for (const size of [{ width: 1024, height: 768 }, { width: 1180, height: 820 }, { width: 1366, height: 1024 }]) {
     await page.setViewportSize(size);
     await page.evaluate(() => dispatchEvent(new Event('resize')));
@@ -386,19 +386,33 @@ test('with no money, hay comes on credit and the bank lends for the vet', async 
   await page.getByRole('region', { name: t.slot(1) }).getByRole('button', { name: t.resumeGame }).tap();
   await page.getByRole('button', { name: t.places.feed }).tap();
   await expect(page.getByText(t.omaCredit)).toBeVisible();
+  // credit asks first (#122): "no" makes no debt
   await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
+  await expect(page.getByText(t.debtWarn(45, 45))).toBeVisible();
+  await page.getByRole('button', { name: t.no }).tap();
+  await expect(page.locator('#hay')).toHaveText(t.hay(2));
+  await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap();
+  await page.getByRole('button', { name: t.debtYesHay }).tap();
   await expect(page.locator('#hay')).toHaveText(t.hay(12));
-  // a quick second tap: hay for six nights now, so no more credit; the debt shows in the top bar
-  await page.getByRole('button', { name: t.hayPackCredit(10, 45) }).tap({ force: true });
-  await expect(page.locator('#hay')).toHaveText(t.hay(12));
+  // hay for six nights now, so no more credit; the debt shows in the top bar
   await expect(page.getByRole('button', { name: t.hayPackCredit(10, 45) })).toBeDisabled();
   await expect(page.getByText(t.hayWaits.enough).first()).toBeVisible();
-  await expect(page.getByRole('img', { name: t.debtLabel(45) })).toHaveText(t.debt(45));
+  await expect(page.getByRole('button', { name: t.debtLabel(45) })).toHaveText(t.debt(45));
+  // no money: the debt says how to get some
+  await page.getByRole('button', { name: t.debtLabel(45) }).tap();
+  await expect(page.locator('#toast')).toHaveText(t.repayNoMoney(45));
   await page.getByRole('button', { name: t.toFarm }).tap();
   await page.getByRole('button', { name: t.places.board }).tap();
   await expect(page.getByText(t.owe(45))).toBeVisible();
   await page.getByRole('button', { name: t.loan(100) }).tap();
+  await page.getByRole('button', { name: t.debtYesLoan }).tap();
   await expect(page.locator('#money')).toHaveText(t.money(100));
+  // paying back by hand (#121): as much as there is money for
+  await page.getByRole('button', { name: t.repay(100) }).tap();
+  await expect(page.getByText(t.repayAsk(145, 100))).toBeVisible();
+  await page.getByRole('button', { name: t.repay(100) }).last().tap();
+  await expect(page.locator('#money')).toHaveText(t.money(0));
+  await expect(page.locator('#toast')).toHaveText(t.repaid(100, 45));
 });
 
 test('Oma Hanne explains once which horse fits whom, when no pony fits the pupil', async ({ page }) => {

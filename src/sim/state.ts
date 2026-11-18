@@ -97,7 +97,7 @@ export const CARE: Care[] = ['groom', 'hooves', 'feed', 'muck'];
 export type News = { kind: 'sick' | 'noHay' | 'hayLow' | 'rested' | 'bill' | 'staffUnpaid' | 'boarderLeft' | 'omaHelped' | 'lastWarning' | 'gameOver'; horse?: string; owner?: string; count?: number };
 
 export type Action = { type: 'sleep' } | { type: 'vet'; horse: string } | { type: 'care'; horse: string; what: Care; quick?: boolean }
-  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'sendHome'; pupil: string } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
+  | { type: 'buyHay'; pack: number } | { type: 'loan' } | { type: 'repay' } | { type: 'sendHome'; pupil: string } | { type: 'lesson'; pupil: string; horse: string; prepared?: number }
   | { type: 'routine'; horse: string; wrong: number; ride: boolean }
   | { type: 'badge2'; horse: string; wrong: number; faults: number | null }
   | { type: 'train'; horse: string; faults: number } | { type: 'xcTrain'; horse: string; faults: number }
@@ -246,6 +246,8 @@ export function hayWaits(s: State, pack: number): 'full' | 'enough' | null {
   if (s.feed + DATA.hayPacks[pack].bales > DATA.hay.store) return 'full';
   return hayOnCredit(s, pack) && hayNights(s) >= DATA.hay.creditNights ? 'enough' : null;
 }
+/** How much debt can be paid back now: all of it, or as much as there is money for. */
+export const canRepay = (s: State) => Math.max(0, Math.min(s.debt, s.money));
 export const canLoan = (s: State) => s.debt + DATA.loan.amount <= DATA.loan.debtLimit;
 /** A dead end: every horse of your own sick, no money for the vet and no more loans; nothing earns money any more. */
 export const stuck = (s: State) => s.horses.some(own) && s.horses.filter(own).every(isSick) && !canPayVet(s) && !canLoan(s);
@@ -801,6 +803,12 @@ function step(state: State, action: Action): State {
       if (!canLoan(state)) return state;
       const a = DATA.loan.amount;
       return { ...state, money: state.money + a, debt: state.debt + a, today: [...state.today, { what: 'loan', amount: a }] };
+    }
+    case 'repay': {
+      // paying debt back by hand: as much as there is money for (#121)
+      const a = canRepay(state);
+      if (!a) return state;
+      return { ...state, money: state.money - a, debt: state.debt - a, today: [...state.today, { what: 'repay', amount: -a }] };
     }
   }
 }

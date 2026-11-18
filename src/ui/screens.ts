@@ -25,7 +25,7 @@ import { startCrossCountry } from '../scene/xc';
 import { startPasture } from '../scene/pasture';
 import { newXcRound, PACES, type Pace, type XcRound, xcCourse } from '../sim/xc';
 import { finished, GESTURE, nextStep, type Spot, STEPS, type StepId, type Thing, THINGS, tryStep, WALK } from '../sim/routine';
-import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder, bestRider } from '../sim/state';
+import { allGoalsDone, type Avatar, badgeWaits, buildWaits, canInspect, type State, type Feature, goals, hint, quizScore, scope, topClass, fitsNone, lessonChoices, nextShowDay, showResult, classShut, classWaits, SHOW_CLASSES, type ShowClass, type ShowRow, showWaits, CARE, canBuild, canFeed, canLoan, canRepay, canPayVet, canQuickCare, hayNights, cantWork, type Care, hayOnCredit, hayWaits, type Horse, isSick, jumpWindow, lessonOutcome, mood, NEEDS, type News, type Pupil, stalls, takeOff, holdNeed, faultWhy, dayMoney, type Entry, atLeast, nextStage, own, gameOver, xcScope, xcWindow, xcDrain, gained, noRoom, pasture, grazing, badge2Waits, nextXcShowDay, xcShowWaits, xcClassShut, xcClassWaits, salePrice, saleWaits, saleAdvice, answerOrder, bestRider } from '../sim/state';
 import { readSlot, type Slot, slotKey, SLOTS, writeSlot } from '../slots';
 import { t } from '../strings';
 import { icon } from './icons';
@@ -229,7 +229,7 @@ function topBar(busy = '') {
     <header class="topbar">
       <span class="stat farm-name">${esc(game.name())}</span>
       <span class="stat" id="money"><img class="icon" src="${icon('coin')}" alt="">${t.money(game.get().money)}</span>
-      <span class="stat debt" id="debt" role="img" aria-label="${t.debtLabel(game.get().debt)}" title="${t.debtLabel(game.get().debt)}"${game.get().debt ? '' : ' hidden'}>${t.debt(game.get().debt)}</span>
+      <button type="button" class="stat debt" id="debt" aria-label="${t.debtLabel(game.get().debt)}" title="${t.debtLabel(game.get().debt)}"${game.get().debt ? '' : ' hidden'}>${t.debt(game.get().debt)}</button>
       <span class="stat" id="hay"><img class="icon" src="${icon('feed')}" alt="">${t.hay(game.get().feed)}</span>
       <span class="stat" id="day">${t.day(game.get().day)}</span>
       <span class="spacer"></span>
@@ -303,6 +303,15 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     box.hidden = false;
     box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; });
   }
+  $('debt').addEventListener('click', payBack);
+  /** Paying debt back by hand (#121): asked first, as much as there is money for. */
+  async function payBack() {
+    const s = game.get(), pay = canRepay(s);
+    if (!pay) return toast(t.repayNoMoney(s.debt));
+    if (!(await ask(t.repayAsk(s.debt, pay), t.repay(pay)))) return;
+    game.dispatch({ type: 'repay' });
+    toast(t.repaid(pay, game.get().debt));
+  }
   $('menu').addEventListener('click', () => { $('menu-sheet').hidden = false; });
   $('resume').addEventListener('click', () => { $('menu-sheet').hidden = true; });
   $('menu-sheet').querySelector('#menu-fullscreen')?.addEventListener('click', () => { $('menu-sheet').hidden = true; fullscreen.enter(); });
@@ -341,7 +350,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
   // the same slot played in another tab: this one goes back to the start rather than overwrite newer progress
   const elsewhere = (e: StorageEvent) => { if (e.key === slotKey(game.slot())) showStart(); };
   addEventListener('storage', elsewhere);
-  return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast };
+  return { unsubscribe: () => { unsubscribe(); removeEventListener('storage', elsewhere); }, toast, payBack };
 }
 
 /**
@@ -561,7 +570,7 @@ export function showFarm(intro = false) {
     const s = game.get();
     $('shop').firstElementChild!.innerHTML = `<h2>${t.shopTitle}</h2>
       ${!s.debt && !s.badges && !(s.money < DATA.vet.cost && canLoan(s)) && !atLeast(s, 'reitschule') ? `<p>${t.boardEmpty}</p>` : ''}
-      ${s.debt ? `<p>${t.owe(s.debt)}</p>` : ''}
+      ${s.debt ? `<p>${t.owe(s.debt)}</p>${canRepay(s) ? `<button type="button" id="repay">${t.repay(canRepay(s))}</button>` : ''}` : ''}
       ${s.badges ? `<p class="calendar">${t.nextShow(nextShowDay(s), nextShowDay(s) === s.day)}</p>` : ''}
       ${s.badges >= 2 ? `<p class="calendar">${t.nextXcShow(nextXcShowDay(s), nextXcShowDay(s) === s.day)}</p>` : ''}
       ${s.money < DATA.vet.cost && canLoan(s) ? `<button type="button" id="loan">${t.loan(DATA.loan.amount)}</button><p class="oma">${t.omaLoan}</p>` : ''}
@@ -592,7 +601,11 @@ export function showFarm(intro = false) {
       game.dispatch({ type: 'buyHorse', offer: o.id });
       if (game.get().horses.some((h) => h.id === o.id)) { showFarm(); omaSays(t.boughtHorse(o.name)); } // the new horse joins the herd on the map
     }));
-    $('shop').querySelector('#loan')?.addEventListener('click', () => { game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount)); });
+    $('shop').querySelector('#loan')?.addEventListener('click', async () => {
+      if (!(await ask(t.debtWarn(DATA.loan.amount, game.get().debt + DATA.loan.amount), t.debtYesLoan))) return; // never into debt without a warning (#122)
+      game.dispatch({ type: 'loan' }); bar.toast(t.lent(DATA.loan.amount));
+    });
+    $('shop').querySelector('#repay')?.addEventListener('click', () => bar.payBack());
     // the Pensionsstall: grooms, boarders, a rider; the screen redraws itself on every change (wireTopBar)
     $('shop').querySelector('#hire')?.addEventListener('click', () => game.dispatch({ type: 'hire' }));
     $('shop').querySelector('#fire')?.addEventListener('click', () => game.dispatch({ type: 'fire' }));
@@ -977,8 +990,10 @@ export function showStore() {
       return `<button type="button" class="choice" data-pack="${i}"${why ? ' disabled' : ''}><b>${hayOnCredit(s, i) ? t.hayPackCredit(p.bales, p.price) : t.hayPack(p.bales, p.price)}</b>${why ? `<small>${t.hayWaits[why]}</small>` : ''}</button>`;
     }).join('');
     $('credit').hidden = !DATA.hayPacks.some((_, i) => hayOnCredit(s, i) && !hayWaits(s, i));
-    $('packs').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', () => {
-      game.dispatch({ type: 'buyHay', pack: Number(b.dataset.pack) });
+    $('packs').querySelectorAll<HTMLButtonElement>('[data-pack]').forEach((b) => b.addEventListener('click', async () => {
+      const i = Number(b.dataset.pack), s = game.get(), price = DATA.hayPacks[i].price;
+      if (hayOnCredit(s, i) && !(await ask(t.debtWarn(price, s.debt + price), t.debtYesHay))) return; // never into debt without a warning (#122)
+      game.dispatch({ type: 'buyHay', pack: i });
       bar.toast(t.bought(DATA.hayPacks[Number(b.dataset.pack)].bales));
     }));
     scene.then((sc) => sc.set(s.feed)); // the bales just bought drop onto the stack

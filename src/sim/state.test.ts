@@ -179,6 +179,15 @@ describe('Sim', () => {
     expect(apply(s, { type: 'loan' })).toBe(s);
   });
 
+  it('pays debt back by hand, as much as there is money for (#121)', () => {
+    const some = apply({ ...newGame(1), money: 30, debt: 50, today: [] }, { type: 'repay' });
+    expect([some.money, some.debt, some.today]).toEqual([0, 20, [{ what: 'repay', amount: -30 }]]);
+    const all = apply({ ...newGame(1), money: 80, debt: 50 }, { type: 'repay' });
+    expect([all.money, all.debt]).toEqual([30, 0]);
+    const broke = { ...newGame(1), money: 0, debt: 50 };
+    expect(apply(broke, { type: 'repay' })).toBe(broke);
+  });
+
   it('pays debt back from income first, and never more than is owed', () => {
     const s = { ...newGame(1), money: 0, debt: 30 };
     const once = earn(s, 40);
