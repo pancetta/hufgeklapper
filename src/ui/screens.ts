@@ -257,7 +257,7 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
     // the farm diary first: today's money as bars and which horses got better (#78), then good night
     const day = dayMoney(game.get().today), better = game.get().horses.filter((h) => own(h) && gained(h).some((g) => g > 0));
     const money = day.income.length + day.costs.length + day.debts.length > 0;
-    if (!money && !better.length) return goodNight(); // nothing to tell: straight to bed
+    if (!money && !better.length && busy) return goodNight(); // asked already, nothing to tell: straight to bed
     const most = Math.max(...[...day.income, ...day.costs, ...day.debts].map((r) => Math.abs(r.amount)));
     const bar = (kind: string) => (r: { what: Entry['what']; amount: number }) => `<div class="diary-row"><span>${t.billWhat[r.what]}</span>
       <span class="diary-bar ${kind}"><i style="width:${Math.max(4, Math.round((Math.abs(r.amount) / most) * 100))}%"></i></span><b>${t.euros(r.amount)}</b></div>`;
@@ -269,9 +269,12 @@ function wireTopBar($: ReturnType<typeof screen>, onChange: () => void) {
       ${day.debts.length ? `<h3>${t.diaryDebts}</h3>${day.debts.map(bar('debt')).join('')}` : ''}
       ${money ? `<p class="diary-total">${t.diaryTotal(day.total, game.get().money)}</p>` : ''}
       ${better.length ? `<h3>${t.diaryBetter}</h3>${better.map((h) => `<p class="diary-line">${t.diaryGain(esc(h.name), ...gained(h))}</p>`).join('')}` : ''}
-      <button type="button">${t.goodNight}</button>`;
+      ${!money && !better.length ? `<p>${t.sleepAsk}</p>` : ''}
+      <button type="button" id="good-night">${t.goodNight}</button><button type="button" id="stay-up">${t.cancel}</button>`;
     box.hidden = false;
-    box.querySelector('button')!.addEventListener('click', () => { box.hidden = true; goodNight(); });
+    // going to bed can always be called off (#125)
+    $('good-night').addEventListener('click', () => { box.hidden = true; goodNight(); });
+    $('stay-up').addEventListener('click', () => { box.hidden = true; });
   });
   function goodNight() {
     const night = $('night');
@@ -521,13 +524,15 @@ export function showFarm(intro = false) {
     if (!s.explained.includes('fit') && fitsNone(p, s.horses.filter(own))) { explain('fit').then(() => chooseHorse(p)); return; }
     sheet.firstElementChild!.innerHTML = `<h2>${t.pupilWants(esc(p.name))}</h2>
       <p>${t.pupilKind(p.size === 'small', p.level === 'advanced')}</p>
+      ${lessonChoices(p, s.horses.filter(own)).every((c) => c.why) ? `<p class="oma">${t.noHorseFree(esc(p.name))}</p>` : ''}
       ${lessonChoices(p, s.horses.filter(own)).map((c) => {
         // why it fits or not, in words, then how the lesson would go; the best horse is marked
         const name = esc(p.name);
         const how = c.why ? t.cantWork[c.why] : [t.fitWhy(name, c.fit), ...(c.unkempt ? [t.needsCare] : []), t.wouldBe(name, c.mood, c.pay)].join(' · ');
         return `<button type="button" class="choice${c.best ? ' best' : ''}" data-horse="${c.horse.id}"${c.why ? ' disabled' : ''}><b>${esc(c.horse.name)}${c.best ? ` <i>★ ${t.bestChoice}</i>` : ''}</b><small>${how}</small></button>`;
       }).join('')}
-      <button type="button" id="close-lesson">${t.close}</button>`;
+      <button type="button" id="send-home">${t.sendHome(esc(p.name))}</button><button type="button" id="close-lesson">${t.close}</button>`;
+    $('send-home').addEventListener('click', () => { sheet.hidden = true; game.dispatch({ type: 'sendHome', pupil: p.id }); bar.toast(t.sentHome(p.name)); });
     sheet.querySelectorAll<HTMLButtonElement>('[data-horse]').forEach((b) => b.addEventListener('click', () => {
       // the pupil may get the horse ready step by step (the care course) and ride it there
       const id = b.dataset.horse!, horse = game.get().horses.find((h) => h.id === id)!;
@@ -1252,8 +1257,8 @@ function showPasture() {
   const s = game.get(), why = buildWaits(s, 'pasture'), P = DATA.build.pasture;
   const $ = screen(`<canvas id="pasture" aria-hidden="true"></canvas>${topBar()}
     <aside class="pasture-panel"><h2>${t.pastureTitle}</h2><p id="use" role="status">${t.pastureUse(grazing(s), pasture(s))}${grazing(s) > pasture(s) ? ` – ${t.pastureCrowded}` : ''}</p>
-      <button type="button" id="grow"${why ? ' disabled aria-describedby="grow-why"' : ''}>${t.pastureGrow(P.places, P.cost)}</button><button type="button" id="to-farm">${t.toFarm}</button>
-      <p class="oma"${why ? ' id="grow-why"' : ''}>${why ? `${t.pastureHow} ${t.pastureWaits[why]}` : t.pastureHow}</p></aside>`);
+      <button type="button" id="grow" class="choice"${why ? ' disabled' : ''}><b>${t.pastureGrow(P.places, P.cost)}</b>${why ? `<small>${t.pastureWaits[why]}</small>` : ''}</button><button type="button" id="to-farm">${t.toFarm}</button>
+      <p class="oma">${t.pastureHow}</p></aside>`);
   const scene = startPasture($<HTMLCanvasElement>('pasture'), { herd: s.horses.map((h) => h.look), built: s.built.pasture, max: P.max });
   const bar = wireTopBar($, () => { if (game.get().day !== s.day) showPasture(); }); // a new morning: money and horses may have changed
   $('grow').addEventListener('click', () => {

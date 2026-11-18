@@ -227,7 +227,13 @@ test('a new game: farm map, stable, horse card, then sleeping through the night'
 test('the game saves itself, carries on after a reload, and moves as a file', async ({ page }) => {
   await page.goto('./');
   await newGame(page, 'Wiesenhof');
+  // going to bed asks, and can be called off (#125)
   await page.getByRole('button', { name: t.sleep }).tap();
+  await expect(page.getByText(t.sleepAsk)).toBeVisible();
+  await page.getByRole('button', { name: t.cancel }).tap();
+  await expect(page.locator('#day')).toHaveText(t.day(1));
+  await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.locator('#day')).toHaveText(t.day(2), { timeout: 5000 });
   // a reload: the slot shows the saved day, and the game carries on there
   await page.reload();
@@ -417,6 +423,7 @@ test('in a dead end Oma Hanne helps: every pony sick, no money, no more loans', 
     for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10;
   });
   await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.getByText(t.newsOmaHelped)).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: t.morningGo }).tap();
   await expect(page.locator('#hay')).toHaveText(t.hay(DATA.rescue.hay));
@@ -431,11 +438,13 @@ test('a second dead end lasting too long: Oma warns, then the farm is lost; the 
     for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10;
   });
   await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.getByText(t.newsLastWarning(1))).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: t.morningGo }).tap();
   // one more night without care: lost
   await changeSave(page, (s) => { for (const h of s.horses as { needs: { health: number } }[]) h.needs.health = 10; });
   await page.getByRole('button', { name: t.sleep }).tap();
+  await page.getByRole('button', { name: t.goodNight }).tap();
   await expect(page.getByRole('heading', { name: t.gameOverTitle })).toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: t.toStart }).tap();
   await expect(page.getByRole('region', { name: t.slot(1) })).toContainText(t.lostFarm);
@@ -1085,4 +1094,19 @@ test('a message never covers a button: the care tools, the corners (#123)', asyn
       .filter(([, b]) => b.width && b.top < r.bottom && b.bottom > r.top && b.left < r.right && b.right > r.left).map(([n]) => n);
   });
   expect(covered).toEqual([]);
+});
+
+test('a pupil can be sent home, e.g. when every pony is tired (#126)', async ({ page }) => {
+  await page.goto('./');
+  await newGame(page, 'Sonnenhof');
+  await changeSave(page, (s) => {
+    s.explained = DATA.features;
+    for (const h of s.horses as { needs: { energy: number } }[]) h.needs.energy = 0;
+  });
+  const pupil = page.locator('.label.pupil'), name = (await pupil.textContent())!;
+  await pupil.tap();
+  await expect(page.getByText(t.noHorseFree(name))).toBeVisible();
+  await page.getByRole('button', { name: t.sendHome(name) }).tap();
+  await expect(pupil).toHaveCount(0);
+  await expect(page.locator('#toast')).toHaveText(t.sentHome(name));
 });
