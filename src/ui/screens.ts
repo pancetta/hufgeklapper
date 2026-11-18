@@ -1035,6 +1035,7 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
     <h2 class="care-title">${t.routineTitle(esc(h.name))}</h2>
     <p id="say" class="how" role="status"></p>
     <div class="routine-bar"><span id="count"></span>${exam ? '' : `<button id="tip" type="button" class="small">${t.routineTip}</button>`}<button id="leave" type="button" class="small">${t.routineLeave}</button></div>
+    <div id="spot-names" class="spot-names" aria-hidden="true"></div><div id="spot-hint" class="spot-hint" hidden></div>
     <nav class="tools things">${THINGS.map((th) => `<button type="button" data-thing="${th}" aria-pressed="false">${t.things[th]}</button>`).join('')}</nav>
     <section id="ride" class="overlay ride" hidden></section>
     <section id="routine-end" class="overlay" hidden><div class="sheet ask"><p role="status"></p><button type="button" id="routine-back">${pupil ? t.toFarm : t.toStable}</button></div></section>`);
@@ -1048,6 +1049,27 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
   const say = (text: string) => { $('say').textContent = text; };
   const scene = startRoutine($<HTMLCanvasElement>('routine'), { look: h.look, kid, straps: DATA.routine.straps[h.breed], onTap: (at) => tap(at) });
   const HORSE: Spot[] = ['head', 'neck', 'body', 'belly', 'legs', 'tail'];
+  // a name plate on every place (#124), following the scene's places as they move (the box door, a new screen size)
+  const spots = () => JSON.parse($('routine').dataset.spots ?? '{}') as Partial<Record<Spot, string>>, xy = (p: string) => p.split(',').map(Number);
+  function names() {
+    const sp = spots();
+    $('spot-names').innerHTML = (Object.keys(t.spots) as Spot[]).filter((p) => sp[p]).map((p) => {
+      const [x, y] = xy(sp[p]!);
+      return `<span style="left:${Math.min(x, innerWidth - 60)}px;top:${y}px">${t.spots[p]}</span>`;
+    }).join('');
+    hint(hinted);
+  }
+  new MutationObserver(names).observe($('routine'), { attributes: true, attributeFilter: ['data-spots'] });
+  // the step a tip is about: its thing below and its place in the picture light up, until it is done (not in the exam)
+  let hinted: StepId | null = null;
+  function hint(id: StepId | null) {
+    hinted = exam ? null : id;
+    const s = STEPS.find((x) => x.id === hinted), at = s && spots()[s.at];
+    app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.classList.toggle('lit', b.dataset.thing === s?.thing));
+    const el = $('spot-hint');
+    el.hidden = !at;
+    if (at) { const [x, y] = xy(at); el.style.left = `${x}px`; el.style.top = `${y}px`; }
+  }
   function pick(th: Thing) {
     thing = th;
     app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.thing === th)));
@@ -1062,8 +1084,10 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
       if (!missed.has(`${thing}:${at}`)) { missed.add(`${thing}:${at}`); wrong++; count(); }
       const why = t.routineWhy[r.why];
       if (exam) return wrong > DATA.badge2.maxWrong ? end() : say(why ?? t.badge2NotYet); // the exam gives no "what comes first"; too many: over at once
-      return say(`${why ? `${why} ` : ''}${t.routineFirst(t.steps[r.first])}`);
+      hint(r.first);
+      return say(`${why ? `${why} ` : ''}${t.routineFirst(t.steps[r.first], thingOf(r.first))}`);
     }
+    if ('why' in r && r.why === 'none') hint(nextStep(done));
     if ('why' in r) return say(r.why === 'done' ? t.routineAgain : t.routineNone);
     const kind = GESTURE[r.step];
     if (kind) {
@@ -1075,6 +1099,7 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
   }
   function complete(step: StepId) {
     done = [...done, step];
+    hint(null);
     scene.then((sc) => sc.set(done));
     say(`✓ ${t.steps[step]}`);
     count();
@@ -1118,7 +1143,8 @@ function showRoutine(id: string, pupil?: Pupil, exam?: (wrong: number) => void) 
     sheet.hidden = false;
   }
   app.querySelectorAll<HTMLButtonElement>('[data-thing]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.thing as Thing)));
-  $('tip')?.addEventListener('click', () => { const n = nextStep(done), s = STEPS.find((x) => x.id === n); if (s) say(t.routineNext(t.steps[s.id], s.thing ? t.things[s.thing] : t.things.hand)); });
+  const thingOf = (id: StepId) => t.things[STEPS.find((x) => x.id === id)!.thing ?? 'hand'];
+  $('tip')?.addEventListener('click', () => { const n = nextStep(done); if (n) { say(t.routineNext(t.steps[n], thingOf(n))); hint(n); } });
   // stopping asks once more: everything done so far is lost
   $('leave').addEventListener('click', (e) => {
     const b = e.currentTarget as HTMLButtonElement;

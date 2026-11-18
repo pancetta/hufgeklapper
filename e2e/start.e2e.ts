@@ -668,7 +668,12 @@ test('the care course from the stable: a step out of turn: Oma says why; every s
   await page.getByRole('button', { name: t.things.rope, exact: true }).tap();
   const ring = (JSON.parse((await page.locator('#routine').getAttribute('data-spots'))!).ring as string).split(',').map(Number);
   await page.mouse.click(ring[0], ring[1]);
-  await expect(page.locator('#say')).toHaveText(t.routineFirst(t.steps.open));
+  await expect(page.locator('#say')).toHaveText(t.routineFirst(t.steps.open, t.things.hand));
+  // and lights up what to take and where (#124): the hand, the box
+  await expect(page.locator('[data-thing].lit')).toHaveAttribute('data-thing', 'hand');
+  await expect(page.locator('#spot-hint')).toBeVisible();
+  await expect(page.locator('#spot-names')).toContainText(t.spots.tack!);
+  await page.screenshot({ path: test.info().outputPath('routine-hint.png') });
   await playRoutine(page);
   await expect(page.locator('#routine-end')).toContainText(t.routineDone('Kiwi', false));
   const after = await kiwi();
