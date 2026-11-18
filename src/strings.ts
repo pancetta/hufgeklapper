@@ -429,7 +429,7 @@ export const t = {
   pastureLabel: (used: number, all: number) => `Weide ${used}/${all}`,
   pastureGrow: (places: number, cost: number) => `Weide vergrößern: +${places} Plätze für ${cost}\u00a0€`,
   pastureGrown: 'Die Weide ist größer! Der neue Zaun steht.',
-  pastureWaits: { stage: 'Erst wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links.', built: 'Größer geht die Weide nicht.', money: 'Dafür reicht das Geld noch nicht.' } as Record<string, string>,
+  pastureWaits: { stage: 'Erst wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links auf dem Hof.', built: 'Größer geht die Weide nicht.', money: 'Dafür reicht das Geld noch nicht.' } as Record<string, string>,
 
   tooExpensive: 'zu teuer',
   boughtHorse: (name: string) => `${name} wohnt jetzt bei dir!`,
@@ -449,7 +449,7 @@ export const t = {
   buildStalls: (cost: number) => `Stallplätze bauen (${cost}\u00a0€)`,
   upgradeArena: (cost: number) => `Reitplatz ausbauen (${cost}\u00a0€)`,
   brings: { stalls: 'Ein Offenstall mit zwei Plätzen für neue Pferde.', arena: 'Ein schönerer Reitplatz: Jeden Tag kommt ein Reitschüler mehr.' },
-  buildWaits: { stage: 'Bauen kannst du erst, wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
+  buildWaits: { stage: 'Bauen kannst du erst, wenn dein Hof eine Reitschule ist. Erledige dafür die Aufgaben oben links auf dem Hof.', built: 'Schon gebaut!', money: 'Dafür reicht das Geld noch nicht.' },
   builtStalls: 'Der Offenstall ist fertig. Jetzt passen zwei Pferde mehr hinein.',
   builtArena: 'Der Reitplatz ist schöner geworden. Jetzt kommt jeden Tag ein Reitschüler mehr.',
   hints: {
