@@ -240,7 +240,7 @@ canvas { image-rendering: pixelated; }
 .routine-bar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 22 * var(--px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: calc(4 * var(--px)); align-items: center;
   font-size: calc(var(--fs) * 8 * var(--px)); color: var(--paper); text-shadow: var(--px) var(--px) 0 var(--wood-dark); }
 .overlay.ride { padding: 0; background: var(--wood-dark); }
-.stat.debt { color: #b23a2b; }
+.topbar .stat.debt { color: #b23a2b; font-size: calc(var(--fs) * 10 * var(--px)); padding: calc(2 * var(--px)) calc(7 * var(--px)); } /* a button: tap to pay back (#121) */
 .status { color: #3c7a2a; }
 .status.sick { color: #c0392b; }
 
